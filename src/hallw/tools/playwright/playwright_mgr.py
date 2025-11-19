@@ -138,6 +138,10 @@ async def browser_close() -> str:
 
     if pw is not None:
         await pw.stop()
+        set_pw(None)
+        set_browser(None)
+        set_context(None)
+        await set_page(None)
 
     if KEEP_BROWSER_OPEN:
         logger.info("KEEP_BROWSER_OPEN is enabled; leaving Chrome open.")
