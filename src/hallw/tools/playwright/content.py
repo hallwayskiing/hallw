@@ -46,6 +46,12 @@ async def browser_get_content(segment: int) -> str:
     segments = (len(content) + MAX_PAGE_CONTENT_CHARS - 1) // MAX_PAGE_CONTENT_CHARS
     offset = MAX_PAGE_CONTENT_CHARS * segment
 
+    if segment >= segments:
+        return build_tool_response(
+            False,
+            f"Segment index {segment} out of range. Total segments: {segments}.",
+        )
+
     return build_tool_response(
         True,
         "Fetched page content segment.",
