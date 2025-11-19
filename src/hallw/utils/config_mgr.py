@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     file_max_read_chars: int = 5000
 
     # =================================================
+    # 6. Interactive settings
+    # =================================================
+    allow_ask_info_tool: bool = True
+
+    # =================================================
     # Pydantic config
     # =================================================
     model_config = SettingsConfigDict(
