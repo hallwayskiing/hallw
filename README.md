@@ -1,0 +1,256 @@
+# HALLW 🤖
+
+[](https://opensource.org/licenses/Apache-2.0)
+[](https://www.python.org/downloads/)
+[](https://github.com/langchain-ai/langgraph)
+[](https://playwright.dev/)
+
+**HALLW** (Hyper-Automation-Large-Language-Wizard) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
+
+> **Simply tell it what to do, and watch it work.**
+
+## ✨ Key Features
+
+### 🌐 Autonomous Browser Control
+
+  - **Full Interaction**: Clicks, types, and navigates websites like a human via Chrome DevTools Protocol (CDP).
+  - **Smart Search**: Performs Google searches and intelligently parses results.
+  - **Resilient**: Handles timeouts, CAPTCHA (manual intervention), and dynamic content loading.
+  - **Profile Persistence**: Can use your local Chrome profile to skip logins and retain cookies.
+
+### 🧠 Advanced Reasoning Engine
+
+  - **Self-Correcting**: Uses a **Reflection Loop**. If a tool fails (e.g., element not found), the agent analyzes the error and tries a different strategy automatically.
+  - **State Machine**: Built on **LangGraph**, ensuring deterministic state transitions and memory management.
+  - **Model Agnostic**: Works with any OpenAI-compatible API (GPT-4o, Gemini 2.0, Claude via proxies).
+
+### 📁 Local System Operations
+
+  - **File Management**: Read, write, and analyze local files (PDF, Markdown, Code, JSON).
+  - **Data Extraction**: Scrape web content and save it directly to local reports.
+
+-----
+
+## 🚀 Quick Start (For Users)
+
+No coding knowledge required. Follow these steps to get started:
+
+### 1\. Download & Prepare
+
+Clone this repository or download the ZIP file.
+
+```bash
+git clone https://github.com/hallwayskiing/hallw.git
+cd hallw
+```
+
+### 2\. Configure Environment
+
+Copy the example configuration file and edit it with your API keys.
+
+```bash
+# Windows
+copy .env.example .env
+```
+
+**Edit `.env`** and set your LLM credentials:
+
+```env
+MODEL_API_KEY=your-api-key-here
+MODEL_NAME=gemini-2.0-flash  # or gpt-4o
+```
+
+### 3. Run!
+
+- **Windows**: Double-click **`start.bat`** (or run it from PowerShell by `.\start.bat`).
+- **Linux/macOS**: Make it executable once with `chmod +x start.sh`, then run `./start.sh`.
+
+Both launchers automatically detect conda environment or create the virtual environment, install dependencies (including Playwright binaries), and start the interactive console.
+
+-----
+
+## 💻 Usage (For Developers)
+
+If you prefer using the command line or want to integrate HALLW into your workflow.
+
+### Installation
+
+```bash
+# Install via pip in editable mode
+pip install -e .
+
+# Install browser binaries
+playwright install chromium
+```
+
+### Running Tasks
+
+You can run the agent directly via `main.py`:
+
+```bash
+# Syntax
+python main.py "Your task description"
+
+# Examples
+python main.py "Search for the latest AI news and save summaries to news.md"
+python main.py "Go to GitHub, find the LangGraph repo, and summarize its README"
+```
+
+### Interactive Mode
+
+If you run without arguments, it launches an interactive prompt:
+
+```bash
+python main.py
+```
+
+-----
+
+## ⚙️ Configuration Guide
+
+All settings are managed via `.env`.
+
+### 🧠 Model Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MODEL_NAME` | The LLM model ID to use | `gemini-2.0-flash` |
+| `MODEL_ENDPOINT` | Base URL for the API | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `MODEL_API_KEY` | **Required** API Key | - |
+| `MODEL_TEMPERATURE` | Creativity (0.0 - 1.0) | `0.25` |
+
+### 🌐 Browser Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CHROME_USER_DATA_DIR` | Path to local Chrome profile (keeps you logged in) | `None` (Incognito) |
+| `PW_HEADLESS_MODE` | Run without visible window (`True`/`False`) | `False` |
+| `KEEP_BROWSER_OPEN` | Keep window open after task finishes | `True` |
+| `SEARCH_RESULT_COUNT` | Google search depth | `5` |
+
+-----
+
+## 🏗️ Architecture
+
+HALLW is built on a modular architecture designed for extensibility.
+
+### Directory Structure
+
+```text
+hallw/
+├── logs/               # Execution logs
+├── src/
+│   └── hallw/
+│       ├── agent.py    # LangGraph State Machine
+│       ├── tools/      # Auto-discovered Tool Modules
+│       │   ├── playwright/ # Browser Tools
+│       │   └── file/       # File System Tools
+│       └── utils/      # Config & Logger
+├── main.py             # Application Entry Point
+├── start.bat           # One-click Launcher
+├── requirements.txt    # Frozen Dependencies
+└── pyproject.toml      # Package Metadata
+```
+
+### Agent Workflow (The Graph)
+```
+                 +-----------------------+
+                 |     🚀 User Task      |
+                 +-----------+-----------+
+                             |
+                             v
+          .-------------------------------------.
+          |         🧠 AGENT CORE (LLM)         |
+          |-------------------------------------|
+          |                                     |
+          |        +-------------------+        |
+      +---|------->|  👁️ Observe State |        |
+      |   |        +---------+---------+        |
+      |   |                  |                  |
+      |   |                  v                  |
+      |   |        +-------------------+        |
+      |   |        |  ⚡ Decide Step   |        |
+      |   |        +---------+---------+        |
+      |   |                  |                  |
+      |   '------------------|------------------'
+      |                      |
+      |            +---------+---------+
+      |            |                   |
+      |        [Action]            [Finish]
+      |            |                   |
+      |            v                   v
+      |   .-----------------.  +-----------------------+
+      |   |   🛠️ Execute    | |   ✨ Task Complete    |
+      |   |-----------------|  +-----------------------+
+      |   | +-------------+ |
+      |   | | 💻 Run Tool | |
+      |   | +------+------+ |
+      |   |        |        |
+      |   |        v        |
+      |   | < ✅ Success? > |
+      |   '--------+--------'
+      |            |
+      |      +-----+-----+
+      |      |           |
+      |    [Yes]        [No]
+      |      |           |
+      |      |           v
+      |      |   .-----------------------.
+      |      |   |    🛡️ REFLECTION      |
+      |      |   |----------------------- |
+      |      |   |  < ⚠️ Retry Limit? >  |
+      |      |   |    /            \      |
+      |      |   |  (No)          (Yes)   |
+      |      |   |   |              |     |
+      |      |   |   v              v     |
+      |      |   | [Retry]      [Reflect] |
+      |      |   |               & Plan   |
+      |      |   '---+---------------+--- '
+      |      |       |               |
+      +------+-------+---------------+
+```
+1.  **Observe**: The agent reads the state and conversation history.
+2.  **Reason**: The LLM decides which tool to call.
+3.  **Act**: The tool (e.g., Playwright) executes the action.
+4.  **Reflect**: If an error occurs (e.g., Selector not found), the failure counter increments. If it hits the threshold, the agent enters **Reflection Mode** to analyze why it failed and plan a fix.
+
+-----
+
+## 🛠️ Extending HALLW
+
+Adding new capabilities is easy thanks to the auto-discovery system.
+
+1.  Create a new python file in `src/hallw/tools/`.
+2.  Define a function decorated with `@tool`.
+3.  It will be automatically loaded next time you run the agent.
+
+<!-- end list -->
+
+```python
+# src/hallw/tools/my_custom_tool.py
+from langchain_core.tools import tool
+
+@tool
+def get_system_time() -> str:
+    """Returns the current system time."""
+    import datetime
+    return str(datetime.datetime.now())
+```
+
+-----
+
+## ⚠️ Disclaimer & Security
+
+  - **Local Access**: This agent runs locally on your machine. It has access to your file system and browser.
+  - **API Costs**: Using LLMs (OpenAI, Gemini, etc.) may incur costs based on token usage.
+  - **Sandboxing**: It is recommended to run this in a virtual machine or a controlled environment if you are executing untrusted prompts.
+
+## 📄 License
+
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+
+## 📮 Contact
+
+**Author:** Ethan Nie
+**GitHub:** [hallwayskiing](https://github.com/hallwayskiing)
+**Issues:** Please report bugs via [GitHub Issues](https://github.com/hallwayskiing/hallw/issues).

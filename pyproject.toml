@@ -1,0 +1,142 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hallw"
+version = "0.1.0"
+description = "An AI automation agent with LangGraph and Playwright"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Ethan Nie", email = "ethannie88@gmail.com"}
+]
+keywords = ["ai", "agent", "automation", "langchain", "langgraph", "playwright", "browser-use"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "langchain>=1.0.5",
+    "langchain_core>=1.0.5",
+    "langchain_openai>=1.0.2",
+    "langgraph>=0.2.20",
+    "playwright>=1.56.0",
+    "playwright_stealth>=2.0.0",
+    "psutil>=7.0.0",
+    "PyPDF2>=3.0.1",
+    "pydantic>=2.12.0",
+    "pydantic-settings>=2.12.0",
+    "typer>=0.20.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/hallwayskiing/hallw"
+"Bug Tracker" = "https://github.com/hallwayskiing/hallw/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["hallw"]
+skip_glob = ["*/__pycache__/*", "*/build/*", "*/dist/*"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "normal"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "playwright.*",
+    "playwright_stealth.*",
+    "pyautogui.*",
+    "PIL.*",
+    "PyPDF2.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["hallw"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hallw*"]
+namespaces = false
