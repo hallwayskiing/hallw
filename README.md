@@ -22,7 +22,7 @@
 
   - **Self-Correcting**: Uses a **Reflection Loop**. If a tool fails (e.g., element not found), the agent analyzes the error and tries a different strategy automatically.
   - **State Machine**: Built on **LangGraph**, ensuring deterministic state transitions and memory management.
-  - **Model Agnostic**: Works with any OpenAI-compatible API (GPT-4o, Gemini 2.0, Claude via proxies).
+  - **Model Agnostic**: Works with any OpenAI-compatible API
 
 ### 📁 Local System Operations
 
@@ -57,7 +57,7 @@ copy .env.example .env
 
 ```env
 MODEL_API_KEY=your-api-key-here
-MODEL_NAME=gemini-2.0-flash  # or gpt-4o
+MODEL_NAME=gemini-2.0-flash  # recommended for free usage in Google AI Lab
 ```
 
 ### 3. Run!
@@ -77,7 +77,7 @@ If you prefer using the command line or want to integrate HALLW into your workfl
 
 ```bash
 # Install via pip in editable mode
-pip install -e .
+pip install -e ". [dev]"
 
 # Install browser binaries
 playwright install chromium
@@ -138,7 +138,7 @@ HALLW is built on a modular architecture designed for extensibility.
 
 ```text
 hallw/
-├── logs/               # Execution logs
+├── logs/               # Task logs
 ├── src/
 │   └── hallw/
 │       ├── agent.py    # LangGraph State Machine
