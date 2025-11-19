@@ -91,9 +91,14 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         stats = state["stats"]
 
         hint_message = f"""
-        You have encountered {stats['failures']} consecutive failures in the previous steps.
-        Please reflect by explicitly reasoning about the previous steps,
-        adjust your approach accordingly and arrange the next actions.
+        System Notification:
+        You have accumulated a total of {stats['failures']} failures during this task so far.
+        The most recent action also failed.
+
+        Please stop and reflect:
+        1. Analyze why the previous steps failed.
+        2. Adjust your plan to avoid repeating the same mistakes.
+        3. Propose the next correct tool call.
         """
 
         response = await model.ainvoke(
@@ -101,7 +106,6 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         )
         stats["input_tokens"] += response.usage_metadata.get("input_tokens")
         stats["output_tokens"] += response.usage_metadata.get("output_tokens")
-        stats["failures"] = 0  # reset failures after reflection
 
         if response.content:
             end = response.content.find("<")
@@ -115,7 +119,10 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         if state["task_completed"]:
             return "end"
 
-        if state["stats"]["failures"] >= 3:
+        if state["stats"]["failures"] > 0 and state["stats"]["failures"] % 3 == 0:
+            state["stats"][
+                "failures"
+            ] += 1  # Add extra count to avoid looping, will be removed in final stats
             return "reflection"
 
         return "model"

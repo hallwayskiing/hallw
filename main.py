@@ -64,6 +64,9 @@ async def run_task(user_task: str):
         logger.info("=" * 30)
         logger.info("Statistics:")
         stats = initial_state["stats"]
+        stats["failures"] = (
+            stats["failures"] - max(0, (stats["failures"] - 1)) // 3
+        )  # Remove extra failure counts
         for key, value in stats.items():
             logger.info(f"  - {key}: {value}")
         logger.info("=" * 30)
