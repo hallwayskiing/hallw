@@ -8,7 +8,9 @@ def generateToolsDesc() -> str:
     """
     descs = []
     for tool_name, tool_obj in tools_dict.items():
-        descs.append(f"- {tool_name}({list(tool_obj.args.keys())}): {tool_obj.description}")
+        descs.append(
+            f"- {tool_name}({list(tool_obj.args.keys())}): {tool_obj.description}"
+        )
     return "\n".join(descs)
 
 
@@ -69,6 +71,7 @@ def generatePrompt(user_task: str) -> str:
 
     (E) Response Format
     - You must provide valid tool calls or explicit reasoning chains.
+    - Use markdown style for all your plain responses, for they will be shown in a markdown viewer to users.
 
     **Now analyze the screenshot and take actions.
     """
