@@ -5,6 +5,13 @@
 [](https://github.com/langchain-ai/langgraph)
 [](https://playwright.dev/)
 
+<div align='center'>
+
+https://github.com/user-attachments/assets/4f9dc9a1-6f2b-4303-956a-d61cf2346e17
+
+<p><em>Demo for 'gather gemini-3.0 infos and give me a summary in markdown'</em></p>
+</div>
+
 **HALLW** (Hyper-Automation-Large-Language-Wizard) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
 
 > **Simply tell it what to do, and watch it work.**
