@@ -73,5 +73,5 @@ def generatePrompt(user_task: str) -> str:
     - You must provide valid tool calls or explicit reasoning chains.
     - Use markdown style for all your plain responses, for they will be shown in a markdown viewer to users.
 
-    **Now analyze the screenshot and take actions.
+    **Now analyze the task, arrange your plan, and take actions.
     """
