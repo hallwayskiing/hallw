@@ -50,7 +50,8 @@ class Settings(BaseSettings):
     # =================================================
     # 5. File Operations
     # =================================================
-    file_base_dir: str = "."
+    file_read_dir: str = "."
+    file_save_dir: str = "generated_by_hallw/"
     file_max_read_chars: int = 5000
 
     # =================================================

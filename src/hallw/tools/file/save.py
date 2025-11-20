@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from langchain_core.tools import tool
@@ -80,30 +81,60 @@ def file_append(file_path: str, content: str) -> str:
 
 def _resolve_target_path(rel_path: str, default_ext: str = None) -> Path:
     """
-    Helper to resolve safe paths, ensure parent dirs exist, and handle extensions.
-    Raises ValueError if path attempts to escape the base directory.
+    Fully robust version:
+    - Validates base_dir (config.file_save_dir)
+    - Secures path traversal
+    - Rejects illegal filename characters (Windows + POSIX safe)
+    - Handles missing/invalid extensions cleanly
+    - Auto-create directory tree
     """
-    base_dir = Path(config.file_base_dir).resolve()
+    # 0. Load base directory
+    base_dir_raw = getattr(config, "file_save_dir", None)
+    if not base_dir_raw:
+        raise ValueError("config.file_save_dir is not set or empty.")
 
-    # strip leading slashes to ensure it treats it as relative
-    clean_rel_path = rel_path.lstrip("/\\")
+    base_dir = Path(base_dir_raw).expanduser().resolve()
+
+    # 1. base_dir validation
+    if base_dir.exists() and not base_dir.is_dir():
+        raise ValueError(f"Configured file_save_dir '{base_dir}' is not a directory.")
+
+    # Auto-create save directory
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    # 2. Strip leading slashes (force relative)
+    clean_rel_path = rel_path.lstrip("/\\").strip()
+
+    if not clean_rel_path:
+        raise ValueError("Relative file path must not be empty or only slashes.")
+
+    # 3. Illegal character check (Windows forbidden set, also safe for Linux)
+    #    <>:"/\|?* are dangerous or invalid across platforms
+    illegal_chars = r'[<>:"/\\|?*\x00-\x1F]'
+    if re.search(illegal_chars, Path(clean_rel_path).name):
+        raise ValueError(
+            f"Path '{clean_rel_path}' contains illegal characters "
+            '(<>:"/\\|?* or control chars are not allowed).'
+        )
+
+    # 4. Build absolute path
     target_path = (base_dir / clean_rel_path).resolve()
 
-    # 1. Security Check: Path Traversal Prevention
-    # Ensures that 'target_path' is actually inside 'base_dir'
+    # 5. Path traversal protection
     if not target_path.is_relative_to(base_dir):
-        raise ValueError(f"Access denied: Path '{rel_path}' is outside the allowed directory.")
+        raise ValueError(f"Access denied: Path '{rel_path}' escapes the save directory.")
 
-    # 2. Extension Handling
-    # If the file has no extension and a default is provided, add it.
-    if default_ext and not target_path.suffix:
-        # Ensure format doesn't duplicate dot (e.g., format=".md" vs "md")
+    # 6. Extension normalization
+    # Reject paths that end with a bare dot ("file.")
+    if target_path.name.endswith("."):
+        raise ValueError("File name cannot end with a bare '.'")
+
+    # Apply default extension only when no valid suffix
+    if default_ext and target_path.suffix == "":
         ext = default_ext if default_ext.startswith(".") else f".{default_ext}"
         target_path = target_path.with_suffix(ext)
 
-    # 3. Directory Creation
-    # Automatically create parent folders (mkdir -p)
-    if not target_path.parent.exists():
-        target_path.parent.mkdir(parents=True, exist_ok=True)
+    # 7. Create parent directories for the final path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
 
     return target_path

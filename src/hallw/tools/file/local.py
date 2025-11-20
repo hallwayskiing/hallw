@@ -24,7 +24,7 @@ def get_local_file_list(patterns: str = "*") -> str:
     """
     try:
         # Resolve the base directory from configuration
-        base = Path(config.file_base_dir).resolve()
+        base = Path(config.file_read_dir).resolve()
         cwd = Path.cwd()
 
         if not base.exists():

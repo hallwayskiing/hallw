@@ -24,7 +24,7 @@ def file_read(file_path: str) -> str:
     """
     try:
         # Resolve path relative to configured base dir
-        base_dir = Path(config.file_base_dir).resolve()
+        base_dir = Path(config.file_read_dir).resolve()
         target_path = (base_dir / file_path).resolve()
 
         if not target_path.exists():
@@ -118,11 +118,11 @@ def _read_json(path: str) -> str:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return json.dumps(data, indent=2, ensure_ascii=False)
-    except Exception as e:
+    except Exception:
         # If JSON parse fails, try reading as plain text instead of crashing
         try:
             return _read_any_text(path)
-        except:
+        except Exception as e:
             raise ValueError(f"Failed to parse JSON: {e}")
 
 

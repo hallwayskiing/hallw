@@ -1,6 +1,7 @@
 # Self defined
 .chrome*
 *.log
+generated_by_hallw/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
