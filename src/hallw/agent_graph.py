@@ -8,7 +8,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from hallw.agent_state import AgentState
-from hallw.utils import config as hallw_config, logger
+from hallw.utils import config as hallw_config
+from hallw.utils import logger
 
 
 def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
@@ -22,15 +23,11 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
             raise RuntimeError("Model returned no response")
 
         if response.usage_metadata:
-            state["stats"]["input_tokens"] += response.usage_metadata.get(
-                "input_tokens", 0
-            )
-            state["stats"]["output_tokens"] += response.usage_metadata.get(
-                "output_tokens", 0
-            )
+            state["stats"]["input_tokens"] += response.usage_metadata.get("input_tokens", 0)
+            state["stats"]["output_tokens"] += response.usage_metadata.get("output_tokens", 0)
 
         if response.content:
-            logger.info(f"HALLW: {response.content.strip().replace('\n', '')}")
+            logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
 
         return {
             "messages": [response],
@@ -44,14 +41,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         stats = state["stats"]
         messages = []
         if not tool_calls:
-            warning_msg = (
-                "No tool call found in the your response. Please specify tools to call."
-            )
-            return {
-                "messages": [HumanMessage(content=warning_msg)],
-                "task_completed": state["task_completed"],
-                "stats": stats,
-            }
+            warning_msg = "No tool call found in the your response. Please specify tools to call."
+            messages.append(HumanMessage(content=warning_msg))
+            stats["failures"] += 1
 
         for tool_call in tool_calls:
             tool_id = tool_call.get("id")
@@ -79,8 +71,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
             success = json.loads(tool_response).get("success")
 
             # Log tool call result to file
+            format_tool_args = str(tool_args)[1:-1][: hallw_config.max_message_chars]
             logger.info(
-                f"[{stats['tool_call_counts']}] {tool_name}({str(tool_args)[1:-1][:hallw_config.max_message_chars]}"
+                f"[{stats['tool_call_counts']}] {tool_name}({format_tool_args})"
                 + f"{'...' if len(str(tool_args)[1:-1]) > hallw_config.max_message_chars else ''})"
                 + f" => {'✅' if success else '❌'}"
             )

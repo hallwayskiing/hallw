@@ -1,13 +1,14 @@
 import asyncio
 import warnings
-from langsmith import uuid7
-from typer import Typer, Argument
+
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langsmith import uuid7
 from rich.align import Align
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
+from rich.panel import Panel
+from typer import Argument, Typer
 
 from hallw import AgentState, build_graph, tools_dict
 from hallw.tools.playwright.playwright_mgr import browser_close
@@ -72,12 +73,12 @@ async def run_task(user_task: str) -> None:
         ):
             renderer.handle_event(event)
 
-        logger.info("Task has been completed successfully.")
-
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
+        console.print(Panel("Interrupted by user.", title="Warning", style="red"))
     except Exception as exc:  # pylint: disable=broad-except
         logger.error(f"A fatal error occurs: {exc}")
+        console.print(Panel(f"{exc}", title="Fatal Error", style="red"))
     finally:
         renderer.stop()
         stats = initial_state["stats"]
@@ -86,9 +87,7 @@ async def run_task(user_task: str) -> None:
         for key, value in stats.items():
             statistics += f"  - {key}: {value}\n"
         logger.info(statistics)
-        console.print(
-            Panel(Markdown(statistics), title="Task Statistics", style="bold white")
-        )
+        console.print(Panel(Markdown(statistics), title="Task Statistics", style="bold white"))
         await browser_close()
 
 
@@ -109,9 +108,7 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
 
     asyncio.run(run_task(user_task))
 
-    console.print(
-        Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue")
-    )
+    console.print(Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue"))
 
 
 if __name__ == "__main__":

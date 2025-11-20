@@ -22,15 +22,21 @@ class AgentRenderer:
         self._tool_call_buffer: Dict[int, Dict[str, str]] = {}
 
     # ------------------------------------------------------------------
+    # Protocol for Rich Live
+    # ------------------------------------------------------------------
+    def __rich__(self) -> Group:
+        return self._render()
+
+    # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def start(self) -> None:
         """Start the live display."""
         if self.live is None:
             self.live = Live(
-                self._render(),
+                self,
                 console=self.console,
-                refresh_per_second=12,
+                refresh_per_second=8,
                 transient=True,
                 vertical_overflow="visible",
             )
@@ -54,6 +60,8 @@ class AgentRenderer:
             chunk = data.get("chunk")
             if chunk is not None:
                 self.on_llm_chunk(chunk)
+        elif kind == "on_chat_model_end":
+            self.on_llm_end()
         elif kind == "on_tool_start":
             self.on_tool_start(name=name, args=data.get("input"))
         elif kind == "on_tool_end":
@@ -64,35 +72,42 @@ class AgentRenderer:
     # ------------------------------------------------------------------
     def on_llm_start(self) -> None:
         """Handle the start of an LLM generation."""
-        self.current_response = {"text": "", "tool_calls": []}
+        self.current_response = {"text": "Thinking...", "tool_calls": []}
         self._tool_call_buffer = {}  # Clear tool call buffer
         self.start()  # Ensure live is running
-        self.refresh()
+
+    def on_llm_end(self) -> None:
+        """Handle the end of LLM generation."""
+        if self.current_response and not self.current_response["tool_calls"]:
+            self.stop()
+            self._print_response(self.current_response)
+            self.console.print(self._tool_panel({"tool_calls": ["No tool call in this response."]}))
+            self.current_response = None
+            self._tool_call_buffer = {}
 
     def on_llm_chunk(self, chunk: Any) -> None:
         """Handle streaming chunks from the LLM."""
         if not self.current_response:
             self.current_response = {"text": "", "tool_calls": []}
 
+        if self.current_response["text"] == "Thinking...":
+            self.current_response["text"] = ""
+
         # 1. Handle text stream
         self.current_response["text"] += self._extract_text(chunk)
 
         # 2. Handle tool call stream (tool_call_chunks)
-        # LangChain/OpenAI stream args in fragments, so we must accumulate them.
         tc_chunks = getattr(chunk, "tool_call_chunks", [])
         if tc_chunks:
             for tc in tc_chunks:
                 idx = tc.get("index", 0)
 
-                # Initialize buffer for this index
                 if idx not in self._tool_call_buffer:
                     self._tool_call_buffer[idx] = {"name": "", "args": ""}
 
-                # Accumulate name (usually only in the first chunk)
                 if tc.get("name"):
                     self._tool_call_buffer[idx]["name"] += tc["name"]
 
-                # Accumulate args (character-level concatenation)
                 if tc.get("args"):
                     self._tool_call_buffer[idx]["args"] += tc["args"]
 
@@ -103,25 +118,21 @@ class AgentRenderer:
                 name = entry["name"] or "unknown"
                 raw_args = entry["args"]
 
-                # Attempt to prettify JSON args if possible
                 formatted_args = raw_args
                 try:
                     if raw_args.strip().endswith("}"):
                         parsed = json.loads(raw_args)
                         formatted_args = json.dumps(parsed, ensure_ascii=False)
                 except json.JSONDecodeError:
-                    # JSON is likely incomplete during streaming; show raw string
                     pass
 
                 display_calls.append(f"{name}: {formatted_args}")
 
             self.current_response["tool_calls"] = display_calls
 
-        self.refresh()
-
     def on_tool_start(self, name: str, args: Any) -> None:
         """Handle the start of a tool execution."""
-        # 1. If we were streaming an LLM response, finish it and print cleanly.
+        # 1. If we were streaming an LLM response (with tool calls), finish it.
         if self.current_response:
             self.stop()
             self._print_response(self.current_response)
@@ -137,13 +148,12 @@ class AgentRenderer:
             }
         )
 
-        # 3. [CRITICAL] For interactive tools, do NOT start Live mode.
-        # We must keep Live stopped to allow `console.input()` to work without conflict.
+        # 3. For interactive tools, stop Live to allow input.
         if name == "ask_for_more_info":
             self.stop()
             return
 
-        # For normal tools, start Live to show the spinner.
+        # For normal tools, ensure Live is active.
         self.start()
         self.refresh()
 
@@ -164,7 +174,6 @@ class AgentRenderer:
             found_tool["output"] = output
 
             # Stop live to print the result permanently.
-            # This ensures the finished tool is printed as a static block.
             self.stop()
             self._print_tool(found_tool)
 
@@ -177,7 +186,7 @@ class AgentRenderer:
     # Rendering helpers
     # ------------------------------------------------------------------
     def refresh(self) -> None:
-        """Update the live display if active."""
+        """Update the live display manually (use sparingly)."""
         if self.live:
             self.live.update(self._render())
 
@@ -197,7 +206,7 @@ class AgentRenderer:
 
         # Show a placeholder if nothing is rendering to keep Live active
         if not renderables:
-            renderables.append(Panel("...", title="🤖 HALLW", border_style="blue"))
+            renderables.append(Panel("Thinking...", title="🤖 HALLW", border_style="blue"))
 
         return Group(*renderables)
 
@@ -210,15 +219,13 @@ class AgentRenderer:
         self.console.print(self._tool_status_panel(tool_data))
 
     def _content_panel(self, response: Dict[str, Any]) -> Panel:
-        markdown = Markdown(
-            response["text"].strip().replace("\n", ""), style="bold blue"
-        )
+        markdown = Markdown(response["text"].strip(), style="bold blue")
         return Panel(markdown, title="🤖 HALLW", border_style="bold blue")
 
     def _tool_panel(self, response: Dict[str, Any]) -> Panel:
         calls = response["tool_calls"]
         body = "\n".join(calls)
-        markdown = Markdown(body, style="bold yellow")
+        markdown = Markdown(body.strip(), style="bold yellow")
         return Panel(markdown, title="⚡ Tool Plan", border_style="bold yellow")
 
     def _tool_status_panel(self, log: Dict[str, Any]) -> Panel:
@@ -261,19 +268,3 @@ class AgentRenderer:
             return bool(payload.get("success", True))
 
         return "true" in str(output).lower()
-
-    def _short_text(self, value: Any, limit: int = 120) -> str:
-        if isinstance(value, (dict, list)):
-            text = json.dumps(value, ensure_ascii=False)
-        else:
-            text = str(value)
-        return text if len(text) <= limit else f"{text[:limit]}..."
-
-    def _get_value(self, obj: Any, key: str, default: Any = None) -> Any:
-        if hasattr(obj, key):
-            return getattr(obj, key)
-        if isinstance(obj, dict):
-            return obj.get(key, default)
-        if hasattr(obj, "__dict__") and key in obj.__dict__:
-            return obj.__dict__[key]
-        return default
