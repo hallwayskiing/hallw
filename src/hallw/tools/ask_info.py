@@ -4,7 +4,6 @@ from typing import Optional
 
 from langchain_core.tools import tool
 from rich.console import Console
-from rich.panel import Panel
 
 from hallw.tools import build_tool_response
 from hallw.utils import config
@@ -25,7 +24,6 @@ def ask_for_more_info(question: str) -> str:
             False, "User does not accept interactive questions for this task."
         )
 
-    console.print(Panel.fit(f"{question}", title="HALLW Asks", border_style="blue"))
     response = get_user_input(timeout=60)
 
     if response is None:

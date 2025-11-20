@@ -65,7 +65,7 @@ MODEL_NAME=gemini-2.0-flash  # recommended for free usage in Google AI Lab
 - **Windows**: Double-click **`start.bat`** (or run it from PowerShell by `.\start.bat`).
 - **Linux/macOS**: Make it executable once with `chmod +x start.sh`, then run `./start.sh`.
 
-Both launchers automatically detect conda environment or create the virtual environment, install dependencies (including Playwright binaries), and start the interactive console.
+Both launchers automatically download uv, install dependencies (including Playwright binaries), and start the interactive console.
 
 -----
 

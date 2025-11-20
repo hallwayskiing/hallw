@@ -8,47 +8,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial project setup
-- LangGraph-based state machine agent
-- Browser automation via Playwright CDP
-- File operations with multi-format support
-- Tool auto-discovery system
-- Configuration management with Pydantic
-- Comprehensive logging and statistics
+- *Nothing yet.*
+
+## [0.2.0] - 2025-11-19
+
+### Added
+- Support stream output of LLM.
+- Use Rich to build a friendly terminal user interface (TUI).
+- Complete log system.
 
 ### Changed
-
-### Deprecated
+- Improved file operations logic (path resolution and format handling).
+- Switched to **uv** for package and environment management (replaced Conda/pip workflow).
 
 ### Removed
-
-### Fixed
-
-### Security
+- Removed `requirements.txt` in favor of `uv.lock`.
 
 ## [0.1.0] - 2025-11-19
 
 ### Added
-- Initial release of HALLW
-- Core agent functionality with LangGraph
+- Initial release of HALLW.
+- Core agent functionality with LangGraph.
 - Playwright browser automation tools:
-  - `browser_goto`: Navigate to URLs
-  - `browser_click`: Click elements by ARIA role
-  - `browser_fill`: Fill form inputs
-  - `browser_search`: Google search with CAPTCHA detection
-  - `browser_get_content`: Extract page content
-  - `browser_get_structure`: Get page structure
+  - `browser_goto`: Navigate to URLs.
+  - `browser_click`: Click elements by ARIA role.
+  - `browser_fill`: Fill form inputs.
+  - `browser_search`: Google search with CAPTCHA detection.
+  - `browser_get_content`: Extract page content.
+  - `browser_get_structure`: Get page structure.
 - File operation tools:
-  - `file_read`: Read multiple file formats (txt, md, json, yaml, csv, html, pdf)
-  - `file_save`: Save content to text files
-  - `file_append`: Append content to files
-  - `get_local_file_list`: List files with glob patterns
+  - `file_read`: Read multiple file formats (txt, md, json, yaml, csv, html, pdf).
+  - `file_save`: Save content to text files.
+  - `file_append`: Append content to files.
+  - `get_local_file_list`: List files with glob patterns.
 - Utility tools:
-  - `ask_for_more_info`: Interactive user queries
-  - `finish_task`: Task completion signal
-- Self-correcting mechanism with reflection
-- Comprehensive configuration via environment variables
-- Statistics tracking (tool calls, failures, token usage)
+  - `ask_for_more_info`: Interactive user queries.
+  - `finish_task`: Task completion signal.
+- Self-correcting mechanism with reflection.
+- Comprehensive configuration via environment variables.
+- Statistics tracking (tool calls, failures, token usage).
 
-[Unreleased]: https://github.com/hallwayskiing/hallw/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hallwayskiing/hallw/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hallwayskiing/hallw/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/hallwayskiing/hallw/releases/tag/v0.1.0

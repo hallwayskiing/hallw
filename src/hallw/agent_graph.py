@@ -8,15 +8,26 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from hallw.agent_state import AgentState
-from hallw.utils import config as hallw_config
-from hallw.utils import logger
+from hallw.utils import config as hallw_config, logger
 
 
 def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
     async def call_model(state: AgentState, config: RunnableConfig) -> AgentState:
-        response = await model.ainvoke(state["messages"], config=config)
-        state["stats"]["input_tokens"] += response.usage_metadata.get("input_tokens")
-        state["stats"]["output_tokens"] += response.usage_metadata.get("output_tokens")
+        response = None
+
+        async for chunk in model.astream(state["messages"], config=config):
+            response = chunk if response is None else response + chunk
+
+        if response is None:
+            raise RuntimeError("Model returned no response")
+
+        if response.usage_metadata:
+            state["stats"]["input_tokens"] += response.usage_metadata.get(
+                "input_tokens", 0
+            )
+            state["stats"]["output_tokens"] += response.usage_metadata.get(
+                "output_tokens", 0
+            )
 
         if response.content:
             end = response.content.find("<")
@@ -36,7 +47,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         stats = state["stats"]
         messages = []
         if not tool_calls:
-            warning_msg = "No tool call found in the your response. Please specify tools to call."
+            warning_msg = (
+                "No tool call found in the your response. Please specify tools to call."
+            )
             return {
                 "messages": [HumanMessage(content=warning_msg)],
                 "task_completed": state["task_completed"],
@@ -58,7 +71,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
                 stats["failures"] += 1
                 continue
 
-            tool_response = await tool_obj.ainvoke(tool_args)
+            tool_response = await tool_obj.ainvoke(tool_args, config=config)
 
             stats["tool_call_counts"] += 1
 
@@ -68,6 +81,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
 
             success = json.loads(tool_response).get("success")
 
+            # Log tool call result to file
             logger.info(
                 f"[{stats['tool_call_counts']}] {tool_name}({str(tool_args)[1:-1][:hallw_config.max_message_chars]}"
                 + f"{'...' if len(str(tool_args)[1:-1]) > hallw_config.max_message_chars else ''})"
@@ -101,28 +115,18 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         3. Propose the next correct tool call.
         """
 
-        response = await model.ainvoke(
-            state["messages"] + [HumanMessage(content=hint_message)], config=config
-        )
-        stats["input_tokens"] += response.usage_metadata.get("input_tokens")
-        stats["output_tokens"] += response.usage_metadata.get("output_tokens")
+        state["messages"].append(HumanMessage(content=hint_message.strip()))
 
-        if response.content:
-            end = response.content.find("<")
-            logger.info(
-                f"HALLW reflects: {response.content[:end-1 if end != -1 else None].strip().replace('\n', '')}"
-            )
-
-        return {"messages": [response], "task_completed": state["task_completed"], "stats": stats}
+        return await call_model(state, config)
 
     def route_from_tools(state: AgentState) -> str:
         if state["task_completed"]:
             return "end"
 
         if state["stats"]["failures"] > 0 and state["stats"]["failures"] % 3 == 0:
-            state["stats"][
-                "failures"
-            ] += 1  # Add extra count to avoid looping, will be removed in final stats
+            state["stats"]["failures"] += (
+                1  # Add extra count to avoid looping, will be removed in final stats
+            )
             return "reflection"
 
         return "model"
@@ -144,7 +148,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
             "end": END,
         },
     )
-    builder.add_edge("reflection", "model")
+    builder.add_edge("reflection", "tools")
 
     checkpointer = MemorySaver()
 

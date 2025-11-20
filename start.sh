@@ -1,72 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure we are in the project directory
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
 # ==========================================
-# 1. Check for active Conda environment
+# 1. Check and Install uv (Bootstrapping)
 # ==========================================
-# Check if CONDA_PREFIX is set and not empty
-if [[ -n "${CONDA_PREFIX:-}" ]]; then
-    echo "[INFO] Conda environment detected: ${CONDA_DEFAULT_ENV:-unknown}"
-    echo "[INFO] Path: $CONDA_PREFIX"
-    echo "[INFO] Using active Conda environment - skipping .venv creation."
+# Check if 'uv' is available in the system PATH
+if ! command -v uv >/dev/null 2>&1; then
+    echo "[SETUP] 'uv' tool not found. Attempting to install..."
 
-    # Use the python executable from the current environment
-    PYTHON_EXE="python"
-
-else
-    # ==========================================
-    # 2. (Fallback) Standard Virtual Environment Setup
-    # ==========================================
-    VENV_DIR="$PROJECT_DIR/.venv"
-
-    # Find system Python executable
-    PY_CMD="${PYTHON:-}"
-    if [[ -z "$PY_CMD" ]]; then
-        if command -v python3 >/dev/null 2>&1; then
-            PY_CMD="python3"
-        elif command -v python >/dev/null 2>&1; then
-            PY_CMD="python"
-        else
-            echo "[ERROR] Python 3 is required but was not found on PATH." >&2
-            exit 1
-        fi
+    # Attempt to install via pip (assuming python3 is available)
+    if command -v pip3 >/dev/null 2>&1; then
+        pip3 install uv
+    elif command -v pip >/dev/null 2>&1; then
+        pip install uv
+    else
+        # Fallback: If pip is missing, try the official install script
+        echo "[INFO] pip not found. Trying official install script..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        # Source cargo env to make uv available immediately in this session
+        [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
     fi
 
-    # Create .venv if it doesn't exist
-    if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-        echo "[SETUP] Virtual environment not found. Creating in .venv ..."
-        "$PY_CMD" -m venv "$VENV_DIR"
+    # Final check
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "[ERROR] Failed to install uv. Please install manually." >&2
+        exit 1
     fi
-
-    # Activate virtual environment
-    # shellcheck disable=SC1090
-    source "$VENV_DIR/bin/activate"
-    PYTHON_EXE="python"
 fi
 
 # ==========================================
-# 3. Install Dependencies
+# 2. Sync Environment
 # ==========================================
+# 'uv sync' ensures the .venv exists and matches uv.lock exactly.
+# It replaces manual venv creation and 'pip install'.
+echo "[SETUP] Syncing environment with uv..."
+uv sync
 
-echo "[SETUP] Upgrading pip ..."
-"$PYTHON_EXE" -m pip install --upgrade pip >/dev/null 2>&1
-
-echo "[SETUP] Installing project dependencies (editable mode) ..."
-# Output is not suppressed here to ensure errors are visible
-pip install -e .
-
-echo "[SETUP] Verifying Playwright browser binaries ..."
-if ! "$PYTHON_EXE" -m playwright install chromium >/dev/null 2>&1; then
-    echo "[WARN] Automated browser install failed. You may need to run 'playwright install' manually."
+# ==========================================
+# 3. Handle Playwright Binaries
+# ==========================================
+# Use 'uv run' to execute the install command inside the project environment.
+echo "[SETUP] Verifying Playwright browser binaries..."
+if ! uv run playwright install chromium; then
+    echo "[WARN] Browser install failed. Check your internet connection."
 fi
 
 # ==========================================
 # 4. Launch Application
 # ==========================================
 
+# Check for .env configuration
 if [[ ! -f ".env" ]]; then
     if [[ -f ".env.example" ]]; then
         cp .env.example .env
@@ -74,5 +61,6 @@ if [[ ! -f ".env" ]]; then
     fi
 fi
 
-echo "[RUN] Launching HALLW ..."
-"$PYTHON_EXE" main.py "$@"
+echo "[RUN] Launching HALLW with uv..."
+# 'uv run' temporarily loads the .venv variables and executes the script
+uv run main.py "$@"

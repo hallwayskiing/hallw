@@ -1,15 +1,22 @@
 import asyncio
-import uuid
-
-import typer
+import warnings
+from langsmith import uuid7
+from typer import Typer, Argument
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from rich.align import Align
 from rich.console import Console
 from rich.panel import Panel
+from rich.markdown import Markdown
 
 from hallw import AgentState, build_graph, tools_dict
 from hallw.tools.playwright.playwright_mgr import browser_close
+from hallw.ui.renderer import AgentRenderer
 from hallw.utils import config, generatePrompt, logger
+
+warnings.filterwarnings(
+    "ignore", message=".*LangSmith now uses UUID v7.*"
+)  # Ignore UUID v7 warning since it's triggered by libraries
 
 llm = ChatOpenAI(
     model=config.model_name,
@@ -17,22 +24,30 @@ llm = ChatOpenAI(
     api_key=config.model_api_key.get_secret_value(),
     temperature=config.model_temperature,
     max_tokens=config.model_max_output_tokens,
+    streaming=True,
+    stream_usage=True,
 ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
+app = Typer()
+console = Console()
 
-async def run_task(user_task: str):
-    task_id = uuid.uuid4()
-    logger.info(f"Model: {config.model_name}")
-    logger.info(f"Task: {user_task}")
-    logger.info(f"Task ID: {task_id}")
 
-    workflow, checkpointer = build_graph(llm, tools_dict)
+async def run_task(user_task: str) -> None:
+    task_id = uuid7()
+    hello_message = f"Model: {config.model_name}\nTask: {user_task}\nTask ID: {task_id}"
+    logger.info(hello_message)
+    console.print(Panel((hello_message), style="bold white"))
+
+    workflow, _ = build_graph(llm, tools_dict)
 
     initial_state: AgentState = {
         "messages": [
             SystemMessage(content=generatePrompt(user_task)),
             HumanMessage(
-                content=f"Think step-by-step, plan your actions, and use proper tools to complete the task: {user_task}",
+                content=(
+                    "Think step-by-step, plan your actions, and use proper tools to "
+                    f"complete the task: {user_task}"
+                ),
             ),
         ],
         "task_completed": False,
@@ -44,42 +59,42 @@ async def run_task(user_task: str):
         },
     }
 
-    try:
-        logger.info("=" * 30)
-        logger.info("Task Start")
-        logger.info("=" * 30)
+    renderer = AgentRenderer()
+    invocation_config = {"recursion_limit": 100, "configurable": {"thread_id": task_id}}
 
-        final_state = await workflow.ainvoke(
+    try:
+        renderer.start()
+
+        async for event in workflow.astream_events(
             initial_state,
-            config={"recursion_limit": 100, "configurable": {"thread_id": task_id}},
-        )
+            config=invocation_config,
+            version="v2",
+        ):
+            renderer.handle_event(event)
 
         logger.info("Task has been completed successfully.")
 
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
-    except Exception as e:
-        logger.error(f"A fatal error occurs: {e}")
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error(f"A fatal error occurs: {exc}")
     finally:
-        logger.info("=" * 30)
-        logger.info("Statistics:")
+        renderer.stop()
         stats = initial_state["stats"]
-        stats["failures"] = (
-            stats["failures"] - max(0, (stats["failures"] - 1)) // 3
-        )  # Remove extra failure counts
+        stats["failures"] = stats["failures"] - max(0, (stats["failures"] - 1)) // 3
+        statistics = "Statistics:\n"
         for key, value in stats.items():
-            logger.info(f"  - {key}: {value}")
-        logger.info("=" * 30)
+            statistics += f"  - {key}: {value}\n"
+        logger.info(statistics)
+        console.print(
+            Panel(Markdown(statistics), title="Task Statistics", style="bold white")
+        )
         await browser_close()
 
 
-app = typer.Typer()
-console = Console()
-
-
 @app.command()
-def main(user_task: str = typer.Argument(None, help="Describe a task")):
-    console.print(Panel.fit("🤖 Welcome to HALLW", style="bold blue"))
+def main(user_task: str = Argument(None, help="Describe a task")) -> None:
+    console.print(Panel(Align.center("🤖 Welcome to HALLW"), style="bold blue"))
 
     if not user_task:
         user_task = console.input("[bold green]Describe a task: [/bold green] ")
@@ -92,10 +107,11 @@ def main(user_task: str = typer.Argument(None, help="Describe a task")):
         console.print("[red]⚠️ API_KEY not detected, please check the .env file[/red]")
         return
 
-    console.print(f"[dim]Starting task: {user_task}...[/dim]")
     asyncio.run(run_task(user_task))
 
-    console.print(Panel.fit("🤖 Thank you for using HALLW", style="bold blue"))
+    console.print(
+        Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue")
+    )
 
 
 if __name__ == "__main__":
