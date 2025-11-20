@@ -49,9 +49,12 @@ async def get_page() -> Page:
 
 async def set_page(page: Optional[Page]):
     global _page
-    s = Stealth()
-    await s.apply_stealth_async(page)
-    _page = page
+    if page is None:
+        _page = None
+    else:
+        s = Stealth()
+        await s.apply_stealth_async(page)
+        _page = page
 
 
 def get_browser() -> Optional[Browser]:
