@@ -30,10 +30,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
             )
 
         if response.content:
-            end = response.content.find("<")
-            logger.info(
-                f"HALLW: {response.content[:end-1 if end != -1 else None].strip().replace('\n', '')}"
-            )
+            logger.info(f"HALLW: {response.content.strip().replace('\n', '')}")
 
         return {
             "messages": [response],

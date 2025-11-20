@@ -210,19 +210,9 @@ class AgentRenderer:
         self.console.print(self._tool_status_panel(tool_data))
 
     def _content_panel(self, response: Dict[str, Any]) -> Panel:
-        # Hide internal XML tags (e.g., <thought>) if present
-        text = response["text"]
-        end_idx = text.find("<")
-
-        if end_idx != -1:
-            content = text[:end_idx]
-        else:
-            content = text
-
-        # Clean up formatting
-        content = content.strip().replace("\n", "") or "Thinking..."
-
-        markdown = Markdown(content, style="bold blue")
+        markdown = Markdown(
+            response["text"].strip().replace("\n", ""), style="bold blue"
+        )
         return Panel(markdown, title="🤖 HALLW", border_style="bold blue")
 
     def _tool_panel(self, response: Dict[str, Any]) -> Panel:
