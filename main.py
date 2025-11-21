@@ -5,16 +5,17 @@ import warnings
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from rich.align import Align
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from typer import Argument, Typer
 
-from hallw import AgentState, run_task
+from hallw import AgentState, build_graph, run_task
 from hallw.tools import load_tools
 from hallw.ui.renderer import AgentRenderer
-from hallw.utils import config, generatePrompt, logger
+from hallw.utils import config, generatePrompt, init_logger, logger
 
 warnings.filterwarnings(
     "ignore", message=".*LangSmith now uses UUID v7.*"
@@ -48,6 +49,10 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
         console.print("[red]❌ Task cannot be empty![/red]")
         return
 
+    task_id = str(uuid.uuid4())
+
+    init_logger(task_id)
+
     tools_dict = load_tools()
 
     llm = ChatOpenAI(
@@ -62,8 +67,6 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
 
     renderer = AgentRenderer()
     renderer.start()
-
-    task_id = str(uuid.uuid4())
 
     initial_state: AgentState = {
         "messages": [
@@ -85,12 +88,14 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
         },
     }
 
+    checkpointer = MemorySaver()
+
     hello_message = f"Model: {config.model_name}\nTask: {user_task}\nTask ID: {task_id}"
     logger.info(hello_message)
     console.print(Panel((hello_message), style="bold white"))
 
     try:
-        asyncio.run(run_task(task_id, llm, tools_dict, renderer, initial_state))
+        asyncio.run(run_task(task_id, llm, tools_dict, renderer, initial_state, checkpointer))
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
         console.print(Panel("Interrupted by user.", title="Warning", style="red"))
@@ -98,11 +103,16 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
         logger.error(f"A fatal error occurs: {e}", exc_info=True)
         console.print(Panel(Markdown(f"{e}"), title="Fatal Error", style="red"))
     finally:
-        stats = initial_state["stats"]
+        # Restore final state from checkpointer
+        restored_workflow = build_graph(llm, tools_dict, checkpointer)
+        restored_config = {"configurable": {"thread_id": task_id}}
+        snapshot = restored_workflow.get_state(config=restored_config)
+        stats = snapshot.values.get("stats", {})
         statistics = "Statistics:\n"
         for key, value in stats.items():
-            statistics += f"  - {key}: {value}\n"
+            statistics += f"- {key}: {value}\n"
         logger.info(statistics)
+
         console.print(Panel(Markdown(statistics), title="Task Statistics", style="bold white"))
         console.print(Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue"))
         console.print("\n\n")
