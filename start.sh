@@ -41,16 +41,7 @@ echo "[SETUP] Syncing environment with uv..."
 uv sync --no-group dev
 
 # ==========================================
-# 3. Handle Playwright Binaries
-# ==========================================
-# Use 'uv run' to execute the install command inside the project environment.
-echo "[SETUP] Verifying Playwright browser binaries..."
-if ! uv run playwright install chromium; then
-    echo "[WARN] Browser install failed. Check your internet connection."
-fi
-
-# ==========================================
-# 4. Launch Application
+# 3. Launch Application
 # ==========================================
 
 # Check for .env configuration
@@ -62,5 +53,4 @@ if [[ ! -f ".env" ]]; then
 fi
 
 echo "[RUN] Launching HALLW with uv..."
-# 'uv run' temporarily loads the .venv variables and executes the script
 uv run main.py "$@"

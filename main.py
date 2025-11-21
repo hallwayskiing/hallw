@@ -98,6 +98,10 @@ async def run_task(user_task: str) -> None:
 def main(user_task: str = Argument(None, help="Describe a task")) -> None:
     console.print(Panel(Align.center("🤖 Welcome to HALLW"), style="bold blue"))
 
+    if not config.model_api_key or not config.model_api_key.get_secret_value():
+        console.print("[red]❌ Model API key is not set! Please set it in the .env file.[/red]")
+        return
+
     if not user_task:
         user_task = console.input("[bold green]Describe a task: [/bold green] ")
 

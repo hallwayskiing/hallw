@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # =================================================
     model_name: str = "gemini-2.5-flash-lite"  # Recommended: fast and free in Google AI Studio
     model_endpoint: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-    model_api_key: Optional[SecretStr] = None
+    model_api_key: SecretStr
     model_temperature: float = 0.25
     model_max_output_tokens: int = 4096
     model_reflection_threshold: int = 3

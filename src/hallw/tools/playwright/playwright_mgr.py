@@ -101,7 +101,7 @@ async def browser_launch() -> str:
                 page = context.pages[0] if context.pages else await context.new_page()
                 await set_page(page)
         except Exception as e:
-            raise ToolException(f"Error when launching Playwright Chromium: {e}")
+            raise ToolException(f"Playwright Chromium not installed, run `playwright install chromium` first")
         set_chrome_process(None)  # It's managed by Playwright
         return "Playwright Chromium launched"
 

@@ -34,17 +34,7 @@ uv sync --no-group dev
 if errorlevel 1 goto :fail
 
 :: ==========================================
-:: 3. Handle Playwright Binaries
-:: ==========================================
-:: Use 'uv run' to execute commands inside the virtual environment without explicit activation.
-echo [SETUP] Verifying Playwright browser binaries...
-uv run playwright install chromium
-if errorlevel 1 (
-    echo [WARN] Browser install failed. You may need to check your internet connection.
-)
-
-:: ==========================================
-:: 4. Launch Application
+:: 3. Launch Application
 :: ==========================================
 :: Check for .env configuration
 if not exist ".env" (
