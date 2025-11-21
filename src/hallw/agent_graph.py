@@ -55,11 +55,13 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
 
             except Exception as e:
                 if attempt < MAX_MODEL_RETRIES:
+                    # Use exponential backoff: 1s, 2s, 4s...
+                    backoff = RETRY_BACKOFF_SECONDS * (2**attempt)
                     logger.warning(
                         f"Model call failed (attempt {attempt + 1}/{MAX_MODEL_RETRIES + 1}): {e}. "
-                        f"Retrying in {RETRY_BACKOFF_SECONDS}s..."
+                        f"Retrying in {backoff}s..."
                     )
-                    await asyncio.sleep(RETRY_BACKOFF_SECONDS * (attempt + 1))
+                    await asyncio.sleep(backoff)
                     response = None  # Reset for retry
                 else:
                     # All retries exhausted
@@ -93,7 +95,8 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         for tool_call in tool_calls:
             tool_id = tool_call.get("id")
             tool_name = tool_call.get("name")
-            tool_args = tool_call.get("args") or {}
+            # Use explicit None check to avoid masking valid falsy values
+            tool_args = tool_call.get("args") if tool_call.get("args") is not None else {}
             tool_obj = tools_dict.get(tool_name)
 
             if tool_obj is None:

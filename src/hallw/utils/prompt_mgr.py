@@ -8,7 +8,11 @@ def generateToolsDesc() -> str:
 
     descs = []
     for tool_name, tool_obj in tools_dict.items():
-        args_list = ", ".join(tool_obj.args.keys())
+        # Handle tools that might not have args or have None args
+        if hasattr(tool_obj, "args") and tool_obj.args:
+            args_list = ", ".join(tool_obj.args.keys())
+        else:
+            args_list = ""
         descs.append(f"- {tool_name}({args_list}): {tool_obj.description}")
     return "\n".join(descs)
 
