@@ -1,0 +1,26 @@
+from typing import Dict
+
+from langchain_core.tools import BaseTool
+from langchain_openai import ChatOpenAI
+
+from hallw import AgentState, build_graph
+from hallw.ui.renderer import AgentRenderer
+
+
+async def run_task(
+    task_id: str,
+    llm: ChatOpenAI,
+    tools_dict: Dict[str, BaseTool],
+    renderer: AgentRenderer,
+    initial_state: AgentState,
+) -> None:
+    workflow, _ = build_graph(llm, tools_dict)
+
+    invocation_config = {"recursion_limit": 100, "configurable": {"thread_id": task_id}}
+
+    async for event in workflow.astream_events(
+        initial_state,
+        config=invocation_config,
+        version="v2",
+    ):
+        renderer.handle_event(event)

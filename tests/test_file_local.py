@@ -1,7 +1,6 @@
 """Tests for get_local_file_list tool."""
 
 import json
-from pathlib import Path
 
 import pytest
 

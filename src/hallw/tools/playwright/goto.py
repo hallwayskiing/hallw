@@ -23,5 +23,6 @@ async def browser_goto(url: str) -> str:
     except PlaywrightTimeoutError:
         return build_tool_response(
             False,
-            f"Timeout while navigating to {url}, maybe the page is not reachable or network conditions are poor.",
+            f"Timeout while navigating to {url}, \
+            maybe the page is not reachable or network conditions are poor.",
         )

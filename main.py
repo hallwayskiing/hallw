@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import uuid
 import warnings
 
@@ -10,7 +11,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from typer import Argument, Typer
 
-from hallw import AgentState, build_graph
+from hallw import AgentState, run_task
 from hallw.tools import load_tools
 from hallw.ui.renderer import AgentRenderer
 from hallw.utils import config, generatePrompt, logger
@@ -19,12 +20,34 @@ warnings.filterwarnings(
     "ignore", message=".*LangSmith now uses UUID v7.*"
 )  # Ignore UUID v7 warning since it's triggered by libraries
 
+# Shut down the annoying RuntimeError on Windows event loop shutdown
+if sys.platform.startswith("win"):
+    from asyncio.proactor_events import _ProactorBasePipeTransport
+
+    def silence_event_loop_closed(self):
+        pass
+
+    _ProactorBasePipeTransport.__del__ = silence_event_loop_closed  # type: ignore
 
 app = Typer()
 console = Console()
 
 
-async def run_task(user_task: str) -> None:
+@app.command()
+def main(user_task: str = Argument(None, help="Describe a task")) -> None:
+    console.print(Panel(Align.center("🤖 Welcome to HALLW"), style="bold blue"))
+
+    if not config.model_api_key or not config.model_api_key.get_secret_value():
+        console.print("[red]❌ Model API key is not set! Please set it in the .env file.[/red]")
+        return
+
+    if not user_task:
+        user_task = console.input("[bold green]Describe a task: [/bold green] ")
+
+    if not user_task:
+        console.print("[red]❌ Task cannot be empty![/red]")
+        return
+
     tools_dict = load_tools()
 
     llm = ChatOpenAI(
@@ -37,13 +60,10 @@ async def run_task(user_task: str) -> None:
         stream_usage=True,
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
-    task_id = uuid.uuid4()
+    renderer = AgentRenderer()
+    renderer.start()
 
-    hello_message = f"Model: {config.model_name}\nTask: {user_task}\nTask ID: {task_id}"
-    logger.info(hello_message)
-    console.print(Panel((hello_message), style="bold white"))
-
-    workflow, _ = build_graph(llm, tools_dict)
+    task_id = str(uuid.uuid4())
 
     initial_state: AgentState = {
         "messages": [
@@ -65,53 +85,28 @@ async def run_task(user_task: str) -> None:
         },
     }
 
-    renderer = AgentRenderer()
-    invocation_config = {"recursion_limit": 100, "configurable": {"thread_id": task_id}}
+    hello_message = f"Model: {config.model_name}\nTask: {user_task}\nTask ID: {task_id}"
+    logger.info(hello_message)
+    console.print(Panel((hello_message), style="bold white"))
 
     try:
-        renderer.start()
-
-        async for event in workflow.astream_events(
-            initial_state,
-            config=invocation_config,
-            version="v2",
-        ):
-            renderer.handle_event(event)
-
+        asyncio.run(run_task(task_id, llm, tools_dict, renderer, initial_state))
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
         console.print(Panel("Interrupted by user.", title="Warning", style="red"))
     except Exception as e:
-        logger.error("A fatal error occurs", exc_info=True)
-        console.print(Panel(f"{e}", title="Fatal Error", style="red"))
+        logger.error(f"A fatal error occurs: {e}", exc_info=True)
+        console.print(Panel(Markdown(f"{e}"), title="Fatal Error", style="red"))
     finally:
-        renderer.stop()
         stats = initial_state["stats"]
         statistics = "Statistics:\n"
         for key, value in stats.items():
             statistics += f"  - {key}: {value}\n"
         logger.info(statistics)
         console.print(Panel(Markdown(statistics), title="Task Statistics", style="bold white"))
-
-
-@app.command()
-def main(user_task: str = Argument(None, help="Describe a task")) -> None:
-    console.print(Panel(Align.center("🤖 Welcome to HALLW"), style="bold blue"))
-
-    if not config.model_api_key or not config.model_api_key.get_secret_value():
-        console.print("[red]❌ Model API key is not set! Please set it in the .env file.[/red]")
-        return
-
-    if not user_task:
-        user_task = console.input("[bold green]Describe a task: [/bold green] ")
-
-    if not user_task:
-        console.print("[red]❌ Task cannot be empty![/red]")
-        return
-
-    asyncio.run(run_task(user_task))
-
-    console.print(Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue"))
+        console.print(Panel(Align.center("🤖 Thank you for using HALLW"), style="bold blue"))
+        console.print("\n\n")
+        renderer.stop()
 
 
 if __name__ == "__main__":

@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from hallw.tools.tool_response import build_tool_response
 
 

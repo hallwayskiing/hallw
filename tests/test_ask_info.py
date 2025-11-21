@@ -3,8 +3,6 @@
 import json
 from unittest.mock import patch
 
-import pytest
-
 from hallw.tools.ask_info import ask_for_more_info
 
 

@@ -1,6 +1,6 @@
 version = 1
 revision = 3
-requires-python = "==3.12"
+requires-python = "==3.12.*"
 
 [[package]]
 name = "annotated-types"
@@ -168,7 +168,7 @@ wheels = [
 
 [[package]]
 name = "hallw"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "langchain" },

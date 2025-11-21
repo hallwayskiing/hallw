@@ -61,7 +61,7 @@ async def browser_launch() -> str:
             await set_page(page)
             set_chrome_process(None)  # Since we didn't start it
 
-            return f"Connected to existing Chrome instance."
+            return "Connected to existing Chrome instance."
 
         except Exception as e:
             raise ToolException(f"Failed to connect to existing Chrome via CDP: {e}")
@@ -100,8 +100,10 @@ async def browser_launch() -> str:
                 set_context(context)
                 page = context.pages[0] if context.pages else await context.new_page()
                 await set_page(page)
-        except Exception as e:
-            raise ToolException(f"Playwright Chromium not installed, run `playwright install chromium` first")
+        except Exception:
+            raise ToolException(
+                "Playwright Chromium not installed, " "run `playwright install chromium` first"
+            )
         set_chrome_process(None)  # It's managed by Playwright
         return "Playwright Chromium launched"
 

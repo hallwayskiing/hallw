@@ -2,7 +2,6 @@
 
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -53,7 +52,7 @@ def reset_config(monkeypatch):
     """Reset environment variables before each test."""
     # Clear any test-specific env vars
     test_env = {k: v for k, v in os.environ.items() if not k.startswith("HALLW_TEST_")}
-    for key in os.environ.keys():
+    for key in test_env.keys():
         if key.startswith("MODEL_") or key.startswith("PW_") or key.startswith("FILE_"):
             monkeypatch.delenv(key, raising=False)
 
