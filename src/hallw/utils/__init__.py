@@ -1,5 +1,5 @@
 from .config_mgr import config
-from .hallw_logger import logger
+from .hallw_logger import init_logger, logger
 from .prompt_mgr import generatePrompt
 
-__all__ = ["config", "logger", "generatePrompt"]
+__all__ = ["config", "logger", "init_logger", "generatePrompt"]
