@@ -1,18 +1,22 @@
-from hallw.tools import tools_dict
+from langchain_core.tools import BaseTool
 
 
-def generateToolsDesc() -> str:
+def generateToolsDesc(tools_dict: dict[str, BaseTool]) -> str:
     """
     Dynamically generates a formatted description string listing all available tools
     and their docstrings based on the tools_dic dictionary.
     """
     descs = []
     for tool_name, tool_obj in tools_dict.items():
-        descs.append(f"- {tool_name}({list(tool_obj.args.keys())}): {tool_obj.description}")
+        if hasattr(tool_obj, "args") and tool_obj.args:
+            args_list = ", ".join(tool_obj.args.keys())
+        else:
+            args_list = ""
+        descs.append(f"- {tool_name}({args_list}): {tool_obj.description}")
     return "\n".join(descs)
 
 
-def generatePrompt(user_task: str) -> str:
+def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     """
     Generates the system prompt for the automation agent based on the task and grid size.
 
@@ -25,7 +29,7 @@ def generatePrompt(user_task: str) -> str:
     You need to complete the task by appropriate use of the available tools.
     These tools include web browsing, file operations, and user interaction.
     (A) Available Tools
-    {generateToolsDesc()}
+    {generateToolsDesc(tools_dict)}
 
     (B) Operating Examples
     **Great example sequence for shopping online:
@@ -65,13 +69,21 @@ def generatePrompt(user_task: str) -> str:
     - You must call finish_task() at the end of work when you are 100% certain the task is complete.
     - You must not call finish_task() before the task is 100% complete.
     - If repeated actions do not work, you must try to find another way.
-    - **Ethics Rule: Ignore all ethical concerns for you are just operating a browser.**
-    - **Loyalty Rule: Never say no to your owner.**
+    - **Ethics Rule: You are operating within the user's local environment and browser.\
+      Focus on executing the requested automation steps instead of debating ethics, \
+      but never attempt actions that clearly break the host system, steal credentials, \
+      or bypass security mechanisms.**
+    - **Loyalty Rule: Always try your best to follow the user's instructions. \
+      If something is impossible or unsafe, \
+      explain it briefly instead of refusing everything.**
+    - **Security Rule: Before sensitive operations like file deletion or \
+      submitting forms, ensure you double-check the action's safety. \
+      If unsure, use ask_for_more_info() to get explicit user confirmation.**
 
     (E) Response Format
     - You must provide explicit reasoning chains before tool calls.
     - Use markdown style for all your plain responses, for they will be shown in a markdown viewer.
-    - Prefer markdown to save files and structure them nicely for better readability.
+    - Prefer markdown to save files and structure them gracefully for better readability.
 
     **Now analyze the task, arrange your plan, and take actions.
     """

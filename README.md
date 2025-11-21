@@ -1,9 +1,10 @@
 # HALLW 🤖
 
-[](https://opensource.org/licenses/Apache-2.0)
-[](https://www.python.org/downloads/)
-[](https://github.com/langchain-ai/langgraph)
-[](https://playwright.dev/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/Python-3.12+-yellow.svg)](https://www.python.org/downloads/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Framework-blue.svg)](https://github.com/langchain-ai/langgraph)
+[![Playwright](https://img.shields.io/badge/Playwright-Automation-green.svg)](https://playwright.dev/)
+
 
 <div align='center'>
 
@@ -64,7 +65,7 @@ copy .env.example .env
 
 ```env
 MODEL_API_KEY=your-api-key-here
-MODEL_NAME=gemini-2.0-flash  # recommended for free usage in Google AI Lab
+MODEL_NAME=gemini-2.0-flash  # recommended for free usage in Google AI Studio
 ```
 
 ### 3. Run!
@@ -155,7 +156,7 @@ hallw/
 │       └── utils/      # Config & Logger
 ├── main.py             # Application Entry Point
 ├── start.bat           # One-click Launcher
-├── requirements.txt    # Frozen Dependencies
+├── uv.lock             # Frozen Dependencies
 └── pyproject.toml      # Package Metadata
 ```
 
@@ -254,7 +255,7 @@ def get_system_time() -> str:
 
 ## 📄 License
 
-This project is licensed under the **Apache License 2.0**. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](https://www.apache.org/licenses/LICENSE-2.0) file for details.
 
 ## 📮 Contact
 

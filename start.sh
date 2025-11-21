@@ -38,7 +38,7 @@ fi
 # 'uv sync' ensures the .venv exists and matches uv.lock exactly.
 # It replaces manual venv creation and 'pip install'.
 echo "[SETUP] Syncing environment with uv..."
-uv sync
+uv sync --no-group dev
 
 # ==========================================
 # 3. Handle Playwright Binaries

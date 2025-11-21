@@ -8,6 +8,8 @@ from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from hallw.tools.tool_response import parse_tool_response
+
 
 class AgentRenderer:
     """Render LangGraph events using Rich panels."""
@@ -36,7 +38,7 @@ class AgentRenderer:
             self.live = Live(
                 self,
                 console=self.console,
-                refresh_per_second=8,
+                refresh_per_second=12,
                 transient=True,
                 vertical_overflow="visible",
             )
@@ -255,16 +257,11 @@ class AgentRenderer:
         return str(content)
 
     def _is_success(self, output: Any) -> bool:
-        payload = None
         if isinstance(output, str):
-            try:
-                payload = json.loads(output)
-            except json.JSONDecodeError:
-                pass
-        elif isinstance(output, dict):
-            payload = output
+            result = parse_tool_response(output)
+            return result["success"]
 
-        if isinstance(payload, dict):
-            return bool(payload.get("success", True))
+        if isinstance(output, dict):
+            return bool(output.get("success", False))
 
-        return "true" in str(output).lower()
+        return False

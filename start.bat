@@ -30,7 +30,7 @@ if %errorlevel% neq 0 (
 :: 2. Reads pyproject.toml and uv.lock.
 :: 3. Installs/Updates dependencies to match the lock file exactly.
 echo [SETUP] Syncing environment and dependencies with uv...
-uv sync
+uv sync --no-group dev
 if errorlevel 1 goto :fail
 
 :: ==========================================

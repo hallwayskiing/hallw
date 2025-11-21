@@ -7,10 +7,7 @@ from langchain_core.tools import BaseTool
 
 from hallw.utils import logger
 
-from .tool_response import build_tool_response
-
-tools_package_name = __name__
-tools_dict = {}
+from .tool_response import build_tool_response, parse_tool_response
 
 
 def _import_package_modules(package_name: str):
@@ -25,18 +22,32 @@ def _import_package_modules(package_name: str):
             logger.error(f"Failed to import {name}: {e}")
 
 
-# Import top-level modules and subpackages under tools
-_import_package_modules(tools_package_name)
+def load_tools() -> dict[str, BaseTool]:
+    tools_dict: dict[str, BaseTool] = {}
+    tools_package_name = __name__
+    # Import top-level modules and subpackages under tools
+    _import_package_modules(tools_package_name)
 
-# Scan loaded modules for BaseTool instances
-for module_name, module in list(sys.modules.items()):
-    if not module_name.startswith(tools_package_name + "."):
-        continue
-    try:
-        for _, obj in inspect.getmembers(module):
-            if isinstance(obj, BaseTool):
-                tools_dict[obj.name] = obj
-    except Exception:
-        continue
+    # Scan loaded modules for BaseTool instances
+    for module_name, module in list(sys.modules.items()):
+        if not module_name.startswith(tools_package_name + "."):
+            continue
+        try:
+            for _, obj in inspect.getmembers(module):
+                if isinstance(obj, BaseTool):
+                    if obj.name in tools_dict:
+                        logger.warning(
+                            "Duplicate tool name '%s' found in module '%s' "
+                            "(already registered from '%s'), overriding.",
+                            obj.name,
+                            module_name,
+                            tools_dict[obj.name].__module__,
+                        )
+                    tools_dict[obj.name] = obj
+        except Exception as e:
+            logger.error(f"Failed to import {module_name}: {e}")
+            continue
+    return tools_dict
 
-__all__ = ["tools_dict", "build_tool_response"]
+
+__all__ = ["load_tools", "build_tool_response", "parse_tool_response"]

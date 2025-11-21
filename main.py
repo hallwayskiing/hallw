@@ -1,17 +1,17 @@
 import asyncio
+import uuid
 import warnings
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langsmith import uuid7
 from rich.align import Align
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from typer import Argument, Typer
 
-from hallw import AgentState, build_graph, tools_dict
-from hallw.tools.playwright.playwright_mgr import browser_close
+from hallw import AgentState, build_graph
+from hallw.tools import load_tools
 from hallw.ui.renderer import AgentRenderer
 from hallw.utils import config, generatePrompt, logger
 
@@ -19,22 +19,26 @@ warnings.filterwarnings(
     "ignore", message=".*LangSmith now uses UUID v7.*"
 )  # Ignore UUID v7 warning since it's triggered by libraries
 
-llm = ChatOpenAI(
-    model=config.model_name,
-    base_url=config.model_endpoint,
-    api_key=config.model_api_key.get_secret_value(),
-    temperature=config.model_temperature,
-    max_tokens=config.model_max_output_tokens,
-    streaming=True,
-    stream_usage=True,
-).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
 app = Typer()
 console = Console()
 
 
 async def run_task(user_task: str) -> None:
-    task_id = uuid7()
+    tools_dict = load_tools()
+
+    llm = ChatOpenAI(
+        model=config.model_name,
+        base_url=config.model_endpoint,
+        api_key=config.model_api_key.get_secret_value(),
+        temperature=config.model_temperature,
+        max_tokens=config.model_max_output_tokens,
+        streaming=True,
+        stream_usage=True,
+    ).bind_tools(list(tools_dict.values()), tool_choice="auto")
+
+    task_id = uuid.uuid4()
+
     hello_message = f"Model: {config.model_name}\nTask: {user_task}\nTask ID: {task_id}"
     logger.info(hello_message)
     console.print(Panel((hello_message), style="bold white"))
@@ -43,7 +47,7 @@ async def run_task(user_task: str) -> None:
 
     initial_state: AgentState = {
         "messages": [
-            SystemMessage(content=generatePrompt(user_task)),
+            SystemMessage(content=generatePrompt(user_task, tools_dict)),
             HumanMessage(
                 content=(
                     "Think step-by-step, plan your actions, and use proper tools to "
@@ -54,9 +58,10 @@ async def run_task(user_task: str) -> None:
         "task_completed": False,
         "stats": {
             "tool_call_counts": 0,
-            "failures": 0,
             "input_tokens": 0,
             "output_tokens": 0,
+            "failures": 0,
+            "failures_since_last_reflection": 0,
         },
     }
 
@@ -76,19 +81,17 @@ async def run_task(user_task: str) -> None:
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
         console.print(Panel("Interrupted by user.", title="Warning", style="red"))
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.error(f"A fatal error occurs: {exc}")
-        console.print(Panel(f"{exc}", title="Fatal Error", style="red"))
+    except Exception as e:
+        logger.error("A fatal error occurs", exc_info=True)
+        console.print(Panel(f"{e}", title="Fatal Error", style="red"))
     finally:
         renderer.stop()
         stats = initial_state["stats"]
-        stats["failures"] = stats["failures"] - max(0, (stats["failures"] - 1)) // 3
         statistics = "Statistics:\n"
         for key, value in stats.items():
             statistics += f"  - {key}: {value}\n"
         logger.info(statistics)
         console.print(Panel(Markdown(statistics), title="Task Statistics", style="bold white"))
-        await browser_close()
 
 
 @app.command()
@@ -100,10 +103,6 @@ def main(user_task: str = Argument(None, help="Describe a task")) -> None:
 
     if not user_task:
         console.print("[red]❌ Task cannot be empty![/red]")
-        return
-
-    if not config.model_api_key:
-        console.print("[red]⚠️ API_KEY not detected, please check the .env file[/red]")
         return
 
     asyncio.run(run_task(user_task))

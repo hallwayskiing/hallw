@@ -1,5 +1,3 @@
-import json
-
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
@@ -8,16 +6,14 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from hallw.agent_state import AgentState
+from hallw.tools import parse_tool_response
 from hallw.utils import config as hallw_config
 from hallw.utils import logger
 
 
 def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
     async def call_model(state: AgentState, config: RunnableConfig) -> AgentState:
-        response = None
-
-        async for chunk in model.astream(state["messages"], config=config):
-            response = chunk if response is None else response + chunk
+        response = await model.ainvoke(state["messages"], config=config)
 
         if response is None:
             raise RuntimeError("Model returned no response")
@@ -44,11 +40,12 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
             warning_msg = "No tool call found in the your response. Please specify tools to call."
             messages.append(HumanMessage(content=warning_msg))
             stats["failures"] += 1
+            stats["failures_since_last_reflection"] += 1
 
         for tool_call in tool_calls:
             tool_id = tool_call.get("id")
             tool_name = tool_call.get("name")
-            tool_args = tool_call.get("args", "()")
+            tool_args = tool_call.get("args", "{}")
             tool_obj = tools_dict.get(tool_name)
 
             if tool_obj is None:
@@ -58,6 +55,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
                     ToolMessage(content=error_msg, tool_call_id=tool_id, name=tool_name)
                 )
                 stats["failures"] += 1
+                stats["failures_since_last_reflection"] += 1
                 continue
 
             tool_response = await tool_obj.ainvoke(tool_args, config=config)
@@ -68,20 +66,17 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
                 ToolMessage(content=tool_response, tool_call_id=tool_id, name=tool_name)
             )
 
-            success = json.loads(tool_response).get("success")
+            tool_result = parse_tool_response(tool_response)
+            success = tool_result.get("success", False)
 
             # Log tool call result to file
-            format_tool_args = str(tool_args)[1:-1][: hallw_config.max_message_chars]
-            logger.info(
-                f"[{stats['tool_call_counts']}] {tool_name}({format_tool_args})"
-                + f"{'...' if len(str(tool_args)[1:-1]) > hallw_config.max_message_chars else ''})"
-                + f" => {'✅' if success else '❌'}"
-            )
+            logger.info(_build_log_str(stats["tool_call_counts"], tool_name, tool_args, success))
 
             if not success:
                 stats["failures"] += 1
+                stats["failures_since_last_reflection"] += 1
 
-            if tool_name == "finish_task":
+            if tool_name == hallw_config.finish_tool_name:
                 state["task_completed"] = True
 
         return {
@@ -106,6 +101,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         """
 
         state["messages"].append(HumanMessage(content=hint_message.strip()))
+        stats["failures_since_last_reflection"] = 0
 
         return await call_model(state, config)
 
@@ -113,10 +109,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
         if state["task_completed"]:
             return "end"
 
-        if state["stats"]["failures"] > 0 and state["stats"]["failures"] % 3 == 0:
-            state["stats"]["failures"] += (
-                1  # Add extra count to avoid looping, will be removed in final stats
-            )
+        threshold = hallw_config.model_reflection_threshold
+        stats = state["stats"]
+        if stats["failures"] > 0 and stats["failures_since_last_reflection"] % threshold == 0:
             return "reflection"
 
         return "model"
@@ -145,3 +140,10 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool]):
     workflow = builder.compile(checkpointer=checkpointer)
 
     return workflow, checkpointer
+
+
+def _build_log_str(tool_call_count: int, tool_name: str, tool_args: dict, success: bool) -> str:
+    status = "✅" if success else "❌"
+    format_tool_args = str(tool_args)[: hallw_config.max_message_chars]
+    ellipsis = "..." if len(str(tool_args)) > hallw_config.max_message_chars else ""
+    return f"[{tool_call_count}] {tool_name}: {format_tool_args}{ellipsis} => {status}"
