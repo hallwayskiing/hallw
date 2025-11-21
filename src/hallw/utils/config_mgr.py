@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     allow_ask_info_tool: bool = True
 
     # =================================================
+    # 7. Tool Selection
+    # =================================================
+    enable_browser_tools: bool = True
+    enable_file_tools: bool = True
+
+    # =================================================
     # Pydantic config
     # =================================================
     model_config = SettingsConfigDict(

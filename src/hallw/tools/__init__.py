@@ -7,10 +7,13 @@ from langchain_core.tools import BaseTool
 
 from hallw.utils import logger
 
-from .tool_response import build_tool_response
+from .tool_response import ToolResult, build_tool_response, parse_tool_response
 
 tools_package_name = __name__
 tools_dict = {}
+
+# Constants
+FINISH_TASK_TOOL_NAME = "finish_task"
 
 
 def _import_package_modules(package_name: str):
@@ -35,8 +38,30 @@ for module_name, module in list(sys.modules.items()):
     try:
         for _, obj in inspect.getmembers(module):
             if isinstance(obj, BaseTool):
+                # Check for duplicate tool names
+                if obj.name in tools_dict:
+                    prev_module = getattr(tools_dict[obj.name], "__module__", "unknown")
+                    logger.warning(
+                        f"Duplicate tool name '{obj.name}' found. "
+                        f"Previous: {prev_module}, New: {module_name}. "
+                        f"Overriding with new tool."
+                    )
+
+                # Warn about tool names with spaces (potential issues)
+                if " " in obj.name:
+                    logger.warning(
+                        f"Tool name '{obj.name}' contains spaces, which may cause issues."
+                    )
+
                 tools_dict[obj.name] = obj
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error inspecting module {module_name}: {e}")
         continue
 
-__all__ = ["tools_dict", "build_tool_response"]
+__all__ = [
+    "tools_dict",
+    "build_tool_response",
+    "parse_tool_response",
+    "ToolResult",
+    "FINISH_TASK_TOOL_NAME",
+]

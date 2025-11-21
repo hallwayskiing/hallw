@@ -1,7 +1,9 @@
 import asyncio
+import logging
 import warnings
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langsmith import uuid7
 from rich.align import Align
@@ -19,6 +21,10 @@ warnings.filterwarnings(
     "ignore", message=".*LangSmith now uses UUID v7.*"
 )  # Ignore UUID v7 warning since it's triggered by libraries
 
+# Disable noisy third-party loggers at the CLI entry point
+logging.getLogger("httpx").disabled = True
+logging.getLogger("langchain_core.callbacks.manager").disabled = True
+
 llm = ChatOpenAI(
     model=config.model_name,
     base_url=config.model_endpoint,
@@ -27,10 +33,40 @@ llm = ChatOpenAI(
     max_tokens=config.model_max_output_tokens,
     streaming=True,
     stream_usage=True,
-).bind_tools(list(tools_dict.values()), tool_choice="auto")
+)
 
 app = Typer()
 console = Console()
+
+
+def _select_tools_for_task(user_task: str) -> dict[str, BaseTool]:
+    """Filter tools based on config settings.
+
+    Args:
+        user_task: The user's task description (for future expansion)
+
+    Returns:
+        Filtered dictionary of tools
+    """
+    selected = {}
+
+    for tool_name, tool_obj in tools_dict.items():
+        # Filter browser tools
+        if tool_name.startswith("browser_") and not config.enable_browser_tools:
+            continue
+
+        # Filter file tools
+        if tool_name.startswith("file_") or tool_name == "get_local_file_list":
+            if not config.enable_file_tools:
+                continue
+
+        # Filter ask_for_more_info based on config
+        if tool_name == "ask_for_more_info" and not config.allow_ask_info_tool:
+            continue
+
+        selected[tool_name] = tool_obj
+
+    return selected
 
 
 async def run_task(user_task: str) -> None:
@@ -39,7 +75,11 @@ async def run_task(user_task: str) -> None:
     logger.info(hello_message)
     console.print(Panel((hello_message), style="bold white"))
 
-    workflow, _ = build_graph(llm, tools_dict)
+    # Select tools based on config
+    selected_tools = _select_tools_for_task(user_task)
+    model_with_tools = llm.bind_tools(list(selected_tools.values()), tool_choice="auto")
+
+    workflow, _ = build_graph(model_with_tools, selected_tools)
 
     initial_state: AgentState = {
         "messages": [
@@ -57,6 +97,7 @@ async def run_task(user_task: str) -> None:
             "failures": 0,
             "input_tokens": 0,
             "output_tokens": 0,
+            "reflections": 0,
         },
     }
 
@@ -82,7 +123,6 @@ async def run_task(user_task: str) -> None:
     finally:
         renderer.stop()
         stats = initial_state["stats"]
-        stats["failures"] = stats["failures"] - max(0, (stats["failures"] - 1)) // 3
         statistics = "Statistics:\n"
         for key, value in stats.items():
             statistics += f"  - {key}: {value}\n"

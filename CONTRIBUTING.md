@@ -167,16 +167,21 @@ Tools are automatically discovered from the `src/hallw/tools/` directory. To add
            param: Description of param
 
        Returns:
-           Result as a string
+           JSON string created via build_tool_response
        """
        try:
            # Your implementation
            result = "Tool result"
+           # Always use build_tool_response to create tool responses
            return build_tool_response(True, "Success", {"result": result})
        except Exception as e:
            logger.error(f"my_new_tool error: {e}")
+           # Return failure responses using build_tool_response
            return build_tool_response(False, f"Error: {e}")
    ```
+
+   **Important**: All tools must return JSON strings created via `build_tool_response(success, message, data)`.
+   This ensures consistent parsing and error handling across the agent framework.
 
 2. **Add tests** in `tests/tools/test_my_new_tool.py`
 
