@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     pw_headless_mode: bool = False
     pw_window_width: int = 1920
     pw_window_height: int = 1080
-    keep_browser_open: bool = True
+    keep_page_open: bool = True
     search_result_count: int = 5
     max_page_content_chars: int = 2000
     # Timeouts (in milliseconds)
