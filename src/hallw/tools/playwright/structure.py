@@ -7,17 +7,21 @@ from .playwright_state import get_page
 
 
 @tool
-async def browser_get_structure() -> str:
+async def browser_get_structure(page_index: int) -> str:
     """
     Get the page structure, focusing on:
     1. Page Title and URL.
     2. Key "interactive" elements (buttons, links, inputs, comboboxes, etc.).
 
+    Args:
+        page_index: Index of the page to extract structure from.
+
     Returns:
         A structured string representation of the page.
     """
-    page = await get_page()
-
+    page = await get_page(page_index)
+    if page is None:
+        return build_tool_response(False, f"Page with index {page_index} not found.")
     # -------------------------
     # A11y Tree Extraction
     # -------------------------
@@ -72,6 +76,7 @@ async def browser_get_structure() -> str:
         True,
         "Fetched page structure.",
         {
+            "page_index": page_index,
             "title": await page.title(),
             "url": page.url,
             "interactive_elements": interactive_data,

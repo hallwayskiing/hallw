@@ -1,5 +1,5 @@
 import subprocess
-from typing import Optional
+from typing import List, Optional
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright
 from playwright_stealth.stealth import Stealth
@@ -26,7 +26,7 @@ _launched = False
 _pw: Optional[Playwright] = None
 _browser: Optional[Browser] = None
 _context: Optional[BrowserContext] = None
-_page: Optional[Page] = None
+_pages: Optional[List[Page]] = None
 _chrome_process: Optional[subprocess.Popen] = None
 _temp_user_data_dir: Optional[str] = None
 
@@ -35,51 +35,67 @@ def launched() -> bool:
     return _launched
 
 
-async def get_page() -> Page:
+async def get_page(index: int) -> Optional[Page]:
+    await ensure_context()
+
+    if index >= len(_pages):
+        return None
+
+    return _pages[index]
+
+
+async def add_page(page: Page) -> int:
+    await ensure_context()
+
+    global _pages
+    if _pages is None:
+        _pages = []
+    stealth = Stealth()
+    await stealth.apply_stealth_async(page)
+    _pages.append(page)
+    return len(_pages) - 1
+
+
+async def ensure_context() -> None:
     global _launched
+    if _launched:
+        return
+
     _launched = True
 
-    if _page is None:
+    if _pages is None:
         from .playwright_mgr import browser_launch
 
         await browser_launch()
 
-    return _page
+
+def get_all_pages() -> Optional[List[Page]]:
+    return _pages
 
 
-async def set_page(page: Optional[Page]):
-    global _page
-    if page is None:
-        _page = None
-    else:
-        s = Stealth()
-        await s.apply_stealth_async(page)
-        _page = page
-
-
-def get_browser() -> Optional[Browser]:
+def get_browser() -> Browser:
     return _browser
 
 
-def set_browser(browser: Optional[Browser]):
+def set_browser(browser: Browser):
     global _browser
     _browser = browser
 
 
-def get_context() -> Optional[BrowserContext]:
+def get_context() -> BrowserContext:
     return _context
 
 
-def set_context(context: Optional[BrowserContext]):
+def set_context(context: BrowserContext):
     global _context
     _context = context
 
 
-def get_pw() -> Optional[Playwright]:
+def get_pw() -> Playwright:
     return _pw
 
 
-def set_pw(pw: Optional[Playwright]):
+def set_pw(pw: Playwright):
     global _pw
     _pw = pw
 
@@ -104,10 +120,10 @@ def set_temp_user_data_dir(dir_path: Optional[str]):
 
 def reset_all():
     """Reset all singletons to None."""
-    global _pw, _browser, _context, _page, _chrome_process, _temp_user_data_dir
+    global _pw, _browser, _context, _pages, _chrome_process, _temp_user_data_dir
     _pw = None
     _browser = None
     _context = None
-    _page = None
+    _pages = None
     _chrome_process = None
     _temp_user_data_dir = None

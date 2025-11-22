@@ -23,10 +23,11 @@ from .playwright_state import (
     PREFER_LOCAL_CHROME,
     PW_WINDOW_HEIGHT,
     PW_WINDOW_WIDTH,
+    add_page,
+    get_all_pages,
     get_browser,
     get_chrome_process,
     get_context,
-    get_page,
     get_pw,
     get_temp_user_data_dir,
     launched,
@@ -34,7 +35,6 @@ from .playwright_state import (
     set_browser,
     set_chrome_process,
     set_context,
-    set_page,
     set_pw,
     set_temp_user_data_dir,
 )
@@ -66,7 +66,7 @@ async def browser_launch() -> str:
                 context = browser.contexts[0] if browser.contexts else await browser.new_context()
                 set_context(context)
                 page = await context.new_page()
-                await set_page(page)
+                await add_page(page)
                 set_chrome_process(None)  # Since we didn't start it
 
                 return "Connected to existing Chrome instance."
@@ -94,7 +94,7 @@ async def browser_launch() -> str:
                         if persistent_context.pages
                         else await persistent_context.new_page()
                     )
-                    await set_page(page)
+                    await add_page(page)
                 else:
                     browser = await pw.chromium.launch(headless=HEADLESS_MODE)
                     set_browser(browser)
@@ -107,7 +107,7 @@ async def browser_launch() -> str:
                     )
                     set_context(context)
                     page = context.pages[0] if context.pages else await context.new_page()
-                    await set_page(page)
+                    await add_page(page)
             except Exception:
                 raise ToolException(
                     "Playwright Chromium not installed, " "run `playwright install chromium` first"
@@ -133,7 +133,7 @@ async def browser_launch() -> str:
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
         set_context(context)
         page = context.pages[0] if context.pages else await context.new_page()
-        await set_page(page)
+        await add_page(page)
         set_chrome_process(process)
 
         return "Local Chrome with CDP started."
@@ -148,9 +148,10 @@ async def browser_close() -> str:
         if KEEP_PAGE_OPEN:
             logger.info("KEEP_PAGE_OPEN is enabled; leaving page open.")
         else:
-            page = await get_page()
+            pages = get_all_pages()
             try:
-                await page.close()
+                for page in pages:
+                    await page.close()
             except Exception:
                 pass
             context = get_context()
@@ -254,7 +255,7 @@ def _cleanup_chrome_process():
                 pass
         set_chrome_process(None)
     else:
-        existing_pid = find_existing_chrome_process(CDP_PORT)
+        existing_pid = _find_existing_chrome_process(CDP_PORT)
         if existing_pid:
             try:
                 p = psutil.Process(existing_pid)
@@ -274,7 +275,7 @@ def _cleanup_chrome_process():
         set_temp_user_data_dir(None)
 
 
-def find_existing_chrome_process(port: int = CDP_PORT) -> Optional[int]:
+def _find_existing_chrome_process(port: int = CDP_PORT) -> Optional[int]:
     """Find the PID of an already running Chrome CDP process."""
     try:
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):

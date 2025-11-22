@@ -7,22 +7,27 @@ from .playwright_state import GOTO_TIMEOUT, MANUAL_CAPTCHA_TIMEOUT, SEARCH_RESUL
 
 
 @tool
-async def browser_search(query: str) -> str:
+async def browser_search(page_index: int, query: str) -> str:
     """Search Google for a query and return titles and URLs of top results
 
     Args:
+        page_index: Index of the page to perform the search on.
         query: Search query keywords
 
     Returns:
         Formatted string with search results including titles and URLs or error message
     """
-    page = await get_page()
+    page = await get_page(page_index)
+    if page is None:
+        return build_tool_response(False, f"Page with index {page_index} not found.")
     search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
     try:
         await page.goto(search_url, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT)
     except Exception:
         return build_tool_response(
-            False, "Timeout while searching, maybe network conditions are poor."
+            False,
+            "Timeout while searching, maybe network conditions are poor.",
+            {"page_index": page_index},
         )
 
     # Detect CAPTCHA
@@ -65,7 +70,10 @@ async def browser_search(query: str) -> str:
             return build_tool_response(
                 False,
                 "Found potential result links, but all were filtered out (e.g., non-http URLs).",
+                {"page_index": page_index},
             )
         return build_tool_response(False, "No valid search results found.")
 
-    return build_tool_response(True, f"Search results for '{query}'.", {"results": results})
+    return build_tool_response(
+        True, f"Search results for '{query}'.", {"results": results, "page_index": page_index}
+    )

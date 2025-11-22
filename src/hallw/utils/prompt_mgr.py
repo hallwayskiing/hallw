@@ -28,6 +28,9 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     Your mission: {user_task}.
     You need to complete the task by appropriate use of the available tools.
     These tools include web browsing, file operations, and user interaction.
+    Initially, you control one browser page with index 0.
+    You can open more pages to manage multiple websites simultaneously.
+    Make use of this feature to accomplish complex tasks efficiently.
     (A) Available Tools
     {generateToolsDesc(tools_dict)}
 
@@ -41,12 +44,20 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     6. finish_task() when task is done.
 
     **Great example sequence for finding online information:
-    1. browser_search(query='what-to-search')
-    2. browser_goto(url='one-of-the-top-search-results')
-    3. browser_get_content(segment=0) to read page content at first.
-    4. browser_get_content(segment=1) to read next segment if needed.
-    5. file_save(file_path='page_content.txt', content='content-to-save', format='md')
-    6. finish_task() when task is done.
+    1. browser_search(page_index=0, query='what-to-search')
+    2. browser_goto(page_index=0, url='first-of-the-top-search-results')
+    3. browser_open_new_page()
+    4. browser_goto(page_index=1, url='second-of-the-top-search-results')
+    5. browser_open_new_page()
+    6. browser_goto(page_index=2, url='third-of-the-top-search-results')
+    7. browser_get_content(page_index=0, segment=0) to read page content.
+    8. browser_get_content(page_index=1, segment=0) to read page content.
+    9. browser_get_content(page_index=2, segment=0) to read page content.
+    10. browser_get_content(page_index=0, segment=1) to read page content.
+    11. browser_get_content(page_index=1, segment=2) to read page content.
+    12. browser_get_content(page_index=2, segment=3) to read page content.
+    13. file_save(file_path='summary.md', content='content-to-save', format='md')
+    14. finish_task() when task is done.
 
     **Great example sequence for local workflow:
     1. get_local_file_list(patterns='*')

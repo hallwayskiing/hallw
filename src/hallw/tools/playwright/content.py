@@ -6,17 +6,19 @@ from .playwright_state import MAX_PAGE_CONTENT_CHARS, get_page
 
 
 @tool
-async def browser_get_content(segment: int) -> str:
+async def browser_get_content(page_index: int, segment: int) -> str:
     """Fetch the text content of the main area of current page by segments.
 
     Args:
+        page_index: Index of the page to fetch content from.
         segment: Segment index (0-based)
 
     Returns:
         text content of the page by segment
     """
-    page = await get_page()
-
+    page = await get_page(page_index)
+    if page is None:
+        return build_tool_response(False, f"Page with index {page_index} not found.")
     selectors = [
         "article",
         "[role='main']",
@@ -49,13 +51,15 @@ async def browser_get_content(segment: int) -> str:
     if segment >= segments:
         return build_tool_response(
             False,
-            f"Segment index {segment} out of range. Total segments: {segments}.",
+            f"Segment index {segment} out of range.",
+            {"page_index": page_index, "total_segments": segments},
         )
 
     return build_tool_response(
         True,
         "Fetched page content segment.",
         {
+            "page_index": page_index,
             "segment": segment,
             "total_segments": segments,
             "chars_per_segment": MAX_PAGE_CONTENT_CHARS,
