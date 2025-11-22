@@ -5,15 +5,14 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-Framework-blue.svg)](https://github.com/langchain-ai/langgraph)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-green.svg)](https://playwright.dev/)
 
-
 <div align='center'>
 
-https://github.com/user-attachments/assets/4f9dc9a1-6f2b-4303-956a-d61cf2346e17
+https://github.com/user-attachments/assets/3be93040-0d43-4559-8178-d199b319a2e0
 
-<p><em>Demo for 'gather gemini-3.0 infos and give me a summary in markdown'</em></p>
+<p><em>Demo for 'Summarize latest news, games and music'</em></p>
 </div>
 
-**HALLW** (Hyper-Automation-Large-Language-Wizard) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
+**HALLW** (Heuristic Autonomous Logic Loop Worker) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
 
 > **Simply tell it what to do, and watch it work.**
 
@@ -73,7 +72,7 @@ MODEL_NAME=gemini-2.5-flash-lite  # recommended for free usage in Google AI Stud
 - **Windows**: Double-click **`start.bat`** (or run it from PowerShell by `.\start.bat`).
 - **Linux/macOS**: Make it executable once with `chmod +x start.sh`, then run `./start.sh`.
 
-Both launchers automatically download uv, install dependencies (including Playwright binaries), and start the interactive console.
+Both launchers automatically download uv, install dependencies, and start the interactive console.
 
 -----
 
@@ -131,10 +130,23 @@ All settings are managed via `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CHROME_USER_DATA_DIR` | Path to storage chrome user date | `./.chrome_user_data/` |
+| `CHROME_USER_DATA_DIR` | Path to storage chrome user date | [.chrome_user_data/](./.chrome_user_data/) |
 | `PW_HEADLESS_MODE` | Run without visible window (`True`/`False`) | `False` |
-| `KEEP_BROWSER_OPEN` | Keep window open after task finishes | `True` |
+| `KEEP_PAGE_OPEN` | Keep pages open after task finishes | `True` |
 | `SEARCH_RESULT_COUNT` | Google search depth | `10` |
+| `PREFER_LOCAL_CHROME` | Use local chrome first | `True` |
+
+### 📁 File System Settings
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FILE_SAVE_DIR` |	Directory where the agent saves files |	workspace/ |
+| `FILE_READ_DIR` |	Base directory allowed for reading files	| . |
+| `FILE_MAX_READ_CHARS` |	Max characters to read from one file | 5000 |
+
+### 💻 Interactive Settings
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ALLOW_ASK_INFO_TOOL` |	Allow agent to ask for more info |	True |
 
 -----
 
