@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     # 5. File Operations
     # =================================================
     file_read_dir: str = "."
-    file_save_dir: str = "generated_by_hallw/"
+    file_save_dir: str = "workspace/"
     file_max_read_chars: int = 5000
 
     # =================================================
