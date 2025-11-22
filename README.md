@@ -5,12 +5,11 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-Framework-blue.svg)](https://github.com/langchain-ai/langgraph)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-green.svg)](https://playwright.dev/)
 
-
 <div align='center'>
 
-https://github.com/user-attachments/assets/4f9dc9a1-6f2b-4303-956a-d61cf2346e17
+https://github.com/user-attachments/assets/3be93040-0d43-4559-8178-d199b319a2e0
 
-<p><em>Demo for 'gather gemini-3.0 infos and give me a summary in markdown'</em></p>
+<p><em>Demo for 'Summarize latest news, games and music'</em></p>
 </div>
 
 **HALLW** (Hyper-Automation-Large-Language-Wizard) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
