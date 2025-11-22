@@ -65,7 +65,7 @@ copy .env.example .env
 
 ```env
 MODEL_API_KEY=your-api-key-here
-MODEL_NAME=gemini-2.0-flash  # recommended for free usage in Google AI Studio
+MODEL_NAME=gemini-2.5-flash-lite  # recommended for free usage in Google AI Studio
 ```
 
 ### 3. Run!
@@ -84,8 +84,8 @@ If you prefer using the command line or want to integrate HALLW into your workfl
 ### Installation
 
 ```bash
-# Install via pip in editable mode
-pip install -e ". [dev]"
+# Install via uv (including dev dependencies)
+uv sync
 
 # Install browser binaries
 playwright install chromium
@@ -122,7 +122,7 @@ All settings are managed via `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MODEL_NAME` | The LLM model ID to use | `gemini-2.0-flash` |
+| `MODEL_NAME` | The LLM model ID to use | `gemini-2.5-flash-lite` |
 | `MODEL_ENDPOINT` | Base URL for the API | `https://generativelanguage.googleapis.com/v1beta/openai/` |
 | `MODEL_API_KEY` | **Required** API Key | - |
 | `MODEL_TEMPERATURE` | Creativity (0.0 - 1.0) | `0.25` |
@@ -131,10 +131,10 @@ All settings are managed via `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CHROME_USER_DATA_DIR` | Path to local Chrome profile (keeps you logged in) | `None` (Incognito) |
+| `CHROME_USER_DATA_DIR` | Path to storage chrome user date | `./.chrome_user_data/` |
 | `PW_HEADLESS_MODE` | Run without visible window (`True`/`False`) | `False` |
 | `KEEP_BROWSER_OPEN` | Keep window open after task finishes | `True` |
-| `SEARCH_RESULT_COUNT` | Google search depth | `5` |
+| `SEARCH_RESULT_COUNT` | Google search depth | `10` |
 
 -----
 
