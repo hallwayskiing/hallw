@@ -18,7 +18,7 @@ async def run_task(
 ) -> None:
     workflow = build_graph(llm, tools_dict, checkpointer)
 
-    invocation_config = {"recursion_limit": 100, "configurable": {"thread_id": task_id}}
+    invocation_config = {"recursion_limit": 200, "configurable": {"thread_id": task_id}}
 
     async for event in workflow.astream_events(
         initial_state,

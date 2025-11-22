@@ -6,7 +6,7 @@ from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
 from hallw.agent_state import AgentState, AgentStats
-from hallw.tools import parse_tool_response
+from hallw.tools import dummy_for_missed_tool, parse_tool_response
 from hallw.utils import config as hallw_config
 from hallw.utils import logger
 
@@ -75,12 +75,18 @@ def build_graph(
             if tool_obj is None:
                 error_msg = f"Tool '{tool_name}' not found."
                 logger.error(error_msg)
-                messages.append(
+
+                """ messages.append(
                     ToolMessage(content=error_msg, tool_call_id=tool_id, name=tool_name)
                 )
                 stats_delta["failures"] += 1
                 stats_delta["failures_since_last_reflection"] += 1
-                continue
+                continue """
+
+                # Use dummy tool for not found tools to avoid breaking the flow
+                tool_obj = dummy_for_missed_tool
+                tool_obj.name = tool_name
+                tool_args = {"name": tool_name}
 
             # 2.2 Execute tool
             tool_response = await tool_obj.ainvoke(tool_args, config=config)
@@ -109,7 +115,7 @@ def build_graph(
                 stats_delta["failures_since_last_reflection"] += 1
 
             # 2.4 Check for finish tool
-            if tool_name == hallw_config.finish_tool_name:
+            if tool_name == hallw_config.finish_tool_name and success:
                 task_completed_update = True
 
         return {
