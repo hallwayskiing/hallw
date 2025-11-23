@@ -40,7 +40,7 @@ We welcome feature suggestions! Please open an issue with:
 2. **Set up development environment**:
    ```bash
    # Install in development mode
-   pip install -e ".[dev]"
+   uv sync
 
    # Install pre-commit hooks
    pre-commit install
@@ -58,8 +58,7 @@ We welcome feature suggestions! Please open an issue with:
    pytest
 
    # Run linting
-   black --check .
-   isort --check .
+   ruff check src/
    mypy src/
    ```
 
@@ -90,9 +89,9 @@ We welcome feature suggestions! Please open an issue with:
 
 ### Prerequisites
 
-- Python 3.12 or higher
+- Python 3.12.*
 - Git
-- Chrome/Chromium browser
+- Chrome/Chromium
 
 ### Setup Steps
 
@@ -104,13 +103,13 @@ We welcome feature suggestions! Please open an issue with:
 
 2. **Create a virtual environment**:
    ```bash
-   python -m venv venv
+   uv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies**:
    ```bash
-   pip install -e ".[dev]"
+   uv sync
    ```
 
 4. **Install Playwright**:
@@ -128,8 +127,7 @@ We welcome feature suggestions! Please open an issue with:
 
 We use the following tools to maintain code quality:
 
-- **Black**: Code formatting
-- **isort**: Import sorting
+- **ruff**: Code formatting
 - **mypy**: Type checking
 - **pytest**: Testing
 
@@ -137,10 +135,7 @@ We use the following tools to maintain code quality:
 
 ```bash
 # Format code
-black .
-
-# Sort imports
-isort .
+ruff check src/
 
 # Type check
 mypy src/

@@ -8,7 +8,6 @@ import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
-import psutil
 from langchain_core.tools import ToolException
 from playwright.async_api import async_playwright
 
@@ -114,29 +113,30 @@ async def browser_launch() -> str:
                 )
             set_chrome_process(None)  # It's managed by Playwright
             return "Playwright Chromium launched"
+        # Launch local Chrome with CDP
+        else:
+            args = _build_chrome_args(chrome_path)
 
-        args = _build_chrome_args(chrome_path)
+            process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            set_chrome_process(process)
 
-        process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        set_chrome_process(process)
+            if not _wait_for_port("127.0.0.1", CDP_PORT, CDP_TIMEOUT):
+                _cleanup_chrome_process()
+                raise ToolException("Local Chrome failed to start with CDP.")
 
-        if not _wait_for_port("127.0.0.1", CDP_PORT, CDP_TIMEOUT):
-            _cleanup_chrome_process()
-            raise ToolException("Local Chrome failed to start with CDP.")
+            endpoint = f"http://127.0.0.1:{CDP_PORT}"
 
-        endpoint = f"http://127.0.0.1:{CDP_PORT}"
+            pw = await async_playwright().start()
+            set_pw(pw)
+            browser = await pw.chromium.connect_over_cdp(endpoint)
+            set_browser(browser)
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
+            set_context(context)
+            page = context.pages[0] if context.pages else await context.new_page()
+            await add_page(page)
+            set_chrome_process(process)
 
-        pw = await async_playwright().start()
-        set_pw(pw)
-        browser = await pw.chromium.connect_over_cdp(endpoint)
-        set_browser(browser)
-        context = browser.contexts[0] if browser.contexts else await browser.new_context()
-        set_context(context)
-        page = context.pages[0] if context.pages else await context.new_page()
-        await add_page(page)
-        set_chrome_process(process)
-
-        return "Local Chrome with CDP started."
+            return "Local Chrome with CDP started."
 
 
 async def browser_close() -> str:
@@ -234,7 +234,7 @@ def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
     deadline = time.time() + timeout / 1000
     while time.time() < deadline:
         try:
-            with socket.create_connection((host, port), timeout=100):
+            with socket.create_connection((host, port), timeout=1):
                 return True
         except (socket.error, OSError):
             time.sleep(0.2)
@@ -254,18 +254,6 @@ def _cleanup_chrome_process():
             except Exception:
                 pass
         set_chrome_process(None)
-    else:
-        existing_pid = _find_existing_chrome_process(CDP_PORT)
-        if existing_pid:
-            try:
-                p = psutil.Process(existing_pid)
-                p.terminate()
-                p.wait(timeout=5)
-            except Exception:
-                try:
-                    p.kill()
-                except Exception:
-                    pass
 
     time.sleep(1)  # Ensure process has time to terminate
 
@@ -273,22 +261,6 @@ def _cleanup_chrome_process():
     if temp_user_data_dir and os.path.exists(temp_user_data_dir):
         shutil.rmtree(temp_user_data_dir, ignore_errors=True)
         set_temp_user_data_dir(None)
-
-
-def _find_existing_chrome_process(port: int = CDP_PORT) -> Optional[int]:
-    """Find the PID of an already running Chrome CDP process."""
-    try:
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-            try:
-                cmdline = proc.info.get("cmdline", [])
-                if cmdline and "chrome" in proc.info["name"].lower():
-                    if any(f"--remote-debugging-port={port}" in arg for arg in cmdline):
-                        return int(proc.info["pid"])
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
-    except Exception as e:
-        logger.warning(f"Failed to search for Chrome process: {e}")
-    return None
 
 
 def _build_chrome_args(chrome_path: str) -> list:
