@@ -6,14 +6,13 @@ from hallw.utils import config
 
 logger = logging.getLogger("hallw")
 
-_initialized = False
-
 
 def init_logger(task_id: str) -> None:
     """Initialize the HALLW logger configuration."""
-    global _initialized
-    if _initialized:
-        return
+
+    # Clear existing handlers
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
     # Categorize logs by date
     log_dir = Path(config.logging_file_dir)
@@ -45,5 +44,3 @@ def init_logger(task_id: str) -> None:
 
     logging.getLogger("httpx").disabled = True
     logging.getLogger("langchain_core.callbacks.manager").disabled = True
-
-    _initialized = True

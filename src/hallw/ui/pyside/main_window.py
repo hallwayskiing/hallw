@@ -77,6 +77,7 @@ class QtAgentMainWindow(QMainWindow):
         self.sidebar_manually_hidden = False
         self.ai_buffer = ""
         self.ai_start_pos = 0
+        self.ai_header_shown = False
         self.countdown = 60
 
         # UI Components Placeholders
@@ -186,7 +187,7 @@ class QtAgentMainWindow(QMainWindow):
     def _connect_signals(self):
         r = self.renderer
         r.new_token_received.connect(self._append_token)
-        r.ai_response_start.connect(self._start_ai_response)
+        r.ai_response_start.connect(self._on_ai_response_start)
         r.tool_plan_updated.connect(lambda t: self._update_sidebar_text(self.tool_plan, t, md=True))
         r.tool_execution_updated.connect(
             lambda t: self._update_sidebar_text(self.tool_execution, t, md=False)
@@ -310,14 +311,21 @@ class QtAgentMainWindow(QMainWindow):
         self.agent_output.ensureCursorVisible()
 
     @Slot()
-    def _start_ai_response(self):
-        self._append_html(AI_HEADER_TEMPLATE)
-        self.agent_output.append("")
-        self.ai_start_pos = self.agent_output.textCursor().position()
+    def _on_ai_response_start(self):
+        self.ai_header_shown = False
         self.ai_buffer = ""
 
     @Slot(str)
     def _append_token(self, text: str):
+        if not self.ai_header_shown:
+            if not text.strip():
+                return
+            self._append_html(AI_HEADER_TEMPLATE)
+            self.agent_output.append("")
+            self.ai_start_pos = self.agent_output.textCursor().position()
+            self.ai_buffer = ""
+            self.ai_header_shown = True
+
         self.ai_buffer += text
         cursor = self.agent_output.textCursor()
         cursor.setPosition(self.ai_start_pos)

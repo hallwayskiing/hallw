@@ -53,11 +53,21 @@ def build_graph(
             "failures_since_last_reflection": 0,
         }
 
+        task_completed_update = state["task_completed"]
+
         # 1. Check for tool calls
         if not tool_calls:
-            return {}
-
-        task_completed_update = state["task_completed"]
+            reminder = HumanMessage(
+                content="You did not call any tool. "
+                "Please remember to call tools to complete your tasks."
+            )
+            messages.append(reminder)
+            stats_delta["failures"] += 1
+            stats_delta["failures_since_last_reflection"] += 1
+            return {
+                "messages": messages,
+                "stats": stats_delta,
+            }
 
         # 2. Execute tool calls
         for tool_call in tool_calls:
