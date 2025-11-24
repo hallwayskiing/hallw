@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     pw_window_width: int = 1920
     pw_window_height: int = 1080
     keep_page_open: bool = True
-    search_result_count: int = 5
+    browser_search_engine: str = "google"
+    search_result_count: int = 10
     max_page_content_chars: int = 2000
     # Timeouts (in milliseconds)
     manual_captcha_timeout: int = 60000

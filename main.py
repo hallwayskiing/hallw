@@ -111,8 +111,6 @@ class AgentApplication:
         # Start worker thread
         self.worker = QtAgentThread(agent_task)
         self.worker.finished.connect(self.renderer.task_finished.emit)
-        # Explicitly handle cleanup after thread finishes to prevent zombie objects
-        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
     def run(self):

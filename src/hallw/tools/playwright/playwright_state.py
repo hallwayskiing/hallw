@@ -14,6 +14,7 @@ HEADLESS_MODE = config.pw_headless_mode
 PW_WINDOW_WIDTH = config.pw_window_width
 PW_WINDOW_HEIGHT = config.pw_window_height
 KEEP_PAGE_OPEN = config.keep_page_open
+BROWSER_SEARCH_ENGINE = config.browser_search_engine
 SEARCH_RESULT_COUNT = config.search_result_count
 MAX_PAGE_CONTENT_CHARS = config.max_page_content_chars
 MANUAL_CAPTCHA_TIMEOUT = config.manual_captcha_timeout
