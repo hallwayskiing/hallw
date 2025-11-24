@@ -1,12 +1,9 @@
 """Pytest configuration and fixtures."""
 
 import os
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
-from hallw.tools.playwright.playwright_state import set_page
 
 
 @pytest.fixture
@@ -65,18 +62,3 @@ def mock_playwright_stealth():
         stealth.apply_stealth_async = AsyncMock()
         stealth_cls.return_value = stealth
         yield
-
-
-@pytest.fixture
-def page_context():
-    """Async context manager that sets/clears the global Playwright page."""
-
-    @asynccontextmanager
-    async def _ctx(page):
-        await set_page(page)
-        try:
-            yield page
-        finally:
-            await set_page(None)
-
-    return _ctx

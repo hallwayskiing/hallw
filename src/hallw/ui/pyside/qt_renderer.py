@@ -5,6 +5,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 
 from hallw.core import AgentRenderer, AgentTask
 from hallw.tools import parse_tool_response
+from hallw.utils import config
 
 
 class QtAgentRenderer(QObject, AgentRenderer):
@@ -75,7 +76,7 @@ class QtAgentRenderer(QObject, AgentRenderer):
         self._emit_tool_execution()
 
         # Handle special tool requests
-        if name == "ask_for_more_info":
+        if name == "ask_for_more_info" and config.allow_ask_info_tool:
             question = "Agent needs input."
             if isinstance(args, str):
                 try:

@@ -21,12 +21,12 @@ from PySide6.QtWidgets import (
 import hallw.tools.ask_info
 
 from .qt_renderer import QtAgentRenderer
-from .styles import STYLE
+from .settings_dialog import SettingsDialog
+from .styles import MAIN_STYLE
 from .templates import (
     AI_HEADER_TEMPLATE,
     END_MSG_TEMPLATE,
     ERROR_MSG_TEMPLATE,
-    LAUNCH_MSG_TEMPLATE,
     QUESTION_MSG_TEMPLATE,
     USER_MSG_TEMPLATE,
     WELCOME_HTML,
@@ -65,13 +65,20 @@ class LayoutConfig:
 
 
 class QtAgentMainWindow(QMainWindow):
-    def __init__(self, renderer: QtAgentRenderer, start_task_callback: Callable[[str], None]):
+    def __init__(
+        self,
+        renderer: QtAgentRenderer,
+        start_task_callback: Callable[[str], None],
+        stop_task_callback: Callable[[], None],
+    ):
         super().__init__()
         self.renderer = renderer
         self.start_task_callback = start_task_callback
+        self.stop_task_callback = stop_task_callback
 
         # State
         self.is_waiting_for_response = False
+        self.is_task_running = False
         self.is_first_interaction = True
         self.has_error = False
         self.sidebar_manually_hidden = False
@@ -103,7 +110,7 @@ class QtAgentMainWindow(QMainWindow):
         self.setWindowTitle("HALLW")
         if os.path.exists(LOGO_PATH):
             self.setWindowIcon(QIcon(LOGO_PATH))
-        self.setStyleSheet(STYLE)
+        self.setStyleSheet(MAIN_STYLE)
         self.input_timer = QTimer(self)
         self.input_timer.timeout.connect(self._on_countdown_tick)
 
@@ -124,7 +131,7 @@ class QtAgentMainWindow(QMainWindow):
         chat_layout.setContentsMargins(0, 0, 0, 0)
         chat_layout.setSpacing(0)
 
-        # Chat Header (Toggle Button)
+        # Chat Header
         self.chat_header = QWidget()
         ch_layout = QHBoxLayout(self.chat_header)
         ch_layout.setContentsMargins(0, 0, 0, 4)
@@ -166,6 +173,13 @@ class QtAgentMainWindow(QMainWindow):
         self.input_layout.setContentsMargins(0, 0, 0, 0)
         self.input_layout.setSpacing(12)
 
+        self.settings_btn = QPushButton("⚙️", cursor=Qt.PointingHandCursor)
+        self.settings_btn.setObjectName("SettingsButton")
+        self.settings_btn.setToolTip("Settings")
+        self.settings_btn.setFixedWidth(40)
+        self.settings_btn.clicked.connect(self._open_settings)
+        self.input_layout.addWidget(self.settings_btn)
+
         self.input_field = QLineEdit(placeholderText="Tell me what to do...")
         self.input_field.returnPressed.connect(self.on_submit)
         self.input_layout.addWidget(self.input_field)
@@ -196,6 +210,10 @@ class QtAgentMainWindow(QMainWindow):
         r.task_finished.connect(self._on_finished)
         r.tool_error_occurred.connect(self._on_tool_error)
         r.fatal_error_occurred.connect(self._on_fatal_error)
+
+    def _open_settings(self):
+        dlg = SettingsDialog(self)
+        dlg.exec()
 
     # --- Responsive Logic ---
     def _get_layout_config(self) -> LayoutConfig:
@@ -360,13 +378,28 @@ class QtAgentMainWindow(QMainWindow):
         else:
             self.input_field.setPlaceholderText(f"Say something... ({self.countdown}s)")
 
-    def _set_input_enabled(self, enabled: bool, btn_text: str = None):
+    def _set_input_enabled(self, enabled: bool, btn_text: str = None, btn_enabled: bool = None):
         self.input_field.setEnabled(enabled)
-        self.send_btn.setEnabled(enabled)
+        if btn_enabled is not None:
+            self.send_btn.setEnabled(btn_enabled)
+        else:
+            self.send_btn.setEnabled(enabled)
+
         if btn_text:
             self.send_btn.setText(btn_text)
 
     def on_submit(self):
+        if self.is_task_running and not self.is_waiting_for_response:
+            if self.stop_task_callback:
+                self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
+                self.has_error = True
+                self.send_btn.setText("Stopping")
+                self.send_btn.setEnabled(False)
+                QApplication.processEvents()
+                self.stop_task_callback()
+                self._on_finished()
+            return
+
         text = self.input_field.text().strip()
         if not text:
             return
@@ -384,14 +417,15 @@ class QtAgentMainWindow(QMainWindow):
             self.input_timer.stop()
             INPUT_QUEUE.put(text)
             self.is_waiting_for_response = False
-            self.input_field.setPlaceholderText("Processing...")
-            self._set_input_enabled(False)
+            self.input_field.setPlaceholderText("Processing")
+            self._set_input_enabled(False, btn_text="Stop Task", btn_enabled=True)
         else:
-            self._set_input_enabled(False)
+            self.is_task_running = True
+            self.settings_btn.setEnabled(False)
+            self._set_input_enabled(False, btn_text="Stop Task", btn_enabled=True)
             self.tool_plan.clear()
             self.tool_execution.clear()
             self.renderer.reset_state()
-            self._append_html(LAUNCH_MSG_TEMPLATE.format(text="Task Launching..."))
             try:
                 if self.start_task_callback:
                     self.start_task_callback(text)
@@ -400,8 +434,11 @@ class QtAgentMainWindow(QMainWindow):
 
     @Slot()
     def _on_finished(self):
-        if not self.has_error:
-            self._append_html(END_MSG_TEMPLATE.format(icon="✅", text="Task Completed."))
+        self.is_task_running = False
+        self.is_waiting_for_response = False
+        self.input_timer.stop()
+        self.settings_btn.setEnabled(True)
+        self.agent_output.moveCursor(QTextCursor.End)
         self._set_input_enabled(True, "Start Task")
         self.input_field.setPlaceholderText("Tell me what to do...")
         self.input_field.setFocus()
@@ -414,6 +451,10 @@ class QtAgentMainWindow(QMainWindow):
 
     @Slot(str)
     def _on_fatal_error(self, msg: str):
+        self.is_task_running = False
+        self.is_waiting_for_response = False
+        self.input_timer.stop()
+        self.settings_btn.setEnabled(True)
         self.has_error = True
         self._append_html(ERROR_MSG_TEMPLATE.format(text=f"{msg}"))
         self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))

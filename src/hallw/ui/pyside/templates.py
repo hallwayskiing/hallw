@@ -49,13 +49,6 @@ ERROR_MSG_TEMPLATE = """
 <br>
 """
 
-# Launch Message
-LAUNCH_MSG_TEMPLATE = """
-<div style="color: #666666; font-size: 14px; margin: 20px 0; font-family: monospace; padding-left: 5px;">
-    🚀 {text}
-</div>
-"""
-
 # End Message
 END_MSG_TEMPLATE = """
 <div style="color: #666666; font-size: 14px; margin: 20px 0; font-family: monospace; padding-left: 5px;">

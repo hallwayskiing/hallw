@@ -1,5 +1,5 @@
 import subprocess
-from typing import List, Optional
+from typing import Optional
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright
 from playwright_stealth.stealth import Stealth
@@ -23,51 +23,35 @@ CLICK_TIMEOUT = config.pw_click_timeout
 CDP_TIMEOUT = config.pw_cdp_timeout
 
 # Singleton state
-_launched = False
 _pw: Optional[Playwright] = None
 _browser: Optional[Browser] = None
 _context: Optional[BrowserContext] = None
-_pages: Optional[List[Page]] = None
 _chrome_process: Optional[subprocess.Popen] = None
 _temp_user_data_dir: Optional[str] = None
 
 
-def launched() -> bool:
-    return _launched
-
-
 async def get_page(index: int) -> Optional[Page]:
-    await ensure_context()
-
-    if index >= len(_pages):
-        return None
-
-    return _pages[index]
-
-
-async def add_page(page: Page) -> int:
-    global _pages
-    if _pages is None:
-        _pages = []
-
-    stealth = Stealth()
-    await stealth.apply_stealth_async(page)
-    _pages.append(page)
-    return len(_pages) - 1
-
-
-async def ensure_context() -> None:
-    global _launched
-    _launched = True
-
-    if _pages is None:
+    if _context is None:
         from .playwright_mgr import browser_launch
 
         await browser_launch()
 
+    pages = _context.pages
 
-def get_all_pages() -> Optional[List[Page]]:
-    return _pages
+    if index >= len(pages):
+        return None
+
+    return pages[index]
+
+
+async def add_page() -> int:
+    if _context is None:
+        from .playwright_mgr import browser_launch
+
+        await browser_launch()
+
+    await _context.new_page()
+    return len(_context.pages) - 1
 
 
 def get_browser() -> Browser:
@@ -83,8 +67,10 @@ def get_context() -> BrowserContext:
     return _context
 
 
-def set_context(context: BrowserContext):
+async def set_context(context: BrowserContext):
     global _context
+    stealth = Stealth()
+    await stealth.apply_stealth_async(context)
     _context = context
 
 
@@ -117,11 +103,9 @@ def set_temp_user_data_dir(dir_path: Optional[str]):
 
 def reset_all():
     """Reset all singletons to None."""
-    global _pw, _browser, _context, _pages, _chrome_process, _temp_user_data_dir, _launched
-    _launched = False
+    global _pw, _browser, _context, _chrome_process, _temp_user_data_dir
     _pw = None
     _browser = None
     _context = None
-    _pages = None
     _chrome_process = None
     _temp_user_data_dir = None

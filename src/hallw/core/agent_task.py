@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Dict
 
@@ -6,6 +5,7 @@ from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 
+from .agent_event_loop import AgentEventLoop
 from .agent_graph import build_graph
 from .agent_renderer import AgentRenderer
 from .agent_state import AgentState
@@ -22,6 +22,7 @@ class AgentTask:
         renderer: AgentRenderer,
         initial_state: AgentState,
         checkpointer: BaseCheckpointSaver,
+        event_loop: AgentEventLoop,
     ):
         self.task_id = task_id
         self.llm = llm
@@ -29,13 +30,13 @@ class AgentTask:
         self.renderer = renderer
         self.initial_state = initial_state
         self.checkpointer = checkpointer
+        self.event_loop = event_loop
 
     def run(self) -> None:
         """
         Synchronous entry point to run the agent task.
-        This should be called in a separate thread if non-blocking behavior is desired.
         """
-        asyncio.run(self.run_async())
+        self.event_loop.submit(self.run_async())
 
     async def run_async(self) -> None:
         workflow = build_graph(self.llm, self.tools_dict, self.checkpointer)

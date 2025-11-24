@@ -16,7 +16,7 @@ def generateToolsDesc(tools_dict: dict[str, BaseTool]) -> str:
     return "\n".join(descs)
 
 
-def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
+def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     """
     Generates the system prompt for the automation agent based on the task and grid size.
 
@@ -25,8 +25,7 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     """
 
     return f"""You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
-    Your mission: {user_task}.
-    You need to complete the task by appropriate use of the available tools.
+    You need to complete user's task by appropriate use of the available tools.
     These tools include web browsing, file operations, and user interaction.
     Initially, you control one browser page with index 0.
     You can open more pages to manage multiple websites simultaneously.
@@ -41,7 +40,6 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     3. browser_click(role='button', name='search-button-name')
     4. browser_click(role='link', name='product-name')
     5. browser_click(role='button', name='add-to-cart-button')
-    6. finish_task() when task is done.
 
     **Great example sequence for finding online information:
     1. browser_search(page_index=0, query='what-to-search')
@@ -57,14 +55,12 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
     11. browser_get_content(page_index=1, segment=2) to read page content.
     12. browser_get_content(page_index=2, segment=3) to read page content.
     13. file_save(file_path='summary.md', content='content-to-save', format='md')
-    14. finish_task() when task is done.
 
     **Great example sequence for local workflow:
     1. get_local_file_list(patterns='*')
     2. file_read(file_path='relative/path/to/file/a.md')
     3. file_read(file_path='relative/path/to/file/b.py')
     5. file_save(file_path='relative/path/to/savefile', content='content-to-save', format='md')
-    6. finish_task() when task is done.
 
     (C) Thought Process
     1. **Identify current state:** What application/page am I on?

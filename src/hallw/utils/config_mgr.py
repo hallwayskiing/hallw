@@ -60,7 +60,6 @@ class Settings(BaseSettings):
     # 6. Interactive settings
     # =================================================
     allow_ask_info_tool: bool = True
-    finish_tool_name: str = "finish_task"
 
     # =================================================
     # Pydantic config
@@ -72,3 +71,10 @@ class Settings(BaseSettings):
 
 # Export
 config = Settings()
+
+
+def reload_config():
+    global config
+    new_config = Settings()
+    for key, value in new_config.model_dump().items():
+        setattr(config, key, value)

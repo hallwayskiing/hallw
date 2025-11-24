@@ -45,7 +45,7 @@ def build_graph(
         ai_message = state["messages"][-1]
         tool_calls = ai_message.tool_calls
 
-        messages = []
+        messages: list[ToolMessage] = []
 
         stats_delta: AgentStats = {
             "tool_call_counts": 0,
@@ -57,15 +57,10 @@ def build_graph(
 
         # 1. Check for tool calls
         if not tool_calls:
-            reminder = HumanMessage(
-                content="You did not call any tool. "
-                "Please remember to call tools to complete your tasks."
-            )
-            messages.append(reminder)
-            stats_delta["failures"] += 1
-            stats_delta["failures_since_last_reflection"] += 1
+            task_completed_update = True
             return {
                 "messages": messages,
+                "task_completed": task_completed_update,
                 "stats": stats_delta,
             }
 
@@ -116,10 +111,6 @@ def build_graph(
             if not success:
                 stats_delta["failures"] += 1
                 stats_delta["failures_since_last_reflection"] += 1
-
-            # 2.4 Check for finish tool
-            if tool_name == hallw_config.finish_tool_name and success:
-                task_completed_update = True
 
         return {
             "messages": messages,
