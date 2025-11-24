@@ -7,7 +7,7 @@
 
 <div align='center'>
 
-https://github.com/user-attachments/assets/3be93040-0d43-4559-8178-d199b319a2e0
+https://github.com/user-attachments/assets/a701bce5-c98a-40df-be75-ff1f4f733078
 
 <p><em>Demo for 'Summarize latest news, games and music'</em></p>
 </div>

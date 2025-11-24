@@ -8,10 +8,11 @@ from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from hallw.core import AgentRenderer
 from hallw.tools.tool_response import parse_tool_response
 
 
-class AgentRenderer:
+class RichAgentRenderer(AgentRenderer):
     """Render LangGraph events using Rich panels."""
 
     def __init__(self, console: Optional[Console] = None) -> None:
@@ -49,25 +50,6 @@ class AgentRenderer:
         if self.live:
             self.live.stop()
             self.live = None
-
-    def handle_event(self, event: Dict[str, Any]) -> None:
-        """Dispatch events to their respective handlers."""
-        kind = event.get("event")
-        data = event.get("data", {})
-        name = event.get("name", "")
-
-        if kind == "on_chat_model_start":
-            self.on_llm_start()
-        elif kind == "on_chat_model_stream":
-            chunk = data.get("chunk")
-            if chunk is not None:
-                self.on_llm_chunk(chunk)
-        elif kind == "on_chat_model_end":
-            self.on_llm_end()
-        elif kind == "on_tool_start":
-            self.on_tool_start(name=name, args=data.get("input"))
-        elif kind == "on_tool_end":
-            self.on_tool_end(name=name, output=data.get("output"))
 
     # ------------------------------------------------------------------
     # Event helpers
@@ -132,7 +114,7 @@ class AgentRenderer:
 
             self.current_response["tool_calls"] = display_calls
 
-    def on_tool_start(self, name: str, args: Any) -> None:
+    def on_tool_start(self, run_id: str, name: str, args: Any) -> None:
         """Handle the start of a tool execution."""
         # 1. If we were streaming an LLM response (with tool calls), finish it.
         if self.current_response:
@@ -157,9 +139,9 @@ class AgentRenderer:
 
         # For normal tools, ensure Live is active.
         self.start()
-        self.refresh()
+        self._refresh()
 
-    def on_tool_end(self, name: str, output: Any) -> None:
+    def on_tool_end(self, run_id: str, name: str, output: Any) -> None:
         """Handle the completion of a tool execution."""
         status = "✅" if self._is_success(output) else "❌"
 
@@ -182,12 +164,12 @@ class AgentRenderer:
             # Restart live only if other background tools are still running.
             if self.active_tools:
                 self.start()
-                self.refresh()
+                self._refresh()
 
     # ------------------------------------------------------------------
     # Rendering helpers
     # ------------------------------------------------------------------
-    def refresh(self) -> None:
+    def _refresh(self) -> None:
         """Update the live display manually (use sparingly)."""
         if self.live:
             self.live.update(self._render())

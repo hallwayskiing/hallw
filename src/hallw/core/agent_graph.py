@@ -5,10 +5,11 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
-from hallw.agent_state import AgentState, AgentStats
-from hallw.tools import dummy_for_missed_tool, parse_tool_response
+from hallw.tools import build_tool_response, dummy_for_missed_tool, parse_tool_response
 from hallw.utils import config as hallw_config
 from hallw.utils import logger
+
+from .agent_state import AgentState, AgentStats
 
 
 def build_graph(
@@ -54,13 +55,7 @@ def build_graph(
 
         # 1. Check for tool calls
         if not tool_calls:
-            warning_msg = "No tool call found in the your response. Please specify tools to call."
-            messages.append(HumanMessage(content=warning_msg))
-
-            stats_delta["failures"] += 1
-            stats_delta["failures_since_last_reflection"] += 1
-
-            return {"messages": messages, "stats": stats_delta}
+            return {}
 
         task_completed_update = state["task_completed"]
 
@@ -76,20 +71,18 @@ def build_graph(
                 error_msg = f"Tool '{tool_name}' not found."
                 logger.error(error_msg)
 
-                """ messages.append(
-                    ToolMessage(content=error_msg, tool_call_id=tool_id, name=tool_name)
-                )
-                stats_delta["failures"] += 1
-                stats_delta["failures_since_last_reflection"] += 1
-                continue """
-
                 # Use dummy tool for not found tools to avoid breaking the flow
                 tool_obj = dummy_for_missed_tool
                 tool_obj.name = tool_name
                 tool_args = {"name": tool_name}
 
             # 2.2 Execute tool
-            tool_response = await tool_obj.ainvoke(tool_args, config=config)
+            try:
+                tool_response = await tool_obj.ainvoke(tool_args, config=config)
+            except Exception as e:
+                tool_response = build_tool_response(
+                    success=False, message=f"Tool {tool_name} execution failed: {str(e)}"
+                )
             stats_delta["tool_call_counts"] += 1
 
             messages.append(

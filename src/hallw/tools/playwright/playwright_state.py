@@ -45,11 +45,10 @@ async def get_page(index: int) -> Optional[Page]:
 
 
 async def add_page(page: Page) -> int:
-    await ensure_context()
-
     global _pages
     if _pages is None:
         _pages = []
+
     stealth = Stealth()
     await stealth.apply_stealth_async(page)
     _pages.append(page)
@@ -58,9 +57,6 @@ async def add_page(page: Page) -> int:
 
 async def ensure_context() -> None:
     global _launched
-    if _launched:
-        return
-
     _launched = True
 
     if _pages is None:
@@ -120,7 +116,8 @@ def set_temp_user_data_dir(dir_path: Optional[str]):
 
 def reset_all():
     """Reset all singletons to None."""
-    global _pw, _browser, _context, _pages, _chrome_process, _temp_user_data_dir
+    global _pw, _browser, _context, _pages, _chrome_process, _temp_user_data_dir, _launched
+    _launched = False
     _pw = None
     _browser = None
     _context = None

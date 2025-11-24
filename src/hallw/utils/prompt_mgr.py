@@ -24,7 +24,7 @@ def generatePrompt(user_task: str, tools_dict: dict[str, BaseTool]) -> str:
         user_task(str): The specific task the agent needs to accomplish.
     """
 
-    return f"""You are HALLW, Hyper-Automation-Large-Language-Wizard, an AI automation agent.
+    return f"""You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
     Your mission: {user_task}.
     You need to complete the task by appropriate use of the available tools.
     These tools include web browsing, file operations, and user interaction.

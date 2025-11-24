@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - *Nothing yet.*
 
+## [0.3.0] - 2025-11-23
+
+### Added
+- Brand new GUI with PySide6
+- Multi-pages control of Agent
+
+### Changed
+- Core functions refactored and extracted into hallw/core
+- Better error handling
+
 ## [0.2.0] - 2025-11-19
 
 ### Added
