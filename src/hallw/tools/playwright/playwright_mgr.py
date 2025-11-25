@@ -255,8 +255,6 @@ class PlaywrightManager:
                     pass
             self.chrome_process = None
 
-        time.sleep(1)  # Ensure process has time to terminate
-
         if self.temp_user_data_dir and os.path.exists(self.temp_user_data_dir):
             shutil.rmtree(self.temp_user_data_dir, ignore_errors=True)
             self.temp_user_data_dir = None

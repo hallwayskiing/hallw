@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 from typing import Callable
 
+import markdown
 from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QCloseEvent, QIcon, QResizeEvent, QTextCursor
 from PySide6.QtWidgets import (
@@ -136,6 +137,8 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar: QWidget
         self._toggle_btns: dict[str, QPushButton] = {}
         self._sidebar_split_ratio: tuple[float, float] = (0.74, 0.26)
+        self._settings_mode: str = ""
+        self._markdown_style = self._build_markdown_style()
 
         self._init_window()
         self._setup_ui()
@@ -220,13 +223,12 @@ class QtAgentMainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
-        # Settings button
-        self._settings_btn = QPushButton("⚙️", cursor=Qt.PointingHandCursor)
+        # Settings / Back button
+        self._settings_btn = QPushButton(cursor=Qt.PointingHandCursor)
         self._settings_btn.setObjectName("SettingsButton")
-        self._settings_btn.setToolTip("Settings")
         self._settings_btn.setFixedWidth(40)
-        self._settings_btn.clicked.connect(self._open_settings)
         layout.addWidget(self._settings_btn)
+        self._set_settings_button_mode("settings")
 
         # Input field
         self._input_field = QLineEdit(placeholderText="Tell me what to do...")
@@ -241,12 +243,72 @@ class QtAgentMainWindow(QMainWindow):
 
         self._main_layout.addWidget(input_box)
 
+    def _build_markdown_style(self) -> str:
+        """Style injected into rendered HTML to fix tiny fonts in PySide markdown."""
+        return """
+        .md-root { color: #e8e8e8; font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+                   font-size: 16px; line-height: 1.75; letter-spacing: 0.1px;
+                   word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
+        .md-root p { margin: 8px 0; }
+        .md-root ul { margin: 6px 0 14px 20px; padding: 0; }
+        .md-root li { margin: 6px 0; font-size: 16px; line-height: 1.65; }
+        .md-root h1 { font-size: 24px; margin: 12px 0 8px; font-weight: 700; color: #c8e1ff;
+                      border-bottom: 1px solid #1f1f1f; padding-bottom: 4px; }
+        .md-root h2 { font-size: 20px; margin: 10px 0 6px; font-weight: 650; color: #a8c7fa; }
+        .md-root h3 { font-size: 18px; margin: 8px 0 4px; font-weight: 600; color: #9fb7ff; }
+        .md-root pre { background: transparent !important; border: 1px solid #1f1f1f;
+                       padding: 10px 12px; border-radius: 10px; font-size: 14px;
+                       white-space: pre-wrap; word-break: break-word;
+                       font-family: 'Consolas', 'SFMono-Regular', monospace; }
+        .md-root code { background: none; border: 1px solid #2a2a2a; padding: 2px 6px;
+                        border-radius: 6px; font-size: 14px; color: #dbeafe;
+                        font-family: 'Consolas', 'SFMono-Regular', monospace; }
+        .md-root blockquote { border-left: 3px solid #2a2a2a; color: #c0c0c0;
+                              margin: 10px 0; padding: 6px 12px; background: transparent; }
+        .md-root a { color: #7ab8ff; text-decoration: none; border-bottom: 1px dashed #2f6db5; }
+        .md-root a:hover { color: #9ccfff; border-bottom-color: #4a90e2; }
+        """
+
+    def _render_markdown_to_html(self, text: str) -> str:
+        """Convert markdown to styled HTML; fall back to escaped text."""
+        if not text.strip():
+            return ""
+
+        html_body = markdown.markdown(
+            text,
+            extensions=["fenced_code", "tables"],
+            output_format="html5",
+        )
+
+        return f"<style>{self._markdown_style}</style><div class='md-root'>{html_body}</div>"
+
     def _create_button(self, text: str, tooltip: str, slot: Callable, obj_name: str) -> QPushButton:
         """Factory method for creating styled buttons."""
         btn = QPushButton(text, toolTip=tooltip, cursor=Qt.PointingHandCursor)
         btn.setObjectName(obj_name)
         btn.clicked.connect(slot)
         return btn
+
+    def _set_settings_button_mode(self, mode: str) -> None:
+        """Toggle Settings button between settings and back/reset behaviors."""
+        if mode == self._settings_mode:
+            return
+
+        try:
+            self._settings_btn.clicked.disconnect()
+        except TypeError:
+            pass
+
+        if mode == "settings":
+            self._settings_btn.setText("⚙️")
+            self._settings_btn.setToolTip("Settings")
+            self._settings_btn.clicked.connect(self._open_settings)
+        else:
+            self._settings_btn.setText("↩")
+            self._settings_btn.setToolTip("Back to start")
+            self._settings_btn.clicked.connect(self._reset_session)
+
+        self._settings_mode = mode
 
     def _connect_signals(self) -> None:
         """Connect renderer signals to UI update slots."""
@@ -362,27 +424,53 @@ class QtAgentMainWindow(QMainWindow):
         cursor = self._agent_output.textCursor()
         cursor.setPosition(self._ai_start_pos)
         cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-        cursor.insertMarkdown(self._ai_buffer)
+        cursor.insertHtml(self._render_markdown_to_html(self._ai_buffer))
         self._agent_output.setTextCursor(cursor)
         self._agent_output.ensureCursorVisible()
 
     @Slot(str, bool)
     def _update_sidebar(self, widget: QTextEdit, text: str, md: bool) -> None:
         """Update sidebar panel content."""
-        widget.setMarkdown(text) if md else widget.setPlainText(text)
+        if md:
+            widget.setHtml(self._render_markdown_to_html(text))
+        else:
+            widget.setPlainText(text)
         widget.moveCursor(QTextCursor.End)
 
     # --- Task Control ---
     def _set_task_ui_state(self, running: bool, btn_text: str = "Send") -> None:
         """Update UI state based on task running status."""
         self._input_field.setEnabled(not running)
-        self._settings_btn.setEnabled(not running)
         self._send_btn.setText(btn_text)
         # When running, only enable stop button; when idle, enable submit
         self._send_btn.setEnabled(True)
         if not running:
             self._input_field.setPlaceholderText("Tell me what to do...")
             self._input_field.setFocus()
+
+    def _reset_session(self) -> None:
+        """Return to a fresh state, as if the app just opened."""
+        if self._is_task_running and self._stop_task_callback:
+            try:
+                self._stop_task_callback()
+            except Exception:
+                pass
+
+        self._is_task_running = False
+        self._is_first_interaction = True
+        self._sidebar_manually_hidden = False
+        self._ai_buffer = ""
+        self._ai_header_shown = False
+        self._renderer.reset_state()
+
+        self._agent_output.clear()
+        self._tool_plan.clear()
+        self._tool_execution.clear()
+        self._show_welcome()
+
+        self._set_task_ui_state(running=False, btn_text="Send")
+        self._set_settings_button_mode("settings")
+        self._set_sidebar_visible(True)
 
     def _on_submit(self) -> None:
         """Handle task submission or stop request."""
@@ -410,6 +498,9 @@ class QtAgentMainWindow(QMainWindow):
         if self._is_first_interaction:
             self._agent_output.clear()
             self._is_first_interaction = False
+            self._set_settings_button_mode("back")
+        else:
+            self._set_settings_button_mode("back")
 
         self._append_html(USER_MSG_TEMPLATE.format(text=text))
         self._is_task_running = True

@@ -105,7 +105,7 @@ QPushButton#HideSidebar, QPushButton#ShowSidebar {
     border-radius: 6px;
     padding: 0px;
     font-size: 26px;
-    font-weight: normal;
+    font-weight: bold;
     min-width: 32px;
     max-width: 32px;
     min-height: 32px;
