@@ -1,5 +1,5 @@
 # --- Modern Premium Dark Theme ---
-STYLE = """
+MAIN_STYLE = """
 /* Global Background */
 QMainWindow {
     background-color: #0a0a0a;
@@ -35,9 +35,11 @@ QTextEdit#Sidebar {
 QLineEdit {
     background-color: #161616;
     border: 1px solid #2a2a2a;
-    border-radius: 28px;
-    padding: 16px 28px;
+    padding: 0px 24px;
     color: #ffffff;
+    max-height: 48px;
+    min-height: 48px;
+    border-radius: 24px;
     font-size: 16px;
 }
 QLineEdit:focus {
@@ -55,9 +57,11 @@ QPushButton {
     background-color: #4a7fc9;
     color: #ffffff;
     border: none;
-    border-radius: 28px;
-    padding: 16px 32px;
+    padding: 0px 32px;
     font-weight: bold;
+    max-height: 48px;
+    min-height: 48px;
+    border-radius: 24px;
     font-size: 16px;
 }
 QPushButton:hover {
@@ -71,7 +75,27 @@ QPushButton:disabled {
     color: #4a4a4a;
 }
 
-/* Toggle Sidebar Button (Close) & Show Sidebar Button (Restore) */
+/* Settings Button */
+QPushButton#SettingsButton {
+    background-color: #4a7fc9;
+    color: #ffffff;
+    border: none;
+    padding: 0px;
+    min-width: 48px;
+    max-width: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    border-radius: 24px;
+    font-size: 20px;
+}
+QPushButton#SettingsButton:hover {
+    background-color: #5a8fd9;
+}
+QPushButton#SettingsButton:pressed {
+    background-color: #3a6fb9;
+}
+
+/* Hide/Show Sidebar Button */
 QPushButton#HideSidebar, QPushButton#ShowSidebar {
     background-color: #1a1a1a;
     color: #888888;
@@ -137,5 +161,94 @@ QSplitter::handle:horizontal {
 }
 QSplitter::handle:vertical {
     height: 1px;
+}
+"""
+
+SETTINGS_STYLE = """
+/* Settings Dialog Theme */
+QDialog {
+    background-color: #121212;
+    color: #ffffff;
+}
+QTabWidget::pane {
+    border: 1px solid #333333;
+    background-color: #1e1e1e;
+}
+QTabBar::tab {
+    background-color: #2d2d2d;
+    color: #b0b0b0;
+    padding: 8px 16px;
+    border: 1px solid #333333;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+QTabBar::tab:selected {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border-bottom: 1px solid #1e1e1e;
+}
+QLabel {
+    color: #e0e0e0;
+    font-weight: bold;
+    background-color: transparent;
+    qproperty-alignment: 'AlignVCenter | AlignRight';
+}
+QLineEdit, QComboBox, QSpinBox {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border: 1px solid #444444;
+    padding: 6px;
+    border-radius: 4px;
+    min-height: 18px;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
+    border: 1px solid #4a90e2;
+    background-color: #333333;
+}
+
+QCheckBox {
+    color: #e0e0e0;
+    spacing: 8px;
+    background: transparent;
+    min-height: 40px;
+    margin-left: 2px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    background-color: #2d2d2d;
+    subcontrol-position: center left;
+}
+
+QCheckBox::indicator:hover {
+    border: 1px solid #777777;
+    background-color: #383838;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #4a90e2;
+    border: 1px solid #4a90e2;
+}
+
+QPushButton {
+    background-color: #3a3a3a;
+    color: #ffffff;
+    border: 1px solid #555555;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #4a4a4a;
+}
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+QWidget#TabContent {
+    background-color: #1e1e1e;
 }
 """

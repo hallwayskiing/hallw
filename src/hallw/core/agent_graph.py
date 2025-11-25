@@ -35,6 +35,8 @@ def build_graph(
 
         if response.content:
             logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
+        else:
+            logger.info(f"HALLW: (no content) Tool calls: {len(response.tool_calls)}")
 
         return {
             "messages": [response],
@@ -45,7 +47,7 @@ def build_graph(
         ai_message = state["messages"][-1]
         tool_calls = ai_message.tool_calls
 
-        messages = []
+        messages: list[ToolMessage] = []
 
         stats_delta: AgentStats = {
             "tool_call_counts": 0,
@@ -53,19 +55,15 @@ def build_graph(
             "failures_since_last_reflection": 0,
         }
 
-        task_completed_update = state["task_completed"]
+        # Default to False, only set to True when no tool calls (task finished)
+        task_completed_update = False
 
         # 1. Check for tool calls
         if not tool_calls:
-            reminder = HumanMessage(
-                content="You did not call any tool. "
-                "Please remember to call tools to complete your tasks."
-            )
-            messages.append(reminder)
-            stats_delta["failures"] += 1
-            stats_delta["failures_since_last_reflection"] += 1
+            task_completed_update = True
             return {
                 "messages": messages,
+                "task_completed": task_completed_update,
                 "stats": stats_delta,
             }
 
@@ -117,10 +115,6 @@ def build_graph(
                 stats_delta["failures"] += 1
                 stats_delta["failures_since_last_reflection"] += 1
 
-            # 2.4 Check for finish tool
-            if tool_name == hallw_config.finish_tool_name and success:
-                task_completed_update = True
-
         return {
             "messages": messages,
             "task_completed": task_completed_update,
@@ -140,7 +134,7 @@ def build_graph(
         Please stop and reflect:
         1. Analyze why the previous steps failed.
         2. Adjust your plan to avoid repeating the same mistakes.
-        3. Propose the next correct tool call.
+        3. Propose the next correct tool calls.
         """
         hint_message = HumanMessage(content=hint_text.strip())
 
@@ -165,7 +159,7 @@ def build_graph(
             logger.info(f"HALLW REFLECTION: {response.content.strip().replace('\n', ' ')}")
 
         # 5. Return
-        return {"messages": [hint_message, response], "stats": stats_delta}
+        return {"messages": [response], "stats": stats_delta}
 
     def route_from_tools(state: AgentState) -> str:
         if state["task_completed"]:
@@ -173,10 +167,9 @@ def build_graph(
 
         threshold = hallw_config.model_reflection_threshold
         stats = state["stats"]
-        failures = stats.get("failures", 0)
         failures_cycle = stats.get("failures_since_last_reflection", 0)
 
-        if failures > 0 and failures_cycle > 0 and failures_cycle % threshold == 0:
+        if failures_cycle > 0 and failures_cycle % threshold == 0:
             return "reflection"
 
         return "model"

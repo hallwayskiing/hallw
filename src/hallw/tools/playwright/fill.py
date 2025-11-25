@@ -2,8 +2,9 @@ from langchain_core.tools import tool
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from hallw.tools import build_tool_response
+from hallw.utils import config
 
-from .playwright_state import CLICK_TIMEOUT, get_page
+from .playwright_mgr import get_page
 
 
 @tool
@@ -35,7 +36,7 @@ async def browser_fill(page_index: int, role: str, name: str, text: str) -> str:
         )
 
     try:
-        await page.get_by_role(role=role, name=name).fill(text, timeout=CLICK_TIMEOUT)
+        await page.get_by_role(role=role, name=name).fill(text, timeout=config.pw_click_timeout)
         return build_tool_response(
             True,
             "Input filled successfully.",

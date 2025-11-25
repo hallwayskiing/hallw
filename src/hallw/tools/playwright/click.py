@@ -2,8 +2,9 @@ from langchain_core.tools import tool
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from hallw.tools import build_tool_response
+from hallw.utils import config
 
-from .playwright_state import CLICK_TIMEOUT, get_page
+from .playwright_mgr import get_page
 
 
 @tool
@@ -30,7 +31,7 @@ async def browser_click(
     if count == 0:
         return build_tool_response(False, f"No '{role}' found with name='{name}'")
     try:
-        await page.get_by_role(role, name=name).first.click(timeout=CLICK_TIMEOUT)
+        await page.get_by_role(role, name=name).first.click(timeout=config.pw_click_timeout)
         return build_tool_response(
             True,
             "Element clicked successfully.",

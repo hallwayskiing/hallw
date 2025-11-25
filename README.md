@@ -143,11 +143,6 @@ All settings are managed via `.env`.
 | `FILE_READ_DIR` |	Base directory allowed for reading files	| . |
 | `FILE_MAX_READ_CHARS` |	Max characters to read from one file | 5000 |
 
-### 💻 Interactive Settings
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ALLOW_ASK_INFO_TOOL` |	Allow agent to ask for more info |	True |
-
 -----
 
 ## 🏗️ Architecture

@@ -2,8 +2,9 @@ from langchain_core.tools import tool
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from hallw.tools import build_tool_response
+from hallw.utils import config
 
-from .playwright_state import GOTO_TIMEOUT, get_page
+from .playwright_mgr import get_page
 
 
 @tool
@@ -21,7 +22,7 @@ async def browser_goto(page_index: int, url: str) -> str:
     if page is None:
         return build_tool_response(False, f"Page with index {page_index} not found.")
     try:
-        await page.goto(url, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT)
+        await page.goto(url, wait_until="domcontentloaded", timeout=config.pw_goto_timeout)
         return build_tool_response(
             True, "Navigated to URL successfully.", {"page_index": page_index, "url": url}
         )

@@ -8,10 +8,10 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from PySide6.QtWidgets import QApplication
 
-from hallw.core import AgentState, AgentTask
+from hallw.core import AgentEventLoop, AgentState, AgentTask
 from hallw.tools import load_tools
 from hallw.ui.pyside import QtAgentMainWindow, QtAgentRenderer, QtAgentThread
-from hallw.utils import config, generatePrompt, init_logger, logger
+from hallw.utils import config, generateSystemPrompt, init_logger, logger
 
 # Ignore specific warnings from LangSmith about UUID v7
 warnings.filterwarnings("ignore", message=".*LangSmith now uses UUID v7.*")
@@ -37,26 +37,35 @@ class AgentApplication:
         # Initialize Qt application
         self.app = QApplication(sys.argv)
 
+        # Set up asyncio event loop
+        self.event_loop = AgentEventLoop()
+
         # Core components
         self.renderer = QtAgentRenderer()
-        self.window = QtAgentMainWindow(self.renderer, self.start_task)
+        self.window = QtAgentMainWindow(self.renderer, self.start_task, self.stop_task)
 
         # State maintenance
         self.worker: Optional[QtAgentThread] = None
         self.tools_dict = load_tools()
+        self.checkpointer = MemorySaver()
+        self.thread_id = str(uuid.uuid4())
+        self.is_first_task = True
+
+        # Initialize logger
+        init_logger(self.thread_id)
 
     def _create_initial_state(self, user_task: str) -> AgentState:
         """Construct the initial Agent state"""
+        messages = []
+        if self.is_first_task:
+            messages.append(SystemMessage(content=generateSystemPrompt(self.tools_dict)))
+            self.is_first_task = False
+
+        messages.append(HumanMessage(content=(f"User: {user_task}")))
+        logger.info(f"User: {user_task}")
+
         return {
-            "messages": [
-                SystemMessage(content=generatePrompt(user_task, self.tools_dict)),
-                HumanMessage(
-                    content=(
-                        f"Think step-by-step, plan your actions, and use proper tools to "
-                        f"complete the task: {user_task}"
-                    )
-                ),
-            ],
+            "messages": messages,
             "task_completed": False,
             "stats": {
                 "tool_call_counts": 0,
@@ -71,9 +80,8 @@ class AgentApplication:
         """Construct AgentTask instance"""
         api_key = config.model_api_key.get_secret_value() if config.model_api_key else None
 
-        task_id = str(uuid.uuid4())
-        init_logger(task_id)
-        logger.info(f"Starting task: {user_task}, ID: {task_id}")
+        # Use persistent thread_id
+        task_id = self.thread_id
 
         llm = ChatOpenAI(
             model=config.model_name,
@@ -85,15 +93,14 @@ class AgentApplication:
             stream_usage=True,
         ).bind_tools(list(self.tools_dict.values()), tool_choice="auto")
 
-        checkpointer = MemorySaver()
-
         return AgentTask(
             task_id=task_id,
             llm=llm,
             tools_dict=self.tools_dict,
             renderer=self.renderer,
             initial_state=self._create_initial_state(user_task),
-            checkpointer=checkpointer,
+            checkpointer=self.checkpointer,
+            event_loop=self.event_loop,
         )
 
     def start_task(self, user_task: str):
@@ -113,7 +120,21 @@ class AgentApplication:
         self.worker.finished.connect(self.renderer.task_finished.emit)
         self.worker.start()
 
+    def stop_task(self):
+        """Handle signal to stop the current task"""
+        if self.worker and self.worker.isRunning():
+            logger.info("Stopping task by user request...")
+            self.worker.terminate()
+            self.worker.wait()
+
+    def cleanup(self):
+        """Clean up resources before application exit"""
+        self.stop_task()
+        self.event_loop.stop()
+        self.app.quit()
+
     def run(self):
+        self.event_loop.start()
         self.window.show()
         sys.exit(self.app.exec())
 
