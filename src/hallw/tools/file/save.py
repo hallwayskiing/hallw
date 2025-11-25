@@ -10,6 +10,7 @@ from hallw.utils import config, logger
 @tool
 def file_save(file_path: str, content: str, format: str = "md") -> str:
     """Save content to a file. Overwrites if file exists.
+    The file will be saved in a specific directory (e.g. workspace/)
 
     Args:
         file_path: Relative path where to save the file (e.g., "docs/summary.md").

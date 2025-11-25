@@ -71,6 +71,7 @@ class QtAgentRenderer(QObject, AgentRenderer):
     def reset_state(self) -> None:
         """Reset all state for a new task."""
         self._clear_llm_state()
+        self._tool_states.clear()
         self._active_tools.clear()
 
     def _clear_llm_state(self) -> None:

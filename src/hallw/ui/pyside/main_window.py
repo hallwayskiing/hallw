@@ -108,17 +108,21 @@ class QtAgentMainWindow(QMainWindow):
         start_task_callback: Callable[[str], None],
         stop_task_callback: Callable[[], None],
         cleanup_callback: Callable[[], None] | None = None,
+        reset_callback: Callable[[], None] | None = None,
     ):
         super().__init__()
         self._renderer = renderer
         self._start_task_callback = start_task_callback
         self._stop_task_callback = stop_task_callback
         self._cleanup_callback = cleanup_callback
+        self._reset_callback = reset_callback
 
         # State flags
         self._is_task_running = False
         self._is_first_interaction = True
         self._sidebar_manually_hidden = False
+        self._settings_mode: str = ""
+        self._session_active: bool = False
 
         # AI streaming state
         self._ai_buffer = ""
@@ -136,8 +140,7 @@ class QtAgentMainWindow(QMainWindow):
         self._settings_btn: QPushButton
         self._sidebar: QWidget
         self._toggle_btns: dict[str, QPushButton] = {}
-        self._sidebar_split_ratio: tuple[float, float] = (0.74, 0.26)
-        self._settings_mode: str = ""
+        self._sidebar_split_ratio: tuple[float, float] = (0.8, 0.2)
         self._markdown_style = self._build_markdown_style()
 
         self._init_window()
@@ -294,17 +297,18 @@ class QtAgentMainWindow(QMainWindow):
         if mode == self._settings_mode:
             return
 
-        try:
-            self._settings_btn.clicked.disconnect()
-        except TypeError:
-            pass
+        if self._settings_mode:
+            try:
+                self._settings_btn.clicked.disconnect()
+            except (TypeError, RuntimeError):
+                pass
 
         if mode == "settings":
             self._settings_btn.setText("⚙️")
             self._settings_btn.setToolTip("Settings")
             self._settings_btn.clicked.connect(self._open_settings)
         else:
-            self._settings_btn.setText("↩")
+            self._settings_btn.setText("↩️")
             self._settings_btn.setToolTip("Back to start")
             self._settings_btn.clicked.connect(self._reset_session)
 
@@ -405,12 +409,16 @@ class QtAgentMainWindow(QMainWindow):
     @Slot()
     def _on_ai_response_start(self) -> None:
         """Reset AI streaming state for new response."""
+        if not self._session_active:
+            return
         self._ai_header_shown = False
         self._ai_buffer = ""
 
     @Slot(str)
     def _append_token(self, text: str) -> None:
         """Append streaming AI token to output."""
+        if not self._session_active:
+            return
         if not self._ai_header_shown:
             if not text.strip():
                 return
@@ -431,6 +439,8 @@ class QtAgentMainWindow(QMainWindow):
     @Slot(str, bool)
     def _update_sidebar(self, widget: QTextEdit, text: str, md: bool) -> None:
         """Update sidebar panel content."""
+        if not self._session_active:
+            return
         if md:
             widget.setHtml(self._render_markdown_to_html(text))
         else:
@@ -450,9 +460,16 @@ class QtAgentMainWindow(QMainWindow):
 
     def _reset_session(self) -> None:
         """Return to a fresh state, as if the app just opened."""
+        self._session_active = False
         if self._is_task_running and self._stop_task_callback:
             try:
                 self._stop_task_callback()
+            except Exception:
+                pass
+
+        if self._reset_callback:
+            try:
+                self._reset_callback()
             except Exception:
                 pass
 
@@ -461,8 +478,8 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar_manually_hidden = False
         self._ai_buffer = ""
         self._ai_header_shown = False
-        self._renderer.reset_state()
 
+        self._renderer.reset_state()
         self._agent_output.clear()
         self._tool_plan.clear()
         self._tool_execution.clear()
@@ -471,6 +488,7 @@ class QtAgentMainWindow(QMainWindow):
         self._set_task_ui_state(running=False, btn_text="Send")
         self._set_settings_button_mode("settings")
         self._set_sidebar_visible(True)
+        self._input_field.clear()
 
     def _on_submit(self) -> None:
         """Handle task submission or stop request."""
@@ -483,6 +501,7 @@ class QtAgentMainWindow(QMainWindow):
 
     def _handle_stop_task(self) -> None:
         """Stop the currently running task."""
+        self._session_active = False
         if self._stop_task_callback:
             self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
             self._send_btn.setText("Stopping")
@@ -498,15 +517,16 @@ class QtAgentMainWindow(QMainWindow):
         if self._is_first_interaction:
             self._agent_output.clear()
             self._is_first_interaction = False
-            self._set_settings_button_mode("back")
-        else:
-            self._set_settings_button_mode("back")
 
+        self._set_settings_button_mode("back")
+        self._session_active = True
+        self._ai_header_shown = False
+        self._ai_buffer = ""
+        self._ai_start_pos = 0
         self._append_html(USER_MSG_TEMPLATE.format(text=text))
         self._is_task_running = True
         self._set_task_ui_state(running=True, btn_text="Stop")
         self._tool_plan.clear()
-        self._renderer.reset_state()
 
         try:
             if self._start_task_callback:
@@ -518,18 +538,23 @@ class QtAgentMainWindow(QMainWindow):
     def _on_task_finished(self) -> None:
         """Handle task completion."""
         self._is_task_running = False
+        self._session_active = False
         self._agent_output.moveCursor(QTextCursor.End)
         self._set_task_ui_state(running=False)
 
     @Slot(str)
     def _on_tool_error(self, msg: str) -> None:
         """Handle tool execution error."""
+        if not self._session_active:
+            return
         self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
         self._agent_output.moveCursor(QTextCursor.End)
 
     @Slot(str)
     def _on_fatal_error(self, msg: str) -> None:
         """Handle fatal error and reset state."""
+        if not self._session_active:
+            return
         self._is_task_running = False
         self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
         self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))
@@ -539,6 +564,8 @@ class QtAgentMainWindow(QMainWindow):
     @Slot(str, int, int)
     def _on_captcha_detected(self, engine: str, page_index: int, timeout_ms: int) -> None:
         """Handle captcha detection - notify user that action is required."""
+        if not self._session_active:
+            return
         timeout_sec = timeout_ms // 1000
         msg = (
             f"{engine.capitalize()} CAPTCHA detected"
@@ -551,6 +578,8 @@ class QtAgentMainWindow(QMainWindow):
     @Slot(str, bool)
     def _on_captcha_resolved(self, engine: str, success: bool) -> None:
         """Handle captcha resolution - notify user of the result."""
+        if not self._session_active:
+            return
         if success:
             self._append_html(
                 INFO_MSG_TEMPLATE.format(

@@ -44,7 +44,11 @@ class AgentApplication:
         # Core components
         self.renderer = QtAgentRenderer()
         self.window = QtAgentMainWindow(
-            self.renderer, self.start_task, self.stop_task, self.cleanup
+            self.renderer,
+            self.start_task,
+            self.stop_task,
+            self.cleanup,
+            self.reset,
         )
 
         # State maintenance
@@ -138,6 +142,24 @@ class AgentApplication:
         future = self.event_loop.submit(browser_close())
         future.result(timeout=5)  # Wait up to 5 seconds
         self.event_loop.stop()
+
+    def reset(self):
+        """Reset runtime state without quitting the app."""
+        self.stop_task()
+
+        # Close browser contexts/windows
+        try:
+            future = self.event_loop.submit(browser_close())
+            future.result(timeout=5)
+        except Exception:
+            logger.warning("Failed to close browser during reset", exc_info=True)
+
+        # Reset renderer and task/session state
+        self.renderer.reset_state()
+        self.checkpointer = MemorySaver()
+        self.thread_id = str(uuid.uuid4())
+        self.is_first_task = True
+        init_logger(self.thread_id)
 
     def run(self):
         self.event_loop.start()
