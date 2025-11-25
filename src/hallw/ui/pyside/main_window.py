@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from PySide6.QtCore import Qt, QTimer, Slot
-from PySide6.QtGui import QIcon, QTextCursor
+from PySide6.QtGui import QCloseEvent, QIcon, QResizeEvent, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -105,11 +105,13 @@ class QtAgentMainWindow(QMainWindow):
         renderer: QtAgentRenderer,
         start_task_callback: Callable[[str], None],
         stop_task_callback: Callable[[], None],
+        cleanup_callback: Callable[[], None] | None = None,
     ):
         super().__init__()
         self._renderer = renderer
         self._start_task_callback = start_task_callback
         self._stop_task_callback = stop_task_callback
+        self._cleanup_callback = cleanup_callback
 
         # State flags
         self._is_task_running = False
@@ -302,7 +304,7 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar_manually_hidden = is_visible
         self._set_sidebar_visible(not is_visible)
 
-    def resizeEvent(self, event) -> None:
+    def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         if self._sidebar_manually_hidden:
             # Keep show button visible when manually hidden
@@ -313,6 +315,12 @@ class QtAgentMainWindow(QMainWindow):
             should_show = self.width() >= SIDEBAR_AUTO_SHOW_WIDTH
             if self._sidebar.isVisible() != should_show:
                 self._set_sidebar_visible(should_show)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Handle window close - cleanup resources."""
+        if self._cleanup_callback:
+            self._cleanup_callback()
+        event.accept()
 
     # --- Chat Logic ---
     def _show_welcome(self) -> None:

@@ -79,7 +79,9 @@ TAB_DEFINITIONS: dict[str, list[FieldDef]] = {
         FieldDef("Headless Mode:", "PW_HEADLESS_MODE", "pw_headless_mode", FieldType.CHECKBOX),
         FieldDef("Window Width:", "PW_WINDOW_WIDTH", "pw_window_width"),
         FieldDef("Window Height:", "PW_WINDOW_HEIGHT", "pw_window_height"),
-        FieldDef("Keep Browser Open:", "KEEP_PAGE_OPEN", "keep_browser_open", FieldType.CHECKBOX),
+        FieldDef(
+            "Keep Browser Open:", "KEEP_BROWSER_OPEN", "keep_browser_open", FieldType.CHECKBOX
+        ),
         FieldDef(
             "Search Engine:",
             "BROWSER_SEARCH_ENGINE",

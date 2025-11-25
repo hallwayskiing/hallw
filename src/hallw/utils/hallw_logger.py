@@ -44,3 +44,5 @@ def init_logger(task_id: str) -> None:
 
     logging.getLogger("httpx").disabled = True
     logging.getLogger("langchain_core.callbacks.manager").disabled = True
+
+    logger.info(f"Task ID: {task_id}")

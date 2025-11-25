@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 
 from hallw.core import AgentEventLoop, AgentState, AgentTask
 from hallw.tools import load_tools
+from hallw.tools.playwright.playwright_mgr import browser_close
 from hallw.ui.pyside import QtAgentMainWindow, QtAgentRenderer, QtAgentThread
 from hallw.utils import config, generateSystemPrompt, init_logger, logger
 
@@ -42,7 +43,9 @@ class AgentApplication:
 
         # Core components
         self.renderer = QtAgentRenderer()
-        self.window = QtAgentMainWindow(self.renderer, self.start_task, self.stop_task)
+        self.window = QtAgentMainWindow(
+            self.renderer, self.start_task, self.stop_task, self.cleanup
+        )
 
         # State maintenance
         self.worker: Optional[QtAgentThread] = None
@@ -130,8 +133,10 @@ class AgentApplication:
     def cleanup(self):
         """Clean up resources before application exit"""
         self.stop_task()
-        self.event_loop.stop()
         self.app.quit()
+        future = self.event_loop.submit(browser_close())
+        future.result(timeout=5)  # Wait up to 5 seconds
+        self.event_loop.stop()
 
     def run(self):
         self.event_loop.start()

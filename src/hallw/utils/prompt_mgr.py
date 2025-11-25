@@ -28,6 +28,7 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     You are trained and developed by Ethan Nie.
     You need to complete user's task by appropriate use of the available tools.
     These tools include web browsing, file operations, and user interaction.
+    You control a page with index 0 at start, and can open more pages as needed.
     (A) Available Tools
     {generateToolsDesc(tools_dict)}
 
