@@ -3,7 +3,7 @@ import urllib.parse
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
-from hallw.utils import config, logger
+from hallw.utils import Events, config, emit, logger
 
 from .playwright_mgr import get_page
 
@@ -103,11 +103,29 @@ async def browser_search(page_index: int, query: str) -> str:
 
     # 4. If captcha detected, enter long wait mode
     if is_captcha_detected:
+        # Emit event to notify UI that user action is required
+        emit(
+            Events.CAPTCHA_DETECTED,
+            {
+                "engine": engine,
+                "page_index": page_index,
+                "timeout_ms": captcha_timeout,
+            },
+        )
+        logger.info(f"CAPTCHA detected on {engine}. Waiting for user to solve...")
+
         try:
             # Wait for user to manually solve until the "success indicator" appears
             await page.wait_for_selector(rule["success_selector"], timeout=captcha_timeout)
             logger.info(f"User successfully passed {engine} CAPTCHA.")
+            # Notify UI that captcha was resolved
+            emit(Events.CAPTCHA_RESOLVED, {"engine": engine, "page_index": page_index})
         except Exception:
+            # Notify UI that captcha resolution failed/timed out
+            emit(
+                Events.CAPTCHA_RESOLVED,
+                {"engine": engine, "page_index": page_index, "success": False},
+            )
             return build_tool_response(
                 False,
                 f"{engine.capitalize()} CAPTCHA Timeout: Verification was not completed in time.",

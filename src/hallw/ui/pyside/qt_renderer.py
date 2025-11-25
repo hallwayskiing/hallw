@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 
 from hallw.core import AgentRenderer, AgentTask
 from hallw.tools import parse_tool_response
+from hallw.utils import Events, subscribe, unsubscribe
 
 
 class QtAgentRenderer(QObject, AgentRenderer):
@@ -19,6 +20,10 @@ class QtAgentRenderer(QObject, AgentRenderer):
     tool_error_occurred = Signal(str)
     fatal_error_occurred = Signal(str)
     task_finished = Signal()
+
+    # User action signals
+    captcha_detected = Signal(str, int, int)  # engine, page_index, timeout_ms
+    captcha_resolved = Signal(str, bool)  # engine, success
 
     # Pre-compiled regex for parsing partial JSON streams (optimization)
     # Captures: "key": "string" OR "key": [primitive/object]
@@ -37,10 +42,35 @@ class QtAgentRenderer(QObject, AgentRenderer):
         self._tool_states: list[dict[str, Any]] = []
         self._active_tools: dict[str, dict[str, Any]] = {}  # Maps run_id -> state dict reference
 
+        # Subscribe to global events
+        self._setup_event_subscriptions()
+
+    def _setup_event_subscriptions(self) -> None:
+        """Subscribe to global event bus events."""
+        subscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
+        subscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
+
+    def _teardown_event_subscriptions(self) -> None:
+        """Unsubscribe from global event bus events."""
+        unsubscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
+        unsubscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
+
+    def _on_captcha_detected(self, data: dict[str, Any]) -> None:
+        """Handle captcha detected event from tools."""
+        engine = data.get("engine", "unknown")
+        page_index = data.get("page_index", 0)
+        timeout_ms = data.get("timeout_ms", 60000)
+        self.captcha_detected.emit(engine, page_index, timeout_ms)
+
+    def _on_captcha_resolved(self, data: dict[str, Any]) -> None:
+        """Handle captcha resolved event from tools."""
+        engine = data.get("engine", "unknown")
+        success = data.get("success", True)
+        self.captcha_resolved.emit(engine, success)
+
     def reset_state(self) -> None:
         """Reset all state for a new task."""
         self._clear_llm_state()
-        self._tool_states.clear()
         self._active_tools.clear()
 
     def _clear_llm_state(self) -> None:

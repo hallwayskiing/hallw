@@ -24,6 +24,7 @@ from .templates import (
     AI_HEADER_TEMPLATE,
     END_MSG_TEMPLATE,
     ERROR_MSG_TEMPLATE,
+    INFO_TEMPLATE,
     USER_MSG_TEMPLATE,
     WELCOME_HTML,
 )
@@ -255,6 +256,8 @@ class QtAgentMainWindow(QMainWindow):
         r.task_finished.connect(self._on_task_finished)
         r.tool_error_occurred.connect(self._on_tool_error)
         r.fatal_error_occurred.connect(self._on_fatal_error)
+        r.captcha_detected.connect(self._on_captcha_detected)
+        r.captcha_resolved.connect(self._on_captcha_resolved)
 
     # --- Responsive Layout ---
     def _apply_responsive_layout(self) -> None:
@@ -431,6 +434,33 @@ class QtAgentMainWindow(QMainWindow):
         self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))
         self._agent_output.moveCursor(QTextCursor.End)
         self._set_task_ui_state(running=False)
+
+    @Slot(str, int, int)
+    def _on_captcha_detected(self, engine: str, page_index: int, timeout_ms: int) -> None:
+        """Handle captcha detection - notify user that action is required."""
+        timeout_sec = timeout_ms // 1000
+        msg = (
+            f"Please solve {engine.capitalize()} CAPTCHA "
+            f"in the browser (Page {page_index}). "
+            f"You have <b>{timeout_sec}s</b> to complete it."
+        )
+        self._append_html(INFO_TEMPLATE.format(icon="🔐", title="CAPTCHA Detected", text=msg))
+        self._agent_output.moveCursor(QTextCursor.End)
+
+    @Slot(str, bool)
+    def _on_captcha_resolved(self, engine: str, success: bool) -> None:
+        """Handle captcha resolution - notify user of the result."""
+        if success:
+            self._append_html(
+                INFO_TEMPLATE.format(
+                    icon="🔓",
+                    title="CAPTCHA Resolved",
+                    text="Please continue your task.",
+                )
+            )
+        else:
+            self._append_html(ERROR_MSG_TEMPLATE.format(text="Verification timed out."))
+        self._agent_output.moveCursor(QTextCursor.End)
 
     def _open_settings(self) -> None:
         """Open settings dialog."""

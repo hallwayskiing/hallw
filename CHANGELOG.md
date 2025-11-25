@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- *Nothing yet.*
+- Added a EventBus to manage cross-module communications
 
 ## [0.4.0] - 2025-11-25
 
