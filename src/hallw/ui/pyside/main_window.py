@@ -24,8 +24,9 @@ from .templates import (
     AI_HEADER_TEMPLATE,
     END_MSG_TEMPLATE,
     ERROR_MSG_TEMPLATE,
-    INFO_TEMPLATE,
+    INFO_MSG_TEMPLATE,
     USER_MSG_TEMPLATE,
+    WARNING_MSG_TEMPLATE,
     WELCOME_HTML,
 )
 
@@ -233,7 +234,8 @@ class QtAgentMainWindow(QMainWindow):
         layout.addWidget(self._input_field)
 
         # Submit button
-        self._send_btn = QPushButton("Start Task", cursor=Qt.PointingHandCursor)
+        self._send_btn = QPushButton("Send", cursor=Qt.PointingHandCursor)
+        self._send_btn.setObjectName("SendButton")
         self._send_btn.clicked.connect(self._on_submit)
         layout.addWidget(self._send_btn)
 
@@ -371,7 +373,7 @@ class QtAgentMainWindow(QMainWindow):
         widget.moveCursor(QTextCursor.End)
 
     # --- Task Control ---
-    def _set_task_ui_state(self, running: bool, btn_text: str = "Start Task") -> None:
+    def _set_task_ui_state(self, running: bool, btn_text: str = "Send") -> None:
         """Update UI state based on task running status."""
         self._input_field.setEnabled(not running)
         self._settings_btn.setEnabled(not running)
@@ -411,7 +413,7 @@ class QtAgentMainWindow(QMainWindow):
 
         self._append_html(USER_MSG_TEMPLATE.format(text=text))
         self._is_task_running = True
-        self._set_task_ui_state(running=True, btn_text="Stop Task")
+        self._set_task_ui_state(running=True, btn_text="Stop")
         self._tool_plan.clear()
         self._renderer.reset_state()
 
@@ -448,11 +450,11 @@ class QtAgentMainWindow(QMainWindow):
         """Handle captcha detection - notify user that action is required."""
         timeout_sec = timeout_ms // 1000
         msg = (
-            f"Please solve {engine.capitalize()} CAPTCHA "
-            f"in the browser (Page {page_index}). "
-            f"You have <b>{timeout_sec}s</b> to complete it."
+            f"{engine.capitalize()} CAPTCHA detected"
+            f"in the browser (Page {page_index+1}). "
+            f"Please solve it in <b>{timeout_sec}s</b>."
         )
-        self._append_html(INFO_TEMPLATE.format(icon="🔐", title="CAPTCHA Detected", text=msg))
+        self._append_html(WARNING_MSG_TEMPLATE.format(text=msg))
         self._agent_output.moveCursor(QTextCursor.End)
 
     @Slot(str, bool)
@@ -460,7 +462,7 @@ class QtAgentMainWindow(QMainWindow):
         """Handle captcha resolution - notify user of the result."""
         if success:
             self._append_html(
-                INFO_TEMPLATE.format(
+                INFO_MSG_TEMPLATE.format(
                     icon="🔓",
                     title="CAPTCHA Resolved",
                     text="Please continue your task.",

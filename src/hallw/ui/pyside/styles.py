@@ -53,24 +53,26 @@ QLineEdit:disabled {
 }
 
 /* Buttons */
-QPushButton {
+QPushButton#SendButton {
     background-color: #4a7fc9;
     color: #ffffff;
     border: none;
-    padding: 0px 32px;
+    padding: 0px 24px;
     font-weight: bold;
     max-height: 48px;
     min-height: 48px;
+    max-width: 60px;
+    min-width: 60px;
     border-radius: 24px;
     font-size: 16px;
 }
-QPushButton:hover {
+QPushButton#SendButton:hover {
     background-color: #5a8fd9;
 }
-QPushButton:pressed {
+QPushButton#SendButton:pressed {
     background-color: #3a6fb9;
 }
-QPushButton:disabled {
+QPushButton#SendButton:disabled {
     background-color: #1a1a1a;
     color: #4a4a4a;
 }

@@ -22,12 +22,26 @@ AI_HEADER_TEMPLATE = """
 """
 
 # Info Card
-INFO_TEMPLATE = """
+INFO_MSG_TEMPLATE = """
 <br>
 <table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #3b82f6; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
     <tr>
         <td>
             <div style="color: #60a5fa; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">{icon} {title}</div>
+            <div style="color: #ffffff; font-size: 16px; line-height: 150%;">{text}</div>
+        </td>
+    </tr>
+</table>
+<br>
+"""
+
+# Warning Card
+WARNING_MSG_TEMPLATE = """
+<br>
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f59e42; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
+    <tr>
+        <td>
+            <div style="color: #f59e42; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">⚠️ WARNING</div>
             <div style="color: #ffffff; font-size: 16px; line-height: 150%;">{text}</div>
         </td>
     </tr>
