@@ -30,4 +30,5 @@ def merge_agent_stats(a: AgentStats, b: AgentStats) -> AgentStats:
 class AgentState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], add_messages]
     task_completed: bool
+    empty_response: bool
     stats: Annotated[AgentStats, merge_agent_stats]

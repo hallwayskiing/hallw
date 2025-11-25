@@ -70,6 +70,7 @@ class AgentApplication:
         return {
             "messages": messages,
             "task_completed": False,
+            "empty_response": False,
             "stats": {
                 "tool_call_counts": 0,
                 "input_tokens": 0,

@@ -29,18 +29,27 @@ def build_graph(
             "failures_since_last_reflection": 0,
         }
 
+        empty_response = False
+
         if response.usage_metadata:
             stats_delta["input_tokens"] = response.usage_metadata.get("input_tokens", 0)
             stats_delta["output_tokens"] = response.usage_metadata.get("output_tokens", 0)
 
         if response.content:
             logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
-        else:
-            logger.info(f"HALLW: (no content) Tool calls: {len(response.tool_calls)}")
+        elif not response.tool_calls:
+            # Empty response from model
+            logger.info("HALLW: (empty). Retrying...")
+            empty_response = True
+            return {
+                "stats": stats_delta,
+                "empty_response": empty_response,
+            }
 
         return {
             "messages": [response],
             "stats": stats_delta,
+            "empty_response": empty_response,
         }
 
     async def call_tool(state: AgentState, config: RunnableConfig) -> AgentState:
@@ -161,6 +170,11 @@ def build_graph(
         # 5. Return
         return {"messages": [response], "stats": stats_delta}
 
+    def route_from_model(state: AgentState) -> str:
+        if state.get("empty_response", False):
+            return "model"
+        return "tools"
+
     def route_from_tools(state: AgentState) -> str:
         if state["task_completed"]:
             return "end"
@@ -183,7 +197,14 @@ def build_graph(
     builder.add_node("reflection", reflection)
 
     builder.add_edge(START, "model")
-    builder.add_edge("model", "tools")
+    builder.add_conditional_edges(
+        "model",
+        route_from_model,
+        {
+            "model": "model",
+            "tools": "tools",
+        },
+    )
 
     builder.add_conditional_edges(
         "tools",
