@@ -1,193 +1,210 @@
 import json
-from typing import Any, Dict, List, Optional
+import re
+from typing import Any
 
 from PySide6.QtCore import QObject, QThread, Signal
 
 from hallw.core import AgentRenderer, AgentTask
 from hallw.tools import parse_tool_response
-from hallw.utils import config
 
 
 class QtAgentRenderer(QObject, AgentRenderer):
+    """Qt-based renderer for agent events with signal-based UI updates."""
+
+    # UI Update Signals
     new_token_received = Signal(str)
     tool_plan_updated = Signal(str)
     tool_execution_updated = Signal(str)
-    request_input = Signal(str)
-    task_finished = Signal()
     ai_response_start = Signal()
     tool_error_occurred = Signal(str)
     fatal_error_occurred = Signal(str)
+    task_finished = Signal()
+
+    # Pre-compiled regex for parsing partial JSON streams (optimization)
+    # Captures: "key": "string" OR "key": [primitive/object]
+    _PARTIAL_JSON_PATTERN = re.compile(
+        r'"([^"]+)"\s*:\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|(\[[^\]]*\]|\{[^\}]*\}|[\d.]+|true|false|null))'
+    )
+    _TRAILING_KEY_PATTERN = re.compile(r'"([^"]+)"\s*:\s*"?([^"{\[]*?)$')
 
     def __init__(self) -> None:
+        # Initialize QObject first, then AgentRenderer
         super().__init__()
         AgentRenderer.__init__(self)
 
-        self.current_response: Optional[Dict[str, Any]] = None
-        self._tool_call_buffer: Dict[int, Dict[str, str]] = {}
+        # State containers
+        self._tool_call_buffer: dict[int, dict[str, str]] = {}
+        self._tool_states: list[dict[str, Any]] = []
+        self._active_tools: dict[str, dict[str, Any]] = {}  # Maps run_id -> state dict reference
 
-        self.tool_states: List[Dict[str, Any]] = []
-        self._active_tools: Dict[str, Dict[str, Any]] = {}
-
-    def reset_state(self):
-        self.tool_states.clear()
+    def reset_state(self) -> None:
+        """Reset all state for a new task."""
+        self._clear_llm_state()
+        self._tool_states.clear()
         self._active_tools.clear()
-        self.tool_execution_updated.emit("")
 
+    def _clear_llm_state(self) -> None:
+        """Clear transient LLM response state."""
+        self._tool_call_buffer.clear()
+
+    # --- Interface Implementation ---
     def start(self) -> None:
         pass
 
     def stop(self) -> None:
         pass
 
+    # --- LLM Event Handlers ---
     def on_llm_start(self) -> None:
-        self.current_response = {"text": "", "tool_calls": []}
-        self._tool_call_buffer = {}
+        self._clear_llm_state()
         self.ai_response_start.emit()
 
     def on_llm_end(self) -> None:
-        self.current_response = None
-        self._tool_call_buffer = {}
+        self._clear_llm_state()
 
     def on_llm_chunk(self, chunk: Any) -> None:
-        if not self.current_response:
-            self.current_response = {"text": "", "tool_calls": []}
-
-        # 1. Process text chunks
-        text = self._extract_text(chunk)
-        if text:
-            self.current_response["text"] += text
+        # Handle text content
+        if text := self._extract_text(chunk):
             self.new_token_received.emit(text)
 
-        # 2. Process tool call chunks
-        tc_chunks = getattr(chunk, "tool_call_chunks", [])
-        if tc_chunks:
+        # Handle tool call chunks
+        if tc_chunks := getattr(chunk, "tool_call_chunks", None):
             self._process_tool_call_chunks(tc_chunks)
 
+    # --- Tool Event Handlers ---
     def on_tool_start(self, run_id: str, name: str, args: Any) -> None:
-        # Create state object
         state = {"name": name, "status": "⏳"}
+        self._tool_states.append(state)
 
-        # Append to list (for ordered display)
-        self.tool_states.append(state)
-        # Store in mapping (for quick lookup and update)
         if run_id:
             self._active_tools[run_id] = state
 
         self._emit_tool_execution()
 
-        # Handle special tool requests
-        if name == "ask_for_more_info" and config.allow_ask_info_tool:
-            question = "Agent needs input."
-            if isinstance(args, str):
-                try:
-                    j = json.loads(args)
-                    if isinstance(j, dict):
-                        question = j.get("question", question)
-                except Exception:
-                    pass
-            elif isinstance(args, dict):
-                question = args.get("question", question)
-            self.request_input.emit(question)
-
     def on_tool_end(self, run_id: str, name: str, output: Any) -> None:
         status = "✅" if self._is_success(output) else "❌"
-
-        # Use run_id to find
-        if run_id and run_id in self._active_tools:
-            self._active_tools[run_id]["status"] = status
-            del self._active_tools[run_id]  # Remove active state
-        else:
-            # Fallback: reverse search
-            for tool in reversed(self.tool_states):
-                if tool["name"] == name and tool["status"] == "⏳":
-                    tool["status"] = status
-                    break
-
-        self._emit_tool_execution()
+        self._finalize_tool(run_id, name, status)
 
     def on_tool_error(self, run_id: str, name: str, error: Any) -> None:
-        # Mark tool as failed
-        if run_id and run_id in self._active_tools:
-            self._active_tools[run_id]["status"] = "❌"
-            del self._active_tools[run_id]
-        else:
-            for tool in reversed(self.tool_states):
-                if tool["name"] == name and tool["status"] == "⏳":
-                    tool["status"] = "❌"
-                    break
-
-        self._emit_tool_execution()
-
-        # Emit error message
-        error_msg = (
-            str(error) if error is not None else "Unknown error occurred during tool execution."
-        )
+        self._finalize_tool(run_id, name, "❌")
+        error_msg = str(error) if error else "Unknown error occurred."
         self.tool_error_occurred.emit(f"Error in tool '{name}': {error_msg}")
 
     def on_fatal_error(self, run_id: str, name: str, error: Any) -> None:
-        error_msg = str(error) if error is not None else "Unknown fatal error occurred."
+        error_msg = str(error) if error else "Unknown fatal error."
         self.fatal_error_occurred.emit(f"Fatal error in '{name}': {error_msg}")
 
-    def _process_tool_call_chunks(self, tc_chunks: List[Dict]):
-        """Process streaming tool call chunks and update UI"""
+    # --- Internal Logic ---
+    def _finalize_tool(self, run_id: str, name: str, status: str) -> None:
+        """Update tool status and refresh UI."""
+        if run_id and run_id in self._active_tools:
+            self._active_tools.pop(run_id)["status"] = status
+        else:
+            # Fallback: Find the last matching tool still running
+            for tool in reversed(self._tool_states):
+                if tool["name"] == name and tool["status"] == "⏳":
+                    tool["status"] = status
+                    break
+        self._emit_tool_execution()
+
+    def _process_tool_call_chunks(self, tc_chunks: list[dict]) -> None:
+        """Accumulate tool chunks and update the plan UI."""
+        updated = False
         for tc in tc_chunks:
             idx = tc.get("index", 0)
-            if idx not in self._tool_call_buffer:
-                self._tool_call_buffer[idx] = {"name": "", "args": ""}
+            entry = self._tool_call_buffer.setdefault(idx, {"name": "", "args": ""})
 
-            if tc.get("name"):
-                self._tool_call_buffer[idx]["name"] += tc["name"]
-            if tc.get("args"):
-                self._tool_call_buffer[idx]["args"] += tc["args"]
+            if name := tc.get("name"):
+                entry["name"] += name
+                updated = True
+            if args := tc.get("args"):
+                entry["args"] += args
+                updated = True
 
-        # Format and send to frontend
+        if updated:
+            self._emit_tool_plan()
+
+    def _emit_tool_plan(self) -> None:
+        if not self._tool_call_buffer:
+            return
+
         display_calls = []
-        for idx in sorted(self._tool_call_buffer.keys()):
+        for idx in sorted(self._tool_call_buffer):
             entry = self._tool_call_buffer[idx]
-            name = entry["name"] or "unknown"
-            raw_args = entry["args"]
-            formatted_args = self._format_json_args(raw_args)
+            name = entry["name"] or "..."
+            formatted_args = self._format_streaming_args(entry["args"])
             display_calls.append(f"### 🛠️ {name}\n{formatted_args}")
 
         self.tool_plan_updated.emit("\n\n".join(display_calls))
 
-    def _format_json_args(self, raw_args: str) -> str:
-        """Format JSON arguments for display"""
+    def _emit_tool_execution(self) -> None:
+        lines = [f"[{i+1}] {t['name']} {t['status']}" for i, t in enumerate(self._tool_states)]
+        self.tool_execution_updated.emit("\n".join(lines))
+
+    def _format_streaming_args(self, raw_args: str) -> str:
+        """Format JSON arguments gracefully handling streaming/incomplete states."""
+        if not raw_args:
+            return "*(Loading...)*"
+
+        # 1. Try parsing as complete JSON
         try:
             args_dict = json.loads(raw_args)
             if isinstance(args_dict, dict) and args_dict:
-                lines = []
-                for key, value in args_dict.items():
-                    val_str = str(value) if not isinstance(value, str) else value
-                    lines.append(f"**{key}**:  {val_str}")
-                return "\n".join(lines)
-            elif isinstance(args_dict, dict) and not args_dict:
-                return "*(No arguments)*"
+                return "\n\n".join(f"**{k}**:  {v}" for k, v in args_dict.items())
+            return "*(No arguments)*"
         except json.JSONDecodeError:
             pass
-        return f"```json\n{raw_args}\n```"
 
-    def _emit_tool_execution(self):
-        """Emit the current tool execution status to the frontend"""
-        lines = [f"[{i+1}] {t['name']} {t['status']}" for i, t in enumerate(self.tool_states)]
-        self.tool_execution_updated.emit("\n".join(lines))
+        # 2. Fallback: Parse partial JSON via Regex
+        return self._parse_partial_json(raw_args)
+
+    def _parse_partial_json(self, raw_args: str) -> str:
+        lines = []
+        # Find complete pairs
+        matches = self._PARTIAL_JSON_PATTERN.findall(raw_args)
+        keys_found = set()
+
+        for key, str_val, other_val in matches:
+            value = str_val if str_val else other_val
+            lines.append(f"**{key}**:  {value}")
+            keys_found.add(key)
+
+        # Find trailing/incomplete key
+        if trail_match := self._TRAILING_KEY_PATTERN.search(raw_args):
+            key, partial_val = trail_match.groups()
+            if key not in keys_found:
+                lines.append(f"**{key}**:  {partial_val}▌")
+
+        return "\n\n".join(lines) if lines else f"```\n{raw_args}▌\n```"
 
     def _extract_text(self, chunk: Any) -> str:
-        """Extract text content from a chunk"""
-        if chunk is None:
+        """Robust text extraction from various chunk formats."""
+        if not chunk:
             return ""
+
+        # If chunk has 'content' attribute, use that; otherwise use chunk itself
         content = getattr(chunk, "content", chunk)
+
         if isinstance(content, str):
             return content
+
+        # Handle list of content blocks (e.g. OpenAI/Anthropic vision)
         if isinstance(content, list):
-            parts = [item if isinstance(item, str) else item.get("text", "") for item in content]
-            return "".join(parts)
+            return "".join(
+                item if isinstance(item, str) else item.get("text", "") for item in content
+            )
+
         return str(content)
 
-    def _is_success(self, output: Any) -> bool:
-        """Determine if the tool execution was successful"""
+    @staticmethod
+    def _is_success(output: Any) -> bool:
+        """Determine tool execution success."""
         if isinstance(output, str):
-            return parse_tool_response(output)["success"]
+            try:
+                return parse_tool_response(output)["success"]
+            except (ValueError, KeyError, TypeError):
+                # Fallback if parsing fails but output exists
+                return True
         if isinstance(output, dict):
             return bool(output.get("success", False))
         return False
@@ -198,5 +215,5 @@ class QtAgentThread(QThread):
         super().__init__()
         self.task = task
 
-    def run(self):
+    def run(self) -> None:
         self.task.run()

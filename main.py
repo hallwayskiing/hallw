@@ -51,6 +51,9 @@ class AgentApplication:
         self.thread_id = str(uuid.uuid4())
         self.is_first_task = True
 
+        # Initialize logger
+        init_logger(self.thread_id)
+
     def _create_initial_state(self, user_task: str) -> AgentState:
         """Construct the initial Agent state"""
         messages = []
@@ -59,6 +62,7 @@ class AgentApplication:
             self.is_first_task = False
 
         messages.append(HumanMessage(content=(f"User: {user_task}")))
+        logger.info(f"User: {user_task}")
 
         return {
             "messages": messages,
@@ -78,8 +82,6 @@ class AgentApplication:
 
         # Use persistent thread_id
         task_id = self.thread_id
-        init_logger(task_id)
-        logger.info(f"Starting task: {user_task}, ID: {task_id}")
 
         llm = ChatOpenAI(
             model=config.model_name,
@@ -121,9 +123,9 @@ class AgentApplication:
     def stop_task(self):
         """Handle signal to stop the current task"""
         if self.worker and self.worker.isRunning():
-            # self.worker.terminate()
-            # self.worker.wait()
-            pass
+            logger.info("Stopping task by user request...")
+            self.worker.terminate()
+            self.worker.wait()
 
     def cleanup(self):
         """Clean up resources before application exit"""

@@ -35,6 +35,8 @@ def build_graph(
 
         if response.content:
             logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
+        else:
+            logger.info(f"HALLW: (no content) Tool calls: {len(response.tool_calls)}")
 
         return {
             "messages": [response],
@@ -53,7 +55,8 @@ def build_graph(
             "failures_since_last_reflection": 0,
         }
 
-        task_completed_update = state["task_completed"]
+        # Default to False, only set to True when no tool calls (task finished)
+        task_completed_update = False
 
         # 1. Check for tool calls
         if not tool_calls:
@@ -131,7 +134,7 @@ def build_graph(
         Please stop and reflect:
         1. Analyze why the previous steps failed.
         2. Adjust your plan to avoid repeating the same mistakes.
-        3. Propose the next correct tool call.
+        3. Propose the next correct tool calls.
         """
         hint_message = HumanMessage(content=hint_text.strip())
 
@@ -156,7 +159,7 @@ def build_graph(
             logger.info(f"HALLW REFLECTION: {response.content.strip().replace('\n', ' ')}")
 
         # 5. Return
-        return {"messages": [hint_message, response], "stats": stats_delta}
+        return {"messages": [response], "stats": stats_delta}
 
     def route_from_tools(state: AgentState) -> str:
         if state["task_completed"]:
@@ -164,10 +167,9 @@ def build_graph(
 
         threshold = hallw_config.model_reflection_threshold
         stats = state["stats"]
-        failures = stats.get("failures", 0)
         failures_cycle = stats.get("failures_since_last_reflection", 0)
 
-        if failures > 0 and failures_cycle > 0 and failures_cycle % threshold == 0:
+        if failures_cycle > 0 and failures_cycle % threshold == 0:
             return "reflection"
 
         return "model"

@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     pw_headless_mode: bool = False
     pw_window_width: int = 1920
     pw_window_height: int = 1080
-    keep_page_open: bool = True
+    keep_browser_open: bool = True
     browser_search_engine: str = "google"
     search_result_count: int = 10
     max_page_content_chars: int = 2000
@@ -55,11 +55,6 @@ class Settings(BaseSettings):
     file_read_dir: str = "."
     file_save_dir: str = "workspace/"
     file_max_read_chars: int = 5000
-
-    # =================================================
-    # 6. Interactive settings
-    # =================================================
-    allow_ask_info_tool: bool = True
 
     # =================================================
     # Pydantic config

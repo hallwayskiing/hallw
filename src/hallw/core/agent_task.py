@@ -36,12 +36,13 @@ class AgentTask:
         """
         Synchronous entry point to run the agent task.
         """
-        self.event_loop.submit(self.run_async())
+        future = self.event_loop.submit(self.run_async())
+        future.result()
 
     async def run_async(self) -> None:
         workflow = build_graph(self.llm, self.tools_dict, self.checkpointer)
-
         invocation_config = {"recursion_limit": 200, "configurable": {"thread_id": self.task_id}}
+        event = None
 
         try:
             async for event in workflow.astream_events(
@@ -51,12 +52,17 @@ class AgentTask:
             ):
                 self.renderer.handle_event(event)
         except Exception as e:
-            logger.error(f"Error during event {event['event']}: {e}")
+            if event is None:
+                logger.error(f"Error before event loop: {e}")
+                error_name = "unknown"
+            else:
+                logger.error(f"Error during event {event['event']}: {e}")
+                error_name = event["event"]
             self.renderer.handle_event(
                 {
                     "event": "on_fatal_error",
                     "run_id": self.task_id,
-                    "name": event["event"],
+                    "name": error_name,
                     "data": {"error": str(e)},
                 }
             )

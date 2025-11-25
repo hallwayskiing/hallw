@@ -2,7 +2,7 @@ from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
 
-from .playwright_state import add_page
+from .playwright_mgr import add_page
 
 
 @tool

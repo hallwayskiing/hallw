@@ -132,11 +132,6 @@ class RichAgentRenderer(AgentRenderer):
             }
         )
 
-        # 3. For interactive tools, stop Live to allow input.
-        if name == "ask_for_more_info":
-            self.stop()
-            return
-
         # For normal tools, ensure Live is active.
         self.start()
         self._refresh()

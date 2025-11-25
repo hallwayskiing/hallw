@@ -1,8 +1,9 @@
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
+from hallw.utils import config
 
-from .playwright_state import MAX_PAGE_CONTENT_CHARS, get_page
+from .playwright_mgr import get_page
 
 
 @tool
@@ -44,9 +45,10 @@ async def browser_get_content(page_index: int, segment: int) -> str:
     if not content.strip():
         return build_tool_response(False, "The page is empty.")
 
+    max_chars = config.max_page_content_chars
     segment = max(segment, 0)
-    segments = (len(content) + MAX_PAGE_CONTENT_CHARS - 1) // MAX_PAGE_CONTENT_CHARS
-    offset = MAX_PAGE_CONTENT_CHARS * segment
+    segments = (len(content) + max_chars - 1) // max_chars
+    offset = max_chars * segment
 
     if segment >= segments:
         return build_tool_response(
@@ -62,7 +64,7 @@ async def browser_get_content(page_index: int, segment: int) -> str:
             "page_index": page_index,
             "segment": segment,
             "total_segments": segments,
-            "chars_per_segment": MAX_PAGE_CONTENT_CHARS,
-            "content": content[offset : offset + MAX_PAGE_CONTENT_CHARS],
+            "chars_per_segment": max_chars,
+            "content": content[offset : offset + max_chars],
         },
     )

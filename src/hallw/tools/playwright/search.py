@@ -3,15 +3,9 @@ import urllib.parse
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
-from hallw.utils import logger
+from hallw.utils import config, logger
 
-from .playwright_state import (
-    BROWSER_SEARCH_ENGINE,
-    GOTO_TIMEOUT,
-    MANUAL_CAPTCHA_TIMEOUT,
-    SEARCH_RESULT_COUNT,
-    get_page,
-)
+from .playwright_mgr import get_page
 
 
 @tool
@@ -25,9 +19,14 @@ async def browser_search(page_index: int, query: str) -> str:
     Returns:
         Formatted string with search results including titles and URLs or error message
     """
+    # Get fresh config values
+    goto_timeout = config.pw_goto_timeout
+    captcha_timeout = config.manual_captcha_timeout
+    result_count = config.search_result_count
 
     # 1. Setup search engine configuration
-    engine = BROWSER_SEARCH_ENGINE.lower() if BROWSER_SEARCH_ENGINE else "google"
+    search_engine = config.browser_search_engine
+    engine = search_engine.lower() if search_engine else "google"
     supported_engines = ["google", "baidu", "bing"]
 
     if engine not in supported_engines:
@@ -40,8 +39,8 @@ async def browser_search(page_index: int, query: str) -> str:
 
     encoded_query = urllib.parse.quote_plus(query)
 
-    # --- Core configuration: Define URL, captcha features, and result extraction rules ---
-    engine_configs = {
+    # --- Core: Define URL, captcha features, and result extraction rules ---
+    engine_rules = {
         "google": {
             "url": f"https://www.google.com/search?q={encoded_query}",
             # Success indicator: search results container appears
@@ -78,11 +77,11 @@ async def browser_search(page_index: int, query: str) -> str:
         },
     }
 
-    config = engine_configs[engine]
+    rule = engine_rules[engine]
 
     # 2. Execute navigation
     try:
-        await page.goto(config["url"], wait_until="domcontentloaded", timeout=GOTO_TIMEOUT)
+        await page.goto(rule["url"], wait_until="domcontentloaded", timeout=goto_timeout)
     except Exception:
         return build_tool_response(
             False,
@@ -94,7 +93,7 @@ async def browser_search(page_index: int, query: str) -> str:
     is_captcha_detected = False
 
     # Iterate over all possible captcha elements defined for the engine
-    for cap_selector in config["captcha_selectors"]:
+    for cap_selector in rule["captcha_selectors"]:
         try:
             if await page.query_selector(cap_selector):
                 is_captcha_detected = True
@@ -106,7 +105,7 @@ async def browser_search(page_index: int, query: str) -> str:
     if is_captcha_detected:
         try:
             # Wait for user to manually solve until the "success indicator" appears
-            await page.wait_for_selector(config["success_selector"], timeout=MANUAL_CAPTCHA_TIMEOUT)
+            await page.wait_for_selector(rule["success_selector"], timeout=captcha_timeout)
             logger.info(f"User successfully passed {engine} CAPTCHA.")
         except Exception:
             return build_tool_response(
@@ -118,7 +117,7 @@ async def browser_search(page_index: int, query: str) -> str:
     # 5. Regularly wait for results to load
     try:
         await page.wait_for_selector(
-            config["success_selector"], state="attached", timeout=GOTO_TIMEOUT
+            rule["success_selector"], state="attached", timeout=goto_timeout
         )
     except Exception:
         return build_tool_response(
@@ -130,12 +129,12 @@ async def browser_search(page_index: int, query: str) -> str:
 
     # 6. Parse results
     results = []
-    link_locators = page.locator(config["result_selector"])
+    link_locators = page.locator(rule["result_selector"])
     count = 0
     total_found = await link_locators.count()
 
     for i in range(total_found):
-        if count >= SEARCH_RESULT_COUNT:
+        if count >= result_count:
             break
 
         link_elem = link_locators.nth(i)
@@ -147,8 +146,8 @@ async def browser_search(page_index: int, query: str) -> str:
                 continue
 
             title = ""
-            if config["title_in_child"]:
-                child = link_elem.locator(config["title_in_child"])
+            if rule["title_in_child"]:
+                child = link_elem.locator(rule["title_in_child"])
                 if await child.count() > 0:
                     title = await child.inner_text()
             else:

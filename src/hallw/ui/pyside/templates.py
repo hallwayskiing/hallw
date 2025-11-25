@@ -21,20 +21,6 @@ AI_HEADER_TEMPLATE = """
 </div>
 """
 
-# Question Card
-QUESTION_MSG_TEMPLATE = """
-<br>
-<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #4c8bf5; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
-    <tr>
-        <td>
-            <div style="color: #699bf7; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">❓ HALLW NEEDS INFO</div>
-            <div style="color: #ffffff; font-size: 16px; line-height: 150%;">{text}</div>
-        </td>
-    </tr>
-</table>
-<br>
-"""
-
 # Error Card
 ERROR_MSG_TEMPLATE = """
 <br>

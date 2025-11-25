@@ -3,7 +3,7 @@ from playwright.async_api import TimeoutError as PlayWrightTimeoutError
 
 from hallw.tools import build_tool_response
 
-from .playwright_state import get_page
+from .playwright_mgr import get_page
 
 
 @tool

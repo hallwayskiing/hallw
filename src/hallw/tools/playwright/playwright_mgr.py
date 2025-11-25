@@ -1,3 +1,5 @@
+"""Playwright browser manager with singleton pattern."""
+
 import asyncio
 import os
 import shutil
@@ -9,202 +11,260 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from langchain_core.tools import ToolException
-from playwright.async_api import async_playwright
+from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
+from playwright_stealth.stealth import Stealth
 
-from hallw.utils import logger
-
-from .playwright_state import (
-    CDP_PORT,
-    CDP_TIMEOUT,
-    CHROME_USER_DATA_DIR,
-    HEADLESS_MODE,
-    KEEP_PAGE_OPEN,
-    PREFER_LOCAL_CHROME,
-    PW_WINDOW_HEIGHT,
-    PW_WINDOW_WIDTH,
-    get_browser,
-    get_chrome_process,
-    get_context,
-    get_pw,
-    get_temp_user_data_dir,
-    reset_all,
-    set_browser,
-    set_chrome_process,
-    set_context,
-    set_pw,
-    set_temp_user_data_dir,
-)
+from hallw.utils import config, logger
 
 LOCK_FILE = os.path.join(tempfile.gettempdir(), "hallw_playwright_mgr.lock")
 
 
-async def browser_launch() -> str:
-    """Open Chrome or reuse an existing instance and connect via CDP.
+class PlaywrightManager:
+    """Singleton manager for Playwright browser state and operations."""
 
-    Returns:
-        Status message
-    """
+    _instance: Optional["PlaywrightManager"] = None
 
-    chrome_already_running = False
-    try:
-        chrome_already_running = _wait_for_port("127.0.0.1", CDP_PORT, timeout=CDP_TIMEOUT)
-    except Exception:
+    def __new__(cls) -> "PlaywrightManager":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._init_state()
+        return cls._instance
+
+    def _init_state(self) -> None:
+        """Initialize all state variables."""
+        self.pw: Optional[Playwright] = None
+        self.browser: Optional[Browser] = None
+        self.context: Optional[BrowserContext] = None
+        self.chrome_process: Optional[subprocess.Popen] = None
+        self.temp_user_data_dir: Optional[str] = None
+
+    def reset(self) -> None:
+        """Reset all state to None."""
+        self._init_state()
+
+    # -------------------------
+    # Page Management
+    # -------------------------
+
+    async def get_page(self, index: int) -> Optional[Page]:
+        """Get page by index, auto-launching browser if needed."""
+        if self.context is None:
+            await self.launch()
+
+        pages = self.context.pages
+        if index >= len(pages):
+            return None
+        return pages[index]
+
+    async def add_page(self) -> int:
+        """Add a new page and return its index."""
+        if self.context is None:
+            await self.launch()
+
+        await self.context.new_page()
+        return len(self.context.pages) - 1
+
+    # -------------------------
+    # Browser Lifecycle
+    # -------------------------
+
+    async def launch(self) -> str:
+        """Open Chrome or reuse an existing instance and connect via CDP.
+
+        Returns:
+            Status message
+        """
+        # Get fresh config values
+        cdp_port = config.cdp_port
+        cdp_timeout = config.pw_cdp_timeout
+        window_width, window_height = config.pw_window_width, config.pw_window_height
+        prefer_local = config.prefer_local_chrome
+        headless = config.pw_headless_mode
+
         chrome_already_running = False
-
-    # Initiate playwright instance
-    pw = await async_playwright().start()
-    set_pw(pw)
-
-    # Try to reuse existing Chrome instance
-    if chrome_already_running:
-        endpoint = f"http://127.0.0.1:{CDP_PORT}"
         try:
-            browser = await pw.chromium.connect_over_cdp(endpoint)
-            set_browser(browser)
-            # Create a new context
-            context = await browser.new_context(
-                viewport={"width": PW_WINDOW_WIDTH, "height": PW_WINDOW_HEIGHT}
-            )
-            await set_context(context)
-            set_chrome_process(None)  # Since we didn't start it
-
-            return "Connected to existing Chrome instance."
-
-        except Exception as e:
-            raise ToolException(f"Failed to connect to existing Chrome via CDP: {e}")
-
-    # Launch new Chrome instance
-    chrome_path = _find_chrome_executable()
-    # If local browser not preferred or not found, use Playwright Chromium
-    if not PREFER_LOCAL_CHROME or chrome_path is None:
-        try:
-            args = _build_chrome_args()
-            browser = await pw.chromium.launch(args=args)
-            set_browser(browser)
-            context = (
-                browser.contexts[0]
-                if browser.contexts
-                else await browser.new_context(
-                    viewport={"width": PW_WINDOW_WIDTH, "height": PW_WINDOW_HEIGHT}
-                )
-            )
-            await set_context(context)
+            chrome_already_running = _wait_for_port("127.0.0.1", cdp_port, timeout=cdp_timeout)
         except Exception:
-            _cleanup_chrome_process()
-            raise ToolException(
-                "Playwright Chromium not installed, " "run `playwright install chromium` first"
-            )
-        set_chrome_process(None)  # It's managed by Playwright
-        return "Playwright Chromium launched"
-    # Launch local Chrome with CDP
-    else:
-        args = _build_chrome_args(chrome_path)
+            chrome_already_running = False
 
-        process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        set_chrome_process(process)
+        # Initiate playwright instance
+        pw = await async_playwright().start()
+        self.pw = pw
 
-        if not _wait_for_port("127.0.0.1", CDP_PORT, CDP_TIMEOUT):
-            _cleanup_chrome_process()
-            raise ToolException("Local Chrome failed to start with CDP.")
+        # Try to reuse existing Chrome instance
+        if chrome_already_running:
+            endpoint = f"http://127.0.0.1:{cdp_port}"
+            try:
+                browser = await pw.chromium.connect_over_cdp(endpoint)
+                self.browser = browser
+                # Create a new context
+                context = await browser.new_context(
+                    viewport={"width": window_width, "height": window_height}
+                )
+                await self._apply_stealth(context)
+                self.context = context
+                await context.new_page()
+                self.chrome_process = None  # Since we didn't start it
 
-        endpoint = f"http://127.0.0.1:{CDP_PORT}"
-        browser = await pw.chromium.connect_over_cdp(endpoint)
-        set_browser(browser)
-        # Use default context
-        context = browser.contexts[0] if browser.contexts else await browser.new_context()
-        await set_context(context)
-        set_chrome_process(process)
+                return "Connected to existing Chrome instance."
 
-        return "Local Chrome with CDP started."
+            except Exception as e:
+                raise ToolException(f"Failed to connect to existing Chrome via CDP: {e}")
 
+        # Launch new Chrome instance
+        chrome_path = _find_chrome_executable()
+        # If local browser not preferred or not found, use Playwright Chromium
+        if not prefer_local or chrome_path is None:
+            try:
+                args = self._build_chrome_args()
+                browser = await pw.chromium.launch(args=args, headless=headless)
+                self.browser = browser
+                context = await browser.new_context(
+                    viewport={"width": window_width, "height": window_height}
+                )
+                await self._apply_stealth(context)
+                self.context = context
+                await context.new_page()
+            except Exception:
+                self._cleanup_chrome_process()
+                raise ToolException(
+                    "Playwright Chromium not installed, run `playwright install chromium` first"
+                )
+            self.chrome_process = None  # It's managed by Playwright
+            return "Playwright Chromium launched"
+        # Launch local Chrome with CDP
+        else:
+            args = self._build_chrome_args(chrome_path)
 
-async def browser_close() -> str:
-    """Close Playwright session and optionally leave Chrome running."""
+            process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.chrome_process = process
 
-    if KEEP_PAGE_OPEN:
-        logger.info("KEEP_PAGE_OPEN is enabled; leaving page open.")
-        return "KEEP_PAGE_OPEN is enabled; leaving page open"
-    else:
-        context = get_context()
-        if context is None:
-            return "Browser is not launched"
-        pages = context.pages
-        for page in pages:
+            if not _wait_for_port("127.0.0.1", cdp_port, cdp_timeout):
+                self._cleanup_chrome_process()
+                raise ToolException("Local Chrome failed to start with CDP.")
+
+            endpoint = f"http://127.0.0.1:{cdp_port}"
+            browser = await pw.chromium.connect_over_cdp(endpoint)
+            self.browser = browser
+            # Use default context which already contains a page
+            context = browser.contexts[0]
+            await self._apply_stealth(context)
+            self.context = context
+
+            return "Local Chrome with CDP started."
+
+    async def close(self) -> None:
+        """Close Playwright session and optionally leave Chrome running."""
+        if config.keep_browser_open:
+            logger.info("KEEP_PAGE_OPEN is enabled; leaving page open.")
+            return
+
+        if self.context is None:
+            logger.info("Browser is not launched.")
+            return
+
+        # Close all pages
+        for page in self.context.pages:
             try:
                 await page.close()
             except Exception:
                 continue
+
+        # Close context and browser
         try:
-            await context.close()
-            browser = get_browser()
-            if browser and len(browser.contexts) == 0:
-                await browser.close()
-                _cleanup_chrome_process()
+            await self.context.close()
+            if self.browser and len(self.browser.contexts) == 0:
+                await self.browser.close()
+                self._cleanup_chrome_process()
         except Exception:
             pass
 
-    pw = get_pw()
-    if pw is not None:
-        try:
-            await pw.stop()
-        except Exception:
-            pass
-    reset_all()
-
-    return "Browser successfully closed"
-
-
-@asynccontextmanager
-async def async_file_lock(lock_path: str, timeout: float = 30.0):
-    """Prevent concurrent browser launches using a file lock."""
-    start_time = time.time()
-    fd = None
-    while True:
-        try:
-            # Try to create the file in exclusive mode (atomic operation)
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-            # Write current PID to lock file
-            os.write(fd, str(os.getpid()).encode())
-            break
-        except FileExistsError:
-            # Check if the lock is stale or belongs to a dead process
+        # Stop playwright
+        if self.pw is not None:
             try:
-                if os.path.exists(lock_path):
-                    # Check if lock is stale by time
-                    if time.time() - os.path.getmtime(lock_path) > 60:
-                        os.remove(lock_path)
-                        continue
-
-                    # Check if lock belongs to this process (re-entrant/cleanup)
-                    # or a dead process
-                    try:
-                        with open(lock_path, "r") as f:
-                            pid_str = f.read().strip()
-                        if pid_str:
-                            pid = int(pid_str)
-                            if pid == os.getpid():
-                                # Lock belongs to us (likely from a killed thread), reclaim it
-                                os.remove(lock_path)
-                                continue
-                    except (ValueError, OSError):
-                        pass
-            except OSError:
-                pass  # The file might have been deleted by another process
-
-            if time.time() - start_time >= timeout:
-                raise ToolException(f"Timeout waiting for browser lock: {lock_path}")
-            await asyncio.sleep(0.1)
-
-    try:
-        yield
-    finally:
-        if fd is not None:
-            os.close(fd)
-            try:
-                if os.path.exists(lock_path):
-                    os.remove(lock_path)
-            except OSError:
+                await self.pw.stop()
+            except Exception:
                 pass
+
+        self.reset()
+        logger.info("Browser successfully closed")
+
+    # -------------------------
+    # Internal Helpers
+    # -------------------------
+
+    async def _apply_stealth(self, context: BrowserContext) -> None:
+        """Apply stealth settings to context."""
+        stealth = Stealth()
+        await stealth.apply_stealth_async(context)
+
+    def _build_chrome_args(self, chrome_path: str = None) -> list:
+        """Build Chrome command-line arguments."""
+        chrome_user_data_dir = config.chrome_user_data_dir
+        cdp_port = config.cdp_port
+        window_width, window_height = config.pw_window_width, config.pw_window_height
+        headless = config.pw_headless_mode
+
+        if chrome_user_data_dir:
+            user_data_dir = os.path.abspath(chrome_user_data_dir)
+        else:
+            user_data_dir = tempfile.mkdtemp()
+            self.temp_user_data_dir = user_data_dir
+
+        if chrome_path:
+            args = [
+                chrome_path,
+                f"--remote-debugging-port={cdp_port}",
+                f"--user-data-dir={user_data_dir}",
+                "--no-first-run",
+                f"--window-size={window_width}x{window_height}",
+                "--no-default-browser-check",
+                "--exclude-switches=enable-automation",
+                "--disable-dev-shm-usage",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--disable-default-apps",
+                "--disable-infobars",
+                "--disable-popup-blocking",
+                "--disable-notifications",
+            ]
+            if headless:
+                args.append("--headless=new")
+        else:
+            args = [
+                "--no-first-run",
+                f"--window-size={window_width}x{window_height}",
+                "--no-default-browser-check",
+                "--disable-dev-shm-usage",
+                "--disable-default-apps",
+                "--disable-infobars",
+                "--disable-popup-blocking",
+                "--disable-notifications",
+            ]
+        return args
+
+    def _cleanup_chrome_process(self) -> None:
+        """Terminate Chrome process and clean up temporary directory."""
+        if self.chrome_process:
+            try:
+                self.chrome_process.terminate()
+                self.chrome_process.wait(timeout=5)
+            except Exception:
+                try:
+                    self.chrome_process.kill()
+                except Exception:
+                    pass
+            self.chrome_process = None
+
+        time.sleep(1)  # Ensure process has time to terminate
+
+        if self.temp_user_data_dir and os.path.exists(self.temp_user_data_dir):
+            shutil.rmtree(self.temp_user_data_dir, ignore_errors=True)
+            self.temp_user_data_dir = None
+
+
+# -------------------------
+# Module-level utilities
+# -------------------------
 
 
 def _find_chrome_executable() -> Optional[str]:
@@ -239,61 +299,78 @@ def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
     return False
 
 
-def _cleanup_chrome_process():
-    """Terminate Chrome process and clean up temporary directory."""
-    proc = get_chrome_process()
-    if proc:
+@asynccontextmanager
+async def async_file_lock(lock_path: str, timeout: float = 30.0):
+    """Prevent concurrent browser launches using a file lock."""
+    start_time = time.time()
+    fd = None
+    while True:
         try:
-            proc.terminate()
-            proc.wait(timeout=5)
-        except Exception:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            os.write(fd, str(os.getpid()).encode())
+            break
+        except FileExistsError:
             try:
-                proc.kill()
-            except Exception:
+                if os.path.exists(lock_path):
+                    if time.time() - os.path.getmtime(lock_path) > 60:
+                        os.remove(lock_path)
+                        continue
+                    try:
+                        with open(lock_path, "r") as f:
+                            pid_str = f.read().strip()
+                        if pid_str:
+                            pid = int(pid_str)
+                            if pid == os.getpid():
+                                os.remove(lock_path)
+                                continue
+                    except (ValueError, OSError):
+                        pass
+            except OSError:
                 pass
-        set_chrome_process(None)
 
-    time.sleep(1)  # Ensure process has time to terminate
+            if time.time() - start_time >= timeout:
+                raise ToolException(f"Timeout waiting for browser lock: {lock_path}")
+            await asyncio.sleep(0.1)
 
-    temp_user_data_dir = get_temp_user_data_dir()
-    if temp_user_data_dir and os.path.exists(temp_user_data_dir):
-        shutil.rmtree(temp_user_data_dir, ignore_errors=True)
-        set_temp_user_data_dir(None)
+    try:
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+            try:
+                if os.path.exists(lock_path):
+                    os.remove(lock_path)
+            except OSError:
+                pass
 
 
-def _build_chrome_args(chrome_path: str = None) -> list:
-    """Build Chrome command-line arguments."""
-    if CHROME_USER_DATA_DIR:
-        user_data_dir = os.path.abspath(CHROME_USER_DATA_DIR)  # Chrome accepts only absolute paths
-    else:
-        user_data_dir = tempfile.mkdtemp()
-        set_temp_user_data_dir(user_data_dir)
+# -------------------------
+# Global singleton instance
+# -------------------------
 
-    args = []
+pw_manager = PlaywrightManager()
 
-    if chrome_path:
-        args = [
-            chrome_path,
-            f"--remote-debugging-port={CDP_PORT}",
-            f"--user-data-dir={user_data_dir}",
-            "--no-first-run",
-            "--window-size={}x{}".format(PW_WINDOW_WIDTH, PW_WINDOW_HEIGHT),
-            "--no-default-browser-check",
-            "--exclude-switches=enable-automation",
-            "--disable-dev-shm-usage",
-            "--disable-features=IsolateOrigins,site-per-process",
-        ]
-    else:
-        args = [
-            f"--remote-debugging-port={CDP_PORT}",
-            f"--user-data-dir={user_data_dir}",
-            "--no-first-run",
-            "--window-size={}x{}".format(PW_WINDOW_WIDTH, PW_WINDOW_HEIGHT),
-            "--no-default-browser-check",
-            "--exclude-switches=enable-automation",
-            "--disable-dev-shm-usage",
-            "--disable-features=IsolateOrigins,site-per-process",
-        ]
-    if HEADLESS_MODE:
-        args.append("--headless=new")
-    return args
+
+# -------------------------
+# Convenience functions (for backward compatibility and simpler imports)
+# -------------------------
+
+
+async def get_page(index: int) -> Optional[Page]:
+    """Get page by index."""
+    return await pw_manager.get_page(index)
+
+
+async def add_page() -> int:
+    """Add a new page and return its index."""
+    return await pw_manager.add_page()
+
+
+async def browser_launch() -> str:
+    """Launch browser."""
+    return await pw_manager.launch()
+
+
+async def browser_close() -> None:
+    """Close browser."""
+    await pw_manager.close()

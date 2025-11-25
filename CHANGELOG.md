@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - *Nothing yet.*
 
+## [0.4.0] - 2025-11-25
+
+### Added
+- Support multi-task calls in a window now
+- Manual controlled event loop in `agent_event_loop.py`
+- You can now edit and save settings in main window now
+
+### Changed
+- Merged `playwright_state.py` into `playwright_mgr.py`
+- `playwright_mgr.py` maintains a `PlaywrightManager` class now
+- Agent Graph is re-designed to support multi-task calls
+
+### Removed
+- Removed `ask_info.py`
+- Removed `finish_task.py`
+- Removed `playwright_state.py`
+
 ## [0.3.0] - 2025-11-23
 
 ### Added
