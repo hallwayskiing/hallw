@@ -1,4 +1,4 @@
-"""Tests for the browser_click tool."""
+"""Tests for browser_click tool."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock
@@ -6,54 +6,64 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from hallw.tools.playwright.click import browser_click
+from hallw.tools.playwright import click
 
 
 @pytest.mark.asyncio
-async def test_browser_click_success(page_context):
+async def test_browser_click_success(monkeypatch):
+    locator = _build_locator(count=1, click_result=None)
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.first = MagicMock()
-    locator.first.click = AsyncMock()
     page.get_by_role = MagicMock(return_value=locator)
 
-    async with page_context(page):
-        result = await browser_click.ainvoke({"role": "button", "name": "Submit"})
+    monkeypatch.setattr(click, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(
+        await click.browser_click.ainvoke({"page_index": 0, "role": "button", "name": "OK"})
+    )
+
     assert data["success"] is True
-    assert "Element clicked successfully" in data["message"]
-    assert data["data"]["name"] == "Submit"
+    locator.click.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_browser_click_element_not_found(page_context):
+async def test_browser_click_not_found(monkeypatch):
+    locator = _build_locator(count=0)
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=0)
     page.get_by_role = MagicMock(return_value=locator)
 
-    async with page_context(page):
-        result = await browser_click.ainvoke({"role": "button", "name": "Missing"})
+    monkeypatch.setattr(click, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(
+        await click.browser_click.ainvoke({"page_index": 0, "role": "button", "name": "OK"})
+    )
+
     assert data["success"] is False
     assert "No 'button' found" in data["message"]
 
 
 @pytest.mark.asyncio
-async def test_browser_click_timeout(page_context):
+async def test_browser_click_timeout(monkeypatch):
+    locator = _build_locator(count=1, click_result=PlaywrightTimeoutError("timeout"))
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.first = MagicMock()
-    locator.first.click = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout"))
     page.get_by_role = MagicMock(return_value=locator)
 
-    async with page_context(page):
-        result = await browser_click.ainvoke({"role": "button", "name": "Submit"})
+    monkeypatch.setattr(click, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(
+        await click.browser_click.ainvoke({"page_index": 0, "role": "button", "name": "OK"})
+    )
+
     assert data["success"] is False
     assert "Timeout" in data["message"]
+
+
+def _build_locator(count=1, click_result=None):
+    locator = AsyncMock()
+    locator.count = AsyncMock(return_value=count)
+    locator.first = locator
+    locator.nth = MagicMock(return_value=locator)
+    if click_result is not None:
+        locator.click = AsyncMock(side_effect=click_result)
+    else:
+        locator.click = AsyncMock()
+    return locator

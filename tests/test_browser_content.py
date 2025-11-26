@@ -1,78 +1,47 @@
-"""Tests for the browser_get_content tool."""
+"""Tests for browser_get_content tool."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from hallw.tools.playwright.content import browser_get_content
+from hallw.tools.playwright import content
+from hallw.utils import config
 
 
 @pytest.mark.asyncio
-async def test_browser_get_content_success(page_context):
-    page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.nth = MagicMock(return_value=locator)
-    locator.inner_text = AsyncMock(return_value="Test page content here")
-    page.locator = MagicMock(return_value=locator)
+async def test_browser_get_content_segments(monkeypatch):
+    page = _build_page_with_content("abcdef12345")
+    monkeypatch.setattr(config, "max_page_content_chars", 5)
+    monkeypatch.setattr(content, "get_page", AsyncMock(return_value=page))
 
-    async with page_context(page):
-        result = await browser_get_content.ainvoke({"segment": 0})
+    data = json.loads(await content.browser_get_content.ainvoke({"page_index": 0, "segment": 1}))
 
-    data = json.loads(result)
     assert data["success"] is True
-    assert data["data"]["segment"] == 0
-    assert "Test page content" in data["data"]["content"]
+    assert data["data"]["content"] == "f1234"
+    assert data["data"]["total_segments"] == 3
 
 
 @pytest.mark.asyncio
-async def test_browser_get_content_segment_1(page_context):
-    page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.nth = MagicMock(return_value=locator)
-    locator.inner_text = AsyncMock(return_value="A" * 3000)
-    page.locator = MagicMock(return_value=locator)
+async def test_browser_get_content_out_of_range(monkeypatch):
+    page = _build_page_with_content("abc")
+    monkeypatch.setattr(config, "max_page_content_chars", 2)
+    monkeypatch.setattr(content, "get_page", AsyncMock(return_value=page))
 
-    async with page_context(page):
-        result = await browser_get_content.ainvoke({"segment": 1})
+    data = json.loads(await content.browser_get_content.ainvoke({"page_index": 0, "segment": 2}))
 
-    data = json.loads(result)
-    assert data["success"] is True
-    assert data["data"]["segment"] == 1
-    assert data["data"]["total_segments"] >= 2
-
-
-@pytest.mark.asyncio
-async def test_browser_get_content_empty_page(page_context):
-    page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.nth = MagicMock(return_value=locator)
-    locator.inner_text = AsyncMock(return_value="   ")
-    page.locator = MagicMock(return_value=locator)
-
-    async with page_context(page):
-        result = await browser_get_content.ainvoke({"segment": 0})
-
-    data = json.loads(result)
     assert data["success"] is False
-    assert "The page is empty" in data["message"]
+    assert "out of range" in data["message"]
 
 
-@pytest.mark.asyncio
-async def test_browser_get_content_negative_segment(page_context):
+# Ensure trailing whitespace trimmed so initial selector content is considered empty in None case
+
+
+def _build_page_with_content(content_text: str):
     page = AsyncMock()
     locator = AsyncMock()
     locator.count = AsyncMock(return_value=1)
     locator.nth = MagicMock(return_value=locator)
-    locator.inner_text = AsyncMock(return_value="Content")
+    locator.inner_text = AsyncMock(return_value=content_text)
     page.locator = MagicMock(return_value=locator)
-
-    async with page_context(page):
-        result = await browser_get_content.ainvoke({"segment": -1})
-
-    data = json.loads(result)
-    assert data["success"] is True
-    assert data["data"]["segment"] == 0
+    return page

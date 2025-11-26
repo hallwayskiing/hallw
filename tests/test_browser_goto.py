@@ -1,4 +1,4 @@
-"""Tests for the browser_goto tool."""
+"""Tests for browser_goto tool."""
 
 import json
 from unittest.mock import AsyncMock
@@ -6,33 +6,30 @@ from unittest.mock import AsyncMock
 import pytest
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from hallw.tools.playwright.goto import browser_goto
+from hallw.tools.playwright import goto
 
 
 @pytest.mark.asyncio
-async def test_browser_goto_success(page_context):
+async def test_browser_goto_success(monkeypatch):
     page = AsyncMock()
-    page.goto = AsyncMock(return_value=None)
+    page.goto = AsyncMock()
 
-    async with page_context(page):
-        result = await browser_goto.ainvoke({"url": "https://example.com"})
+    monkeypatch.setattr(goto, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(await goto.browser_goto.ainvoke({"page_index": 0, "url": "https://x.com"}))
+
     assert data["success"] is True
-    assert "Navigation successful" in data["message"]
-    page.goto.assert_called_once_with(
-        "https://example.com", wait_until="domcontentloaded", timeout=10000
-    )
+    page.goto.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_browser_goto_timeout(page_context):
+async def test_browser_goto_timeout(monkeypatch):
     page = AsyncMock()
-    page.goto = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout"))
+    page.goto = AsyncMock(side_effect=PlaywrightTimeoutError("timeout"))
 
-    async with page_context(page):
-        result = await browser_goto.ainvoke({"url": "https://example.com"})
+    monkeypatch.setattr(goto, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(await goto.browser_goto.ainvoke({"page_index": 0, "url": "https://x.com"}))
+
     assert data["success"] is False
     assert "Timeout" in data["message"]

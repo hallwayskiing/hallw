@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import PyPDF2
+import pypdf
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
@@ -209,7 +209,7 @@ def _read_pdf(path: str) -> str:
     """Read PDF file and extract text."""
     try:
         with open(path, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
+            reader = pypdf.PdfReader(f)
             text = []
             # Limit pages to prevent context overflow
             max_pages = 20

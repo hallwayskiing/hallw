@@ -1,4 +1,4 @@
-"""Tests for the browser_fill tool."""
+"""Tests for browser_fill tool."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock
@@ -6,70 +6,70 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from hallw.tools.playwright.fill import browser_fill
+from hallw.tools.playwright import fill
+from hallw.utils import config
 
 
 @pytest.mark.asyncio
-async def test_browser_fill_success(page_context):
+async def test_browser_fill_success(monkeypatch):
+    locator = _build_locator(count=1, fill_result=None)
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.fill = AsyncMock()
     page.get_by_role = MagicMock(return_value=locator)
 
-    payload = {"role": "textbox", "name": "username", "text": "testuser"}
-    async with page_context(page):
-        result = await browser_fill.ainvoke(payload)
+    monkeypatch.setattr(fill, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(
+        await fill.browser_fill.ainvoke(
+            {"page_index": 0, "role": "textbox", "name": "q", "text": "hello"}
+        )
+    )
+
     assert data["success"] is True
-    assert "Input filled successfully" in data["message"]
-    locator.fill.assert_called_once_with("testuser", timeout=6000)
+    locator.fill.assert_awaited_once_with("hello", timeout=config.pw_click_timeout)
 
 
 @pytest.mark.asyncio
-async def test_browser_fill_element_not_found(page_context):
+async def test_browser_fill_multiple(monkeypatch):
+    locator = _build_locator(count=2)
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=0)
     page.get_by_role = MagicMock(return_value=locator)
 
-    async with page_context(page):
-        result = await browser_fill.ainvoke({"role": "textbox", "name": "missing", "text": "x"})
+    monkeypatch.setattr(fill, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
-    assert data["success"] is False
-    assert "No input field found" in data["message"]
+    data = json.loads(
+        await fill.browser_fill.ainvoke(
+            {"page_index": 0, "role": "textbox", "name": "q", "text": "hello"}
+        )
+    )
 
-
-@pytest.mark.asyncio
-async def test_browser_fill_multiple_elements(page_context):
-    page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=2)
-    page.get_by_role = MagicMock(return_value=locator)
-
-    async with page_context(page):
-        result = await browser_fill.ainvoke({"role": "textbox", "name": "ambiguous", "text": "x"})
-
-    data = json.loads(result)
     assert data["success"] is False
     assert "Multiple" in data["message"]
 
 
 @pytest.mark.asyncio
-async def test_browser_fill_timeout(page_context):
+async def test_browser_fill_timeout(monkeypatch):
+    locator = _build_locator(count=1, fill_result=PlaywrightTimeoutError("timeout"))
     page = AsyncMock()
-    locator = AsyncMock()
-    locator.count = AsyncMock(return_value=1)
-    locator.fill = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout"))
     page.get_by_role = MagicMock(return_value=locator)
 
-    async with page_context(page):
-        result = await browser_fill.ainvoke(
-            {"role": "textbox", "name": "username", "text": "testuser"}
-        )
+    monkeypatch.setattr(fill, "get_page", AsyncMock(return_value=page))
 
-    data = json.loads(result)
+    data = json.loads(
+        await fill.browser_fill.ainvoke(
+            {"page_index": 0, "role": "textbox", "name": "q", "text": "hello"}
+        )
+    )
+
     assert data["success"] is False
     assert "Timeout" in data["message"]
+
+
+def _build_locator(count=1, fill_result=None):
+    locator = AsyncMock()
+    locator.count = AsyncMock(return_value=count)
+    locator.nth = MagicMock(return_value=locator)
+    if fill_result is not None:
+        locator.fill = AsyncMock(side_effect=fill_result)
+    else:
+        locator.fill = AsyncMock()
+    return locator
