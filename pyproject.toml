@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hallw"
-version = "0.4.0"
+version = "0.5.0"
 description = "An AI automation agent with LangGraph and Playwright"
 readme = "README.md"
 requires-python = "==3.12.*"
@@ -30,11 +30,11 @@ dependencies = [
     "playwright>=1.56.0",
     "playwright_stealth>=2.0.0",
     "psutil>=7.0.0",
-    "PyPDF2>=3.0.1",
     "pydantic>=2.12.0",
     "pydantic-settings>=2.12.0",
     "typer>=0.20.0",
     "PySide6>=6.0.0",
+    "pypdf>=6.4.0",
 ]
 
 [project.urls]

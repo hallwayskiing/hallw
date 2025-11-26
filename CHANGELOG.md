@@ -8,7 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Nothing yet
+
+## [0.5.0] - 2025-11-25
+
+### Added
 - Added a EventBus to manage cross-module communications
+- Added a Back button to reset the app
+- New dependency: markdown for solving PySide compatiability
+- Added HistoryLineEdit to reuse history inputs conveniently
+- More tests
+
+### Changed
+- Rewrite Main Window for much better performance
 
 ## [0.4.0] - 2025-11-25
 
