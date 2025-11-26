@@ -9,21 +9,21 @@ USER_MSG_TEMPLATE = """
         </td>
     </tr>
 </table>
-<br>
 """
 
 # AI Header
 AI_HEADER_TEMPLATE = """
 <div style="margin-top: 10px; margin-bottom: 5px;">
     <br>
+    <br>
     <span style="font-size: 18px;">✨</span>
     <span style="color: #A8C7FA; font-weight: bold; font-size: 14px; margin-left: 6px;">HALLW</span>
+    <br>
 </div>
 """
 
 # Info Card
 INFO_MSG_TEMPLATE = """
-<br>
 <table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #3b82f6; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
     <tr>
         <td>
@@ -32,12 +32,10 @@ INFO_MSG_TEMPLATE = """
         </td>
     </tr>
 </table>
-<br>
 """
 
 # Warning Card
 WARNING_MSG_TEMPLATE = """
-<br>
 <table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f59e42; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
     <tr>
         <td>
@@ -46,12 +44,10 @@ WARNING_MSG_TEMPLATE = """
         </td>
     </tr>
 </table>
-<br>
 """
 
 # Error Card
 ERROR_MSG_TEMPLATE = """
-<br>
 <table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f54c4c; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
     <tr>
         <td>
@@ -60,7 +56,6 @@ ERROR_MSG_TEMPLATE = """
         </td>
     </tr>
 </table>
-<br>
 """
 
 # End Message

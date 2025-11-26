@@ -128,8 +128,8 @@ class QtAgentRenderer(QObject, AgentRenderer):
     # --- Internal Logic ---
     def _finalize_tool(self, run_id: str, name: str, status: str) -> None:
         """Update tool status and refresh UI."""
-        if run_id and run_id in self._active_tools:
-            self._active_tools.pop(run_id)["status"] = status
+        if run_id and (state := self._active_tools.pop(run_id, None)):
+            state["status"] = status
         else:
             # Fallback: Find the last matching tool still running
             for tool in reversed(self._tool_states):
@@ -140,20 +140,23 @@ class QtAgentRenderer(QObject, AgentRenderer):
 
     def _process_tool_call_chunks(self, tc_chunks: list[dict]) -> None:
         """Accumulate tool chunks and update the plan UI."""
-        updated = False
-        for tc in tc_chunks:
-            idx = tc.get("index", 0)
-            entry = self._tool_call_buffer.setdefault(idx, {"name": "", "args": ""})
-
-            if name := tc.get("name"):
-                entry["name"] += name
-                updated = True
-            if args := tc.get("args"):
-                entry["args"] += args
-                updated = True
-
+        updated = any(self._update_tool_call_buffer(tc) for tc in tc_chunks)
         if updated:
             self._emit_tool_plan()
+
+    def _update_tool_call_buffer(self, tc: dict) -> bool:
+        """Merge a streaming tool chunk into the buffer."""
+        idx = tc.get("index", 0)
+        entry = self._tool_call_buffer.setdefault(idx, {"name": "", "args": ""})
+
+        changed = False
+        if name := tc.get("name"):
+            entry["name"] += name
+            changed = True
+        if args := tc.get("args"):
+            entry["args"] += args
+            changed = True
+        return changed
 
     def _emit_tool_plan(self) -> None:
         if not self._tool_call_buffer:
@@ -177,17 +180,21 @@ class QtAgentRenderer(QObject, AgentRenderer):
         if not raw_args:
             return "*(Loading...)*"
 
-        # 1. Try parsing as complete JSON
+        if parsed := self._try_parse_json_args(raw_args):
+            return parsed
+
+        return self._parse_partial_json(raw_args)
+
+    def _try_parse_json_args(self, raw_args: str) -> str | None:
+        """Attempt to parse arguments as JSON; return None if partial."""
         try:
             args_dict = json.loads(raw_args)
-            if isinstance(args_dict, dict) and args_dict:
-                return "\n\n".join(f"**{k}**:  {v}" for k, v in args_dict.items())
-            return "*(No arguments)*"
         except json.JSONDecodeError:
-            pass
+            return None
 
-        # 2. Fallback: Parse partial JSON via Regex
-        return self._parse_partial_json(raw_args)
+        if isinstance(args_dict, dict) and args_dict:
+            return "\n\n".join(f"**{k}**:  {v}" for k, v in args_dict.items())
+        return "*(No arguments)*"
 
     def _parse_partial_json(self, raw_args: str) -> str:
         lines = []
@@ -221,9 +228,10 @@ class QtAgentRenderer(QObject, AgentRenderer):
 
         # Handle list of content blocks (e.g. OpenAI/Anthropic vision)
         if isinstance(content, list):
-            return "".join(
-                item if isinstance(item, str) else item.get("text", "") for item in content
-            )
+            parts = []
+            for item in content:
+                parts.append(item if isinstance(item, str) else item.get("text", ""))
+            return "".join(parts)
 
         return str(content)
 

@@ -1,6 +1,7 @@
+import html
 import os
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, List, Optional
 
 import markdown
 from PySide6.QtCore import Qt, QTimer, Slot
@@ -9,7 +10,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMainWindow,
     QPushButton,
     QSplitter,
@@ -18,9 +18,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .history_line_edit import HistoryLineEdit
+from .layout_config import LayoutConfig
 from .qt_renderer import QtAgentRenderer
 from .settings_dialog import SettingsDialog
-from .styles import MAIN_STYLE
+from .styles import MAIN_STYLE, MARKDOWN_STYLE
 from .templates import (
     AI_HEADER_TEMPLATE,
     END_MSG_TEMPLATE,
@@ -34,73 +36,23 @@ from .templates import (
 # --- Constants ---
 ASSET_DIR = os.path.join(os.path.dirname(__file__), "assets")
 LOGO_PATH = os.path.join(ASSET_DIR, "logo.ico")
-
-# Responsive breakpoints
-BREAKPOINT_SMALL = 1024
-BREAKPOINT_MEDIUM = 1366
 SIDEBAR_AUTO_SHOW_WIDTH = 900
 
 
-@dataclass(frozen=True)
-class LayoutConfig:
-    """Responsive layout configuration."""
+@dataclass
+class ChatSegment:
+    """Represents a segment of the chat history (HTML or Markdown)."""
 
-    width: int
-    height: int
-    sidebar_visible: bool
-    margins: int
-    spacing: int
-    chat_padding: int
-    sidebar_margin: int
-    input_height: int
-    button_width: int
-    split_ratio: tuple[float, float]
-
-    @classmethod
-    def for_screen_width(cls, screen_width: int) -> "LayoutConfig":
-        """Factory method to create config based on screen width."""
-        if screen_width < BREAKPOINT_SMALL:
-            return cls(
-                width=min(900, int(screen_width * 0.9)),
-                height=700,
-                sidebar_visible=False,
-                margins=20,
-                spacing=16,
-                chat_padding=20,
-                sidebar_margin=15,
-                input_height=52,
-                button_width=120,
-                split_ratio=(1.0, 0.0),
-            )
-        if screen_width < BREAKPOINT_MEDIUM:
-            return cls(
-                width=1100,
-                height=750,
-                sidebar_visible=True,
-                margins=28,
-                spacing=20,
-                chat_padding=24,
-                sidebar_margin=16,
-                input_height=56,
-                button_width=130,
-                split_ratio=(0.72, 0.28),
-            )
-        return cls(
-            width=1200,
-            height=800,
-            sidebar_visible=True,
-            margins=32,
-            spacing=24,
-            chat_padding=28,
-            sidebar_margin=18,
-            input_height=60,
-            button_width=140,
-            split_ratio=(0.74, 0.26),
-        )
+    kind: str  # 'html' or 'ai_md'
+    content: str
+    cached_html: str = ""
 
 
 class QtAgentMainWindow(QMainWindow):
-    """Main application window with chat interface and tool sidebar."""
+    """
+    Main application window with chat interface and tool sidebar.
+    Optimized for performance with partial rendering and smart scrolling.
+    """
 
     def __init__(
         self,
@@ -120,28 +72,40 @@ class QtAgentMainWindow(QMainWindow):
         # State flags
         self._is_task_running = False
         self._is_first_interaction = True
+        self._ai_header_inserted = False
         self._sidebar_manually_hidden = False
         self._settings_mode: str = ""
         self._session_active: bool = False
+        self._md_style_inserted: bool = False
+
+        # Chat render state
+        self._segments: List[ChatSegment] = []
+        self._current_ai_index: Optional[int] = None
+
+        # Position tracker for partial updates (Optimization: Partial Refresh)
+        self._current_response_start_pos: int = 0
 
         # AI streaming state
-        self._ai_buffer = ""
-        self._ai_start_pos = 0
-        self._ai_header_shown = False
+        self._stream_update_pending = False
 
-        # UI Components (initialized in _setup_ui)
+        # Streaming throttle (approx 25 FPS)
+        self._stream_timer = QTimer(self)
+        self._stream_timer.setInterval(40)
+        self._stream_timer.timeout.connect(self._flush_stream_buffer)
+        self._stream_timer.start()
+
+        # UI Components
         self._splitter: QSplitter
         self._chat_header: QWidget
         self._agent_output: QTextEdit
         self._tool_plan: QTextEdit
         self._tool_execution: QTextEdit
-        self._input_field: QLineEdit
+        self._input_field: HistoryLineEdit
         self._send_btn: QPushButton
         self._settings_btn: QPushButton
         self._sidebar: QWidget
         self._toggle_btns: dict[str, QPushButton] = {}
         self._sidebar_split_ratio: tuple[float, float] = (0.8, 0.2)
-        self._markdown_style = self._build_markdown_style()
 
         self._init_window()
         self._setup_ui()
@@ -178,7 +142,7 @@ class QtAgentMainWindow(QMainWindow):
         chat_layout.setContentsMargins(0, 0, 0, 0)
         chat_layout.setSpacing(0)
 
-        # Header with show sidebar button
+        # Chat Header
         self._chat_header = QWidget()
         header_layout = QHBoxLayout(self._chat_header)
         header_layout.setContentsMargins(0, 0, 0, 4)
@@ -189,6 +153,7 @@ class QtAgentMainWindow(QMainWindow):
         header_layout.addWidget(self._toggle_btns["show"])
         chat_layout.addWidget(self._chat_header)
 
+        # Chat Output Area
         self._agent_output = QTextEdit(readOnly=True)
         chat_layout.addWidget(self._agent_output)
         self._splitter.addWidget(chat_container)
@@ -198,7 +163,6 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar = QWidget()
         layout = QVBoxLayout(self._sidebar)
 
-        # Header
         header = QHBoxLayout()
         header.addWidget(QLabel("📋 PLANNING"))
         header.addStretch()
@@ -208,11 +172,9 @@ class QtAgentMainWindow(QMainWindow):
         header.addWidget(self._toggle_btns["hide"])
         layout.addLayout(header)
 
-        # Planning panel
         self._tool_plan = QTextEdit(objectName="Sidebar", readOnly=True)
         layout.addWidget(self._tool_plan)
 
-        # Execution panel
         layout.addWidget(QLabel("⚙️ EXECUTION"))
         self._tool_execution = QTextEdit(objectName="Sidebar", readOnly=True)
         layout.addWidget(self._tool_execution)
@@ -220,99 +182,30 @@ class QtAgentMainWindow(QMainWindow):
         self._splitter.addWidget(self._sidebar)
 
     def _setup_input_area(self) -> None:
-        """Setup bottom input area with settings, input field, and submit button."""
+        """Setup bottom input area."""
         input_box = QWidget()
         layout = QHBoxLayout(input_box)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
-        # Settings / Back button
         self._settings_btn = QPushButton(cursor=Qt.PointingHandCursor)
         self._settings_btn.setObjectName("SettingsButton")
         self._settings_btn.setFixedWidth(40)
         layout.addWidget(self._settings_btn)
         self._set_settings_button_mode("settings")
 
-        # Input field
-        self._input_field = QLineEdit(placeholderText="Tell me what to do...")
+        # Use custom HistoryLineEdit
+        self._input_field = HistoryLineEdit()
+        self._input_field.setPlaceholderText("Tell me what to do...")
         self._input_field.returnPressed.connect(self._on_submit)
         layout.addWidget(self._input_field)
 
-        # Submit button
         self._send_btn = QPushButton("Send", cursor=Qt.PointingHandCursor)
         self._send_btn.setObjectName("SendButton")
         self._send_btn.clicked.connect(self._on_submit)
         layout.addWidget(self._send_btn)
 
         self._main_layout.addWidget(input_box)
-
-    def _build_markdown_style(self) -> str:
-        """Style injected into rendered HTML to fix tiny fonts in PySide markdown."""
-        return """
-        .md-root { color: #e8e8e8; font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
-                   font-size: 16px; line-height: 1.75; letter-spacing: 0.1px;
-                   word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
-        .md-root p { margin: 8px 0; }
-        .md-root ul { margin: 6px 0 14px 20px; padding: 0; }
-        .md-root li { margin: 6px 0; font-size: 16px; line-height: 1.65; }
-        .md-root h1 { font-size: 24px; margin: 12px 0 8px; font-weight: 700; color: #c8e1ff;
-                      border-bottom: 1px solid #1f1f1f; padding-bottom: 4px; }
-        .md-root h2 { font-size: 20px; margin: 10px 0 6px; font-weight: 650; color: #a8c7fa; }
-        .md-root h3 { font-size: 18px; margin: 8px 0 4px; font-weight: 600; color: #9fb7ff; }
-        .md-root pre { background: transparent !important; border: 1px solid #1f1f1f;
-                       padding: 10px 12px; border-radius: 10px; font-size: 14px;
-                       white-space: pre-wrap; word-break: break-word;
-                       font-family: 'Consolas', 'SFMono-Regular', monospace; }
-        .md-root code { background: none; border: 1px solid #2a2a2a; padding: 2px 6px;
-                        border-radius: 6px; font-size: 14px; color: #dbeafe;
-                        font-family: 'Consolas', 'SFMono-Regular', monospace; }
-        .md-root blockquote { border-left: 3px solid #2a2a2a; color: #c0c0c0;
-                              margin: 10px 0; padding: 6px 12px; background: transparent; }
-        .md-root a { color: #7ab8ff; text-decoration: none; border-bottom: 1px dashed #2f6db5; }
-        .md-root a:hover { color: #9ccfff; border-bottom-color: #4a90e2; }
-        """
-
-    def _render_markdown_to_html(self, text: str) -> str:
-        """Convert markdown to styled HTML; fall back to escaped text."""
-        if not text.strip():
-            return ""
-
-        html_body = markdown.markdown(
-            text,
-            extensions=["fenced_code", "tables"],
-            output_format="html5",
-        )
-
-        return f"<style>{self._markdown_style}</style><div class='md-root'>{html_body}</div>"
-
-    def _create_button(self, text: str, tooltip: str, slot: Callable, obj_name: str) -> QPushButton:
-        """Factory method for creating styled buttons."""
-        btn = QPushButton(text, toolTip=tooltip, cursor=Qt.PointingHandCursor)
-        btn.setObjectName(obj_name)
-        btn.clicked.connect(slot)
-        return btn
-
-    def _set_settings_button_mode(self, mode: str) -> None:
-        """Toggle Settings button between settings and back/reset behaviors."""
-        if mode == self._settings_mode:
-            return
-
-        if self._settings_mode:
-            try:
-                self._settings_btn.clicked.disconnect()
-            except (TypeError, RuntimeError):
-                pass
-
-        if mode == "settings":
-            self._settings_btn.setText("⚙️")
-            self._settings_btn.setToolTip("Settings")
-            self._settings_btn.clicked.connect(self._open_settings)
-        else:
-            self._settings_btn.setText("↩️")
-            self._settings_btn.setToolTip("Back to start")
-            self._settings_btn.clicked.connect(self._reset_session)
-
-        self._settings_mode = mode
 
     def _connect_signals(self) -> None:
         """Connect renderer signals to UI update slots."""
@@ -329,9 +222,83 @@ class QtAgentMainWindow(QMainWindow):
         r.captcha_detected.connect(self._on_captcha_detected)
         r.captcha_resolved.connect(self._on_captcha_resolved)
 
+    # --- UI Helpers ---
+    def _show_welcome(self) -> None:
+        """Display welcome message and reset state."""
+        self._segments.clear()
+        self._current_ai_index = None
+        self._agent_output.setHtml(WELCOME_HTML)
+        self._agent_output.moveCursor(QTextCursor.End)
+
+    def _create_button(self, text: str, tooltip: str, slot: Callable, obj_name: str) -> QPushButton:
+        btn = QPushButton(text, toolTip=tooltip, cursor=Qt.PointingHandCursor)
+        btn.setObjectName(obj_name)
+        btn.clicked.connect(slot)
+        return btn
+
+    def _set_settings_button_mode(self, mode: str) -> None:
+        """Toggle the settings button between 'settings' and 'back/reset' mode."""
+        if mode == self._settings_mode:
+            return
+
+        try:
+            self._settings_btn.clicked.disconnect()
+        except TypeError:
+            pass
+
+        if mode == "settings":
+            self._settings_btn.setText("⚙️")
+            self._settings_btn.setToolTip("Settings")
+            self._settings_btn.clicked.connect(lambda: SettingsDialog(self).exec())
+        else:
+            self._settings_btn.setText("↩️")
+            self._settings_btn.setToolTip("Back to start")
+            self._settings_btn.clicked.connect(self._reset_session)
+
+        self._settings_mode = mode
+
+    # --- Smart Scrolling Helpers ---
+    def _check_if_user_at_bottom(self) -> bool:
+        """
+        Checks if the vertical scrollbar is effectively at the bottom BEFORE
+        new content is inserted. Tolerance is 20 pixels.
+        """
+        scrollbar = self._agent_output.verticalScrollBar()
+        return int(scrollbar.value()) >= int(scrollbar.maximum() - 20)
+
+    def _force_scroll_to_bottom(self) -> None:
+        """Forces the scrollbar to the absolute bottom."""
+        scrollbar = self._agent_output.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def _append_html(self, html_content: str) -> None:
+        """
+        Appends a pre-rendered HTML segment directly to the QTextEdit.
+        Updates the segment list for state persistence.
+        """
+        # 1. Capture scroll state BEFORE insertion
+        was_at_bottom = self._check_if_user_at_bottom()
+
+        # Store state
+        self._segments.append(ChatSegment(kind="html", content=html_content))
+
+        # Update UI incrementally (Optimization: Partial Refresh)
+        cursor = self._agent_output.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertHtml(html_content)
+
+        # 2. Scroll AFTER insertion only if user was already at bottom
+        if was_at_bottom:
+            self._force_scroll_to_bottom()
+
+    def _append_user_message(self, text: str) -> None:
+        """Sanitizes and appends a user message."""
+        safe_text = html.escape(text)
+        html_block = USER_MSG_TEMPLATE.format(text=safe_text)
+        self._append_html(html_block)
+
     # --- Responsive Layout ---
     def _apply_responsive_layout(self) -> None:
-        """Apply layout configuration based on screen size."""
         cfg = LayoutConfig.for_screen_width(QApplication.primaryScreen().geometry().width())
 
         self.resize(cfg.width, cfg.height)
@@ -349,7 +316,6 @@ class QtAgentMainWindow(QMainWindow):
             self._set_sidebar_visible(cfg.sidebar_visible)
 
     def _set_sidebar_visible(self, visible: bool) -> None:
-        """Set sidebar visibility and update related UI elements."""
         self._sidebar.setVisible(visible)
         self._toggle_btns["show"].setVisible(not visible)
         self._chat_header.setVisible(not visible)
@@ -357,7 +323,6 @@ class QtAgentMainWindow(QMainWindow):
             QTimer.singleShot(0, self._update_splitter_sizes)
 
     def _update_splitter_sizes(self) -> None:
-        """Update splitter sizes based on current ratio."""
         if self._sidebar.isVisible() and (total := self._splitter.width()) > 0:
             self._splitter.setSizes(
                 [
@@ -367,78 +332,166 @@ class QtAgentMainWindow(QMainWindow):
             )
 
     def _toggle_sidebar(self) -> None:
-        """Toggle sidebar visibility (manual override)."""
         is_visible = self._sidebar.isVisible()
         self._sidebar_manually_hidden = is_visible
         self._set_sidebar_visible(not is_visible)
 
+    # --- Window Events ---
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         if self._sidebar_manually_hidden:
-            # Keep show button visible when manually hidden
             self._toggle_btns["show"].setVisible(True)
             self._chat_header.setVisible(True)
         else:
-            # Auto-respond to width changes
             should_show = self.width() >= SIDEBAR_AUTO_SHOW_WIDTH
             if self._sidebar.isVisible() != should_show:
                 self._set_sidebar_visible(should_show)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Handle window close - cleanup resources."""
         if self._cleanup_callback:
             self._cleanup_callback()
         event.accept()
 
-    # --- Chat Logic ---
-    def _show_welcome(self) -> None:
-        """Display welcome message."""
-        self._agent_output.setHtml(WELCOME_HTML)
-        self._agent_output.moveCursor(QTextCursor.End)
+    # --- Task / Interaction Logic ---
+    def _on_submit(self) -> None:
+        if self._is_task_running:
+            self._handle_stop_task()
+            return
 
-    def _append_html(self, html: str, new_block: bool = True) -> None:
-        """Append HTML content to chat output."""
-        cursor = self._agent_output.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        if new_block and not self._agent_output.document().isEmpty():
-            cursor.insertBlock()
-        cursor.insertHtml(html)
-        self._agent_output.setTextCursor(cursor)
-        self._agent_output.ensureCursorVisible()
+        text = self._input_field.text().strip()
+        if text:
+            self._input_field.add_to_history(text)
+            self._start_new_task(text)
 
+    def _handle_stop_task(self) -> None:
+        self._session_active = False
+        if self._stop_task_callback:
+            self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
+            self._send_btn.setText("Stopping")
+            self._send_btn.setEnabled(False)
+            QApplication.processEvents()
+            self._stop_task_callback()
+            self._on_task_finished()
+
+    def _start_new_task(self, text: str) -> None:
+        self._input_field.clear()
+
+        if self._is_first_interaction:
+            self._segments.clear()
+            self._agent_output.clear()
+            self._is_first_interaction = False
+
+        self._set_settings_button_mode("back")
+        self._session_active = True
+        self._stream_update_pending = False
+        self._current_ai_index = None
+        self._append_user_message(text)
+        self._is_task_running = True
+        self._set_task_ui_state(running=True, btn_text="Stop")
+        self._tool_plan.clear()
+
+        try:
+            if self._start_task_callback:
+                self._start_task_callback(text)
+        except Exception as e:
+            self._on_fatal_error(f"Error starting task: {e}")
+
+    # --- AI Streaming Logic ---
     @Slot()
     def _on_ai_response_start(self) -> None:
-        """Reset AI streaming state for new response."""
+        """
+        Initializes a new AI response segment.
+        Records the cursor position to enable efficient partial updates.
+        """
         if not self._session_active:
             return
-        self._ai_header_shown = False
-        self._ai_buffer = ""
+
+        self._stream_update_pending = False
+        self._ai_header_inserted = False
+
+        # Create a new segment tracker
+        self._segments.append(ChatSegment(kind="ai_md", content=""))
+        self._current_ai_index = len(self._segments) - 1
 
     @Slot(str)
     def _append_token(self, text: str) -> None:
-        """Append streaming AI token to output."""
+        """Buffers incoming tokens. UI update is handled by timer."""
         if not self._session_active:
             return
-        if not self._ai_header_shown:
-            if not text.strip():
-                return
+
+        if self._current_ai_index is None:
+            self._on_ai_response_start()
+
+        if not text:
+            return
+
+        # Only insert on first real token
+        if not self._ai_header_inserted:
             self._append_html(AI_HEADER_TEMPLATE)
-            self._agent_output.append("")
-            self._ai_start_pos = self._agent_output.textCursor().position()
-            self._ai_buffer = ""
-            self._ai_header_shown = True
+            self._ai_header_inserted = True
 
-        self._ai_buffer += text
+            # Record start pos for partial updates
+            cursor = self._agent_output.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            self._current_response_start_pos = cursor.position()
+
+        idx = self._current_ai_index
+        if idx is not None and idx < len(self._segments):
+            self._segments[idx].content += text
+            self._stream_update_pending = True
+
+    def _flush_stream_buffer(self) -> None:
+        """Flush streaming buffer by updating ONLY the active AI block."""
+        if not self._stream_update_pending:
+            return
+        if not self._session_active:
+            self._stream_update_pending = False
+            return
+
+        self._stream_update_pending = False
+        self._render_last_segment()
+
+    def _render_last_segment(self) -> None:
+        """
+        Incrementally re-renders the latest AI markdown segment.
+        """
+        idx = self._current_ai_index
+        if idx is None or idx >= len(self._segments):
+            return
+
+        # 1. Capture scroll state BEFORE text modification
+        # This fixes the issue where 'maximum' grows before we check 'value'.
+        was_at_bottom = self._check_if_user_at_bottom()
+
+        seg = self._segments[idx]
+        md_text = seg.content
+
+        # Render Markdown to HTML
+        html_body = markdown.markdown(
+            md_text,
+            extensions=["fenced_code", "tables"],
+            output_format="html5",
+        )
+
+        # Inject CSS once per session
+        if not self._md_style_inserted:
+            self._md_style_inserted = True
+            html_rendered = f"<style>{MARKDOWN_STYLE}</style><div class='md-root'>{html_body}</div>"
+        else:
+            html_rendered = f"<div class='md-root'>{html_body}</div>"
+
+        # Partial Refresh using Cursor
         cursor = self._agent_output.textCursor()
-        cursor.setPosition(self._ai_start_pos)
+        cursor.setPosition(self._current_response_start_pos)
         cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-        cursor.insertHtml(self._render_markdown_to_html(self._ai_buffer))
-        self._agent_output.setTextCursor(cursor)
-        self._agent_output.ensureCursorVisible()
+        cursor.insertHtml(html_rendered)
 
-    @Slot(str, bool)
+        # 2. Force scroll AFTER modification only if user was previously at bottom
+        if was_at_bottom:
+            self._force_scroll_to_bottom()
+
+    # --- Sidebar Logic ---
     def _update_sidebar(self, widget: QTextEdit, text: str, md: bool) -> None:
-        """Update sidebar panel content."""
         if not self._session_active:
             return
         if md:
@@ -447,19 +500,66 @@ class QtAgentMainWindow(QMainWindow):
             widget.setPlainText(text)
         widget.moveCursor(QTextCursor.End)
 
-    # --- Task Control ---
+    # --- Task End / Error ---
+    @Slot()
+    def _on_task_finished(self) -> None:
+        self._is_task_running = False
+        self._flush_stream_buffer()
+        self._agent_output.moveCursor(QTextCursor.End)
+        self._set_task_ui_state(running=False)
+
+    @Slot(str)
+    def _on_tool_error(self, msg: str) -> None:
+        if not self._session_active:
+            return
+        self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
+
+    @Slot(str)
+    def _on_fatal_error(self, msg: str) -> None:
+        if not self._session_active:
+            return
+        self._is_task_running = False
+        self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
+        self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))
+        self._set_task_ui_state(running=False)
+
+    @Slot(str, int, int)
+    def _on_captcha_detected(self, engine: str, page_index: int, timeout_ms: int) -> None:
+        if not self._session_active:
+            return
+        timeout_sec = timeout_ms // 1000
+        msg = (
+            f"{engine.capitalize()} CAPTCHA detected "
+            f"in the browser (Page {page_index + 1}). "
+            f"Please solve it in <b>{timeout_sec}s</b>."
+        )
+        self._append_html(WARNING_MSG_TEMPLATE.format(text=msg))
+
+    @Slot(str, bool)
+    def _on_captcha_resolved(self, engine: str, success: bool) -> None:
+        if not self._session_active:
+            return
+        if success:
+            html_block = INFO_MSG_TEMPLATE.format(
+                icon="🔓",
+                title="CAPTCHA Resolved",
+                text="Please continue your task.",
+            )
+            self._append_html(html_block)
+        else:
+            self._append_html(ERROR_MSG_TEMPLATE.format(text="Verification timed out."))
+
+    # --- Helpers ---
     def _set_task_ui_state(self, running: bool, btn_text: str = "Send") -> None:
-        """Update UI state based on task running status."""
         self._input_field.setEnabled(not running)
         self._send_btn.setText(btn_text)
-        # When running, only enable stop button; when idle, enable submit
         self._send_btn.setEnabled(True)
         if not running:
             self._input_field.setPlaceholderText("Tell me what to do...")
             self._input_field.setFocus()
 
     def _reset_session(self) -> None:
-        """Return to a fresh state, as if the app just opened."""
+        """Resets the UI and Renderer state to the initial welcome screen."""
         self._session_active = False
         if self._is_task_running and self._stop_task_callback:
             try:
@@ -476,10 +576,12 @@ class QtAgentMainWindow(QMainWindow):
         self._is_task_running = False
         self._is_first_interaction = True
         self._sidebar_manually_hidden = False
-        self._ai_buffer = ""
-        self._ai_header_shown = False
+        self._stream_update_pending = False
+        self._current_ai_index = None
+        self._md_style_inserted = False
 
         self._renderer.reset_state()
+        self._segments.clear()
         self._agent_output.clear()
         self._tool_plan.clear()
         self._tool_execution.clear()
@@ -490,108 +592,21 @@ class QtAgentMainWindow(QMainWindow):
         self._set_sidebar_visible(True)
         self._input_field.clear()
 
-    def _on_submit(self) -> None:
-        """Handle task submission or stop request."""
-        if self._is_task_running:
-            self._handle_stop_task()
-            return
+    def _render_markdown_to_html(self, text: str) -> str:
+        """Helper for non-streamed markdown rendering (e.g. Sidebar)."""
+        if not text.strip():
+            return ""
 
-        if text := self._input_field.text().strip():
-            self._start_new_task(text)
-
-    def _handle_stop_task(self) -> None:
-        """Stop the currently running task."""
-        self._session_active = False
-        if self._stop_task_callback:
-            self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
-            self._send_btn.setText("Stopping")
-            self._send_btn.setEnabled(False)
-            QApplication.processEvents()
-            self._stop_task_callback()
-            self._on_task_finished()
-
-    def _start_new_task(self, text: str) -> None:
-        """Start a new task with the given input."""
-        self._input_field.clear()
-
-        if self._is_first_interaction:
-            self._agent_output.clear()
-            self._is_first_interaction = False
-
-        self._set_settings_button_mode("back")
-        self._session_active = True
-        self._ai_header_shown = False
-        self._ai_buffer = ""
-        self._ai_start_pos = 0
-        self._append_html(USER_MSG_TEMPLATE.format(text=text))
-        self._is_task_running = True
-        self._set_task_ui_state(running=True, btn_text="Stop")
-        self._tool_plan.clear()
-
-        try:
-            if self._start_task_callback:
-                self._start_task_callback(text)
-        except Exception as e:
-            self._on_fatal_error(f"Error starting task: {e}")
-
-    @Slot()
-    def _on_task_finished(self) -> None:
-        """Handle task completion."""
-        self._is_task_running = False
-        self._session_active = False
-        self._agent_output.moveCursor(QTextCursor.End)
-        self._set_task_ui_state(running=False)
-
-    @Slot(str)
-    def _on_tool_error(self, msg: str) -> None:
-        """Handle tool execution error."""
-        if not self._session_active:
-            return
-        self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
-        self._agent_output.moveCursor(QTextCursor.End)
-
-    @Slot(str)
-    def _on_fatal_error(self, msg: str) -> None:
-        """Handle fatal error and reset state."""
-        if not self._session_active:
-            return
-        self._is_task_running = False
-        self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
-        self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))
-        self._agent_output.moveCursor(QTextCursor.End)
-        self._set_task_ui_state(running=False)
-
-    @Slot(str, int, int)
-    def _on_captcha_detected(self, engine: str, page_index: int, timeout_ms: int) -> None:
-        """Handle captcha detection - notify user that action is required."""
-        if not self._session_active:
-            return
-        timeout_sec = timeout_ms // 1000
-        msg = (
-            f"{engine.capitalize()} CAPTCHA detected"
-            f"in the browser (Page {page_index+1}). "
-            f"Please solve it in <b>{timeout_sec}s</b>."
+        html_body = markdown.markdown(
+            text,
+            extensions=["fenced_code", "tables"],
+            output_format="html5",
         )
-        self._append_html(WARNING_MSG_TEMPLATE.format(text=msg))
-        self._agent_output.moveCursor(QTextCursor.End)
 
-    @Slot(str, bool)
-    def _on_captcha_resolved(self, engine: str, success: bool) -> None:
-        """Handle captcha resolution - notify user of the result."""
-        if not self._session_active:
-            return
-        if success:
-            self._append_html(
-                INFO_MSG_TEMPLATE.format(
-                    icon="🔓",
-                    title="CAPTCHA Resolved",
-                    text="Please continue your task.",
-                )
-            )
-        else:
-            self._append_html(ERROR_MSG_TEMPLATE.format(text="Verification timed out."))
-        self._agent_output.moveCursor(QTextCursor.End)
+        if not self._md_style_inserted:
+            # We don't mark inserted here because sidebar and chat might share context
+            # but usually it's safer to include style in both or manage globally.
+            # Here we include it locally for the sidebar widget.
+            return f"<style>{MARKDOWN_STYLE}</style><div class='md-root'>{html_body}</div>"
 
-    def _open_settings(self) -> None:
-        """Open settings dialog."""
-        SettingsDialog(self).exec()
+        return f"<div class='md-root'>{html_body}</div>"
