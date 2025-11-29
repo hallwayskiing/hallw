@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Nothing yet
 
+## [0.6.0] - 2025-11-28
+
+### Added
+- Brand new graph logic: Auto-create multi-stages chain of actions at the start of every coversation, bringing far more effective workflow
+- New Tools: `build_stages` and `end_current_stage` for models to explictly manage stages.
+
+### Changed
+- Adjusted and fixed UI logic for better user experiments
+
 ## [0.5.0] - 2025-11-25
 
 ### Added
