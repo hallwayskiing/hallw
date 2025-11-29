@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_temperature: float = 0.25
     model_max_output_tokens: int = 4096
     model_reflection_threshold: int = 3
+    model_max_recursion: int = 50
 
     # =================================================
     # 2. LangSmith (Tracing)

@@ -52,6 +52,7 @@ TAB_DEFINITIONS: dict[str, list[FieldDef]] = {
         FieldDef(
             "Reflection Threshold:", "MODEL_REFLECTION_THRESHOLD", "model_reflection_threshold"
         ),
+        FieldDef("Max Recursion:", "MODEL_MAX_RECURSION", "model_max_recursion"),
     ],
     "LangSmith": [
         FieldDef("Enable Tracing:", "LANGSMITH_TRACING", "langsmith_tracing", FieldType.CHECKBOX),
