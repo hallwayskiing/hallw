@@ -189,7 +189,9 @@ class QtAgentMainWindow(QMainWindow):
         self._settings_btn.setObjectName("SettingsButton")
         self._settings_btn.setFixedWidth(40)
         layout.addWidget(self._settings_btn)
-        self._set_settings_button_mode("settings")
+        self._settings_btn.setText("⚙️")
+        self._settings_btn.setToolTip("Settings")
+        self._settings_btn.clicked.connect(lambda: SettingsDialog(self).exec())
 
         # Use custom HistoryLineEdit
         self._input_field = HistoryLineEdit()
