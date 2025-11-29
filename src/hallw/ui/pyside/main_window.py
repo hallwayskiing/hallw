@@ -28,6 +28,7 @@ from .templates import (
     END_MSG_TEMPLATE,
     ERROR_MSG_TEMPLATE,
     INFO_MSG_TEMPLATE,
+    STAGE_MSG_TEMPLATE,
     USER_MSG_TEMPLATE,
     WARNING_MSG_TEMPLATE,
     WELCOME_HTML,
@@ -75,7 +76,6 @@ class QtAgentMainWindow(QMainWindow):
         self._ai_header_inserted = False
         self._sidebar_manually_hidden = False
         self._settings_mode: str = ""
-        self._session_active: bool = False
         self._md_style_inserted: bool = False
 
         # Chat render state
@@ -84,6 +84,7 @@ class QtAgentMainWindow(QMainWindow):
 
         # Position tracker for partial updates (Optimization: Partial Refresh)
         self._current_response_start_pos: int = 0
+        self._current_response_end_pos: int = 0
 
         # AI streaming state
         self._stream_update_pending = False
@@ -147,9 +148,7 @@ class QtAgentMainWindow(QMainWindow):
         header_layout = QHBoxLayout(self._chat_header)
         header_layout.setContentsMargins(0, 0, 0, 4)
         header_layout.addStretch()
-        self._toggle_btns["show"] = self._create_button(
-            "◨", "Show Sidebar", self._toggle_sidebar, "ShowSidebar"
-        )
+        self._toggle_btns["show"] = self._create_button("◨", "Show Sidebar", self._toggle_sidebar, "ShowSidebar")
         header_layout.addWidget(self._toggle_btns["show"])
         chat_layout.addWidget(self._chat_header)
 
@@ -166,9 +165,7 @@ class QtAgentMainWindow(QMainWindow):
         header = QHBoxLayout()
         header.addWidget(QLabel("📋 PLANNING"))
         header.addStretch()
-        self._toggle_btns["hide"] = self._create_button(
-            "◧", "Hide Sidebar", self._toggle_sidebar, "HideSidebar"
-        )
+        self._toggle_btns["hide"] = self._create_button("◧", "Hide Sidebar", self._toggle_sidebar, "HideSidebar")
         header.addWidget(self._toggle_btns["hide"])
         layout.addLayout(header)
 
@@ -213,14 +210,13 @@ class QtAgentMainWindow(QMainWindow):
         r.new_token_received.connect(self._append_token)
         r.ai_response_start.connect(self._on_ai_response_start)
         r.tool_plan_updated.connect(lambda t: self._update_sidebar(self._tool_plan, t, md=True))
-        r.tool_execution_updated.connect(
-            lambda t: self._update_sidebar(self._tool_execution, t, md=False)
-        )
+        r.tool_execution_updated.connect(lambda t: self._update_sidebar(self._tool_execution, t, md=False))
         r.task_finished.connect(self._on_task_finished)
         r.tool_error_occurred.connect(self._on_tool_error)
         r.fatal_error_occurred.connect(self._on_fatal_error)
         r.captcha_detected.connect(self._on_captcha_detected)
         r.captcha_resolved.connect(self._on_captcha_resolved)
+        r.stage_started.connect(self._on_stage_started)
 
     # --- UI Helpers ---
     def _show_welcome(self) -> None:
@@ -364,7 +360,6 @@ class QtAgentMainWindow(QMainWindow):
             self._start_new_task(text)
 
     def _handle_stop_task(self) -> None:
-        self._session_active = False
         if self._stop_task_callback:
             self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
             self._send_btn.setText("Stopping")
@@ -382,12 +377,11 @@ class QtAgentMainWindow(QMainWindow):
             self._is_first_interaction = False
 
         self._set_settings_button_mode("back")
-        self._session_active = True
         self._stream_update_pending = False
         self._current_ai_index = None
         self._append_user_message(text)
         self._is_task_running = True
-        self._set_task_ui_state(running=True, btn_text="Stop")
+        self._set_task_ui_state(running=True)
         self._tool_plan.clear()
 
         try:
@@ -403,9 +397,8 @@ class QtAgentMainWindow(QMainWindow):
         Initializes a new AI response segment.
         Records the cursor position to enable efficient partial updates.
         """
-        if not self._session_active:
-            return
-
+        # If a previous response was mid-stream, render it before starting a new one
+        self._flush_stream_buffer(force=True)
         self._stream_update_pending = False
         self._ai_header_inserted = False
 
@@ -416,13 +409,10 @@ class QtAgentMainWindow(QMainWindow):
     @Slot(str)
     def _append_token(self, text: str) -> None:
         """Buffers incoming tokens. UI update is handled by timer."""
-        if not self._session_active:
-            return
-
         if self._current_ai_index is None:
             self._on_ai_response_start()
 
-        if not text:
+        if not text.strip():
             return
 
         # Only insert on first real token
@@ -433,19 +423,18 @@ class QtAgentMainWindow(QMainWindow):
             # Record start pos for partial updates
             cursor = self._agent_output.textCursor()
             cursor.movePosition(QTextCursor.End)
-            self._current_response_start_pos = cursor.position()
+            pos = cursor.position()
+            self._current_response_start_pos = pos
+            self._current_response_end_pos = pos
 
         idx = self._current_ai_index
         if idx is not None and idx < len(self._segments):
             self._segments[idx].content += text
             self._stream_update_pending = True
 
-    def _flush_stream_buffer(self) -> None:
+    def _flush_stream_buffer(self, force: bool = False) -> None:
         """Flush streaming buffer by updating ONLY the active AI block."""
-        if not self._stream_update_pending:
-            return
-        if not self._session_active:
-            self._stream_update_pending = False
+        if not force and not self._stream_update_pending:
             return
 
         self._stream_update_pending = False
@@ -482,9 +471,12 @@ class QtAgentMainWindow(QMainWindow):
 
         # Partial Refresh using Cursor
         cursor = self._agent_output.textCursor()
-        cursor.setPosition(self._current_response_start_pos)
-        cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+        start_pos = self._current_response_start_pos
+        end_pos = max(self._current_response_end_pos, start_pos)
+        cursor.setPosition(start_pos)
+        cursor.setPosition(end_pos, QTextCursor.KeepAnchor)
         cursor.insertHtml(html_rendered)
+        self._current_response_end_pos = cursor.position()
 
         # 2. Force scroll AFTER modification only if user was previously at bottom
         if was_at_bottom:
@@ -492,8 +484,6 @@ class QtAgentMainWindow(QMainWindow):
 
     # --- Sidebar Logic ---
     def _update_sidebar(self, widget: QTextEdit, text: str, md: bool) -> None:
-        if not self._session_active:
-            return
         if md:
             widget.setHtml(self._render_markdown_to_html(text))
         else:
@@ -510,14 +500,10 @@ class QtAgentMainWindow(QMainWindow):
 
     @Slot(str)
     def _on_tool_error(self, msg: str) -> None:
-        if not self._session_active:
-            return
         self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
 
     @Slot(str)
     def _on_fatal_error(self, msg: str) -> None:
-        if not self._session_active:
-            return
         self._is_task_running = False
         self._append_html(ERROR_MSG_TEMPLATE.format(text=msg))
         self._append_html(END_MSG_TEMPLATE.format(icon="❌", text="Task Failed."))
@@ -525,8 +511,6 @@ class QtAgentMainWindow(QMainWindow):
 
     @Slot(str, int, int)
     def _on_captcha_detected(self, engine: str, page_index: int, timeout_ms: int) -> None:
-        if not self._session_active:
-            return
         timeout_sec = timeout_ms // 1000
         msg = (
             f"{engine.capitalize()} CAPTCHA detected "
@@ -537,8 +521,6 @@ class QtAgentMainWindow(QMainWindow):
 
     @Slot(str, bool)
     def _on_captcha_resolved(self, engine: str, success: bool) -> None:
-        if not self._session_active:
-            return
         if success:
             html_block = INFO_MSG_TEMPLATE.format(
                 icon="🔓",
@@ -549,18 +531,25 @@ class QtAgentMainWindow(QMainWindow):
         else:
             self._append_html(ERROR_MSG_TEMPLATE.format(text="Verification timed out."))
 
+    @Slot(int, int, str)
+    def _on_stage_started(self, stage_index: int, total_stages: int, stage_name: str) -> None:
+        self._append_html(STAGE_MSG_TEMPLATE.format(title=f"Stage {stage_index + 1}/{total_stages}", text=stage_name))
+
     # --- Helpers ---
-    def _set_task_ui_state(self, running: bool, btn_text: str = "Send") -> None:
+    def _set_task_ui_state(self, running: bool) -> None:
         self._input_field.setEnabled(not running)
-        self._send_btn.setText(btn_text)
+        self._settings_btn.setEnabled(not running)
         self._send_btn.setEnabled(True)
+
+        self._settings_btn.setText("↩️" if not running else "⏳")
+        self._send_btn.setText("Stop" if running else "Send")
+
         if not running:
             self._input_field.setPlaceholderText("Tell me what to do...")
             self._input_field.setFocus()
 
     def _reset_session(self) -> None:
         """Resets the UI and Renderer state to the initial welcome screen."""
-        self._session_active = False
         if self._is_task_running and self._stop_task_callback:
             try:
                 self._stop_task_callback()
@@ -578,6 +567,8 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar_manually_hidden = False
         self._stream_update_pending = False
         self._current_ai_index = None
+        self._current_response_start_pos = 0
+        self._current_response_end_pos = 0
         self._md_style_inserted = False
 
         self._renderer.reset_state()
@@ -587,7 +578,7 @@ class QtAgentMainWindow(QMainWindow):
         self._tool_execution.clear()
         self._show_welcome()
 
-        self._set_task_ui_state(running=False, btn_text="Send")
+        self._set_task_ui_state(running=False)
         self._set_settings_button_mode("settings")
         self._set_sidebar_visible(True)
         self._input_field.clear()

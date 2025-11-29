@@ -31,4 +31,7 @@ class AgentState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], add_messages]
     task_completed: bool
     empty_response: bool
+    total_stages: int
+    stage_names: List[str]
+    current_stage: int
     stats: Annotated[AgentStats, merge_agent_stats]

@@ -55,26 +55,26 @@ class AgentApplication:
         self.worker: Optional[QtAgentThread] = None
         self.tools_dict = load_tools()
         self.checkpointer = MemorySaver()
-        self.thread_id = str(uuid.uuid4())
         self.is_first_task = True
-
-        # Initialize logger
-        init_logger(self.thread_id)
+        self.task_id = str(uuid.uuid4())
 
     def _create_initial_state(self, user_task: str) -> AgentState:
         """Construct the initial Agent state"""
         messages = []
         if self.is_first_task:
             messages.append(SystemMessage(content=generateSystemPrompt(self.tools_dict)))
+            init_logger(self.task_id)
             self.is_first_task = False
 
         messages.append(HumanMessage(content=(f"User: {user_task}")))
-        logger.info(f"User: {user_task}")
 
         return {
             "messages": messages,
             "task_completed": False,
             "empty_response": False,
+            "total_stages": 0,
+            "stage_names": [],
+            "current_stage": 0,
             "stats": {
                 "tool_call_counts": 0,
                 "input_tokens": 0,
@@ -88,8 +88,7 @@ class AgentApplication:
         """Construct AgentTask instance"""
         api_key = config.model_api_key.get_secret_value() if config.model_api_key else None
 
-        # Use persistent thread_id
-        task_id = self.thread_id
+        logger.info(f"User: {user_task}")
 
         llm = ChatOpenAI(
             model=config.model_name,
@@ -102,7 +101,7 @@ class AgentApplication:
         ).bind_tools(list(self.tools_dict.values()), tool_choice="auto")
 
         return AgentTask(
-            task_id=task_id,
+            task_id=self.task_id,
             llm=llm,
             tools_dict=self.tools_dict,
             renderer=self.renderer,
@@ -116,7 +115,7 @@ class AgentApplication:
         # If an old task is running, stop it first
         if self.worker and self.worker.isRunning():
             logger.warning("Stopping previous task...")
-            self.worker.terminate()
+            self.worker.cancel()
             self.worker.wait()
 
         agent_task = self._build_agent_task(user_task)
@@ -132,7 +131,7 @@ class AgentApplication:
         """Handle signal to stop the current task"""
         if self.worker and self.worker.isRunning():
             logger.info("Stopping task by user request...")
-            self.worker.terminate()
+            self.worker.cancel()
             self.worker.wait()
 
     def cleanup(self):
@@ -157,9 +156,8 @@ class AgentApplication:
         # Reset renderer and task/session state
         self.renderer.reset_state()
         self.checkpointer = MemorySaver()
-        self.thread_id = str(uuid.uuid4())
+        self.task_id = str(uuid.uuid4())
         self.is_first_task = True
-        init_logger(self.thread_id)
 
     def run(self):
         self.event_loop.start()

@@ -1,3 +1,5 @@
+from typing import List
+
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
@@ -5,16 +7,51 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
-from hallw.tools import build_tool_response, dummy_for_missed_tool, parse_tool_response
+from hallw.tools import (
+    build_stages,
+    build_tool_response,
+    dummy_for_missed_tool,
+    parse_tool_response,
+)
+from hallw.utils import Events, emit, logger
 from hallw.utils import config as hallw_config
-from hallw.utils import logger
 
 from .agent_state import AgentState, AgentStats
 
 
-def build_graph(
-    model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer: BaseCheckpointSaver
-):
+def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer: BaseCheckpointSaver):
+    async def build(state: AgentState, config: RunnableConfig) -> AgentState:
+        messages = []
+        build_model = model.bind_tools([build_stages], tool_choice="required")
+        response = await build_model.ainvoke(state["messages"], config=config)
+        messages.append(response)
+
+        tool_calls = response.tool_calls
+        tool_call = tool_calls[0]
+        tool_id = tool_call.get("id")
+        tool_name = tool_call.get("name")
+        tool_args = tool_call.get("args", {})
+        tool_message = await build_stages.ainvoke(tool_args, config=config)
+        messages.append(ToolMessage(content=tool_message, tool_call_id=tool_id, name=tool_name))
+        stage_names: List[str] = tool_args.get("stage_names", [])
+        stage_nums = len(stage_names)
+        logger.info(f"Built {stage_nums} stages: {stage_names}")
+
+        stage_info = (
+            f"Current stage (1/{stage_nums}): {stage_names[0]}." " Please complete this stage then proceed to the next."
+        )
+        messages.append(HumanMessage(content=stage_info))
+        emit(
+            Events.STAGE_STARTED,
+            {"stage_index": 0, "total_stages": stage_nums, "stage_name": stage_names[0]},
+        )
+        return {
+            "messages": messages,
+            "total_stages": stage_nums,
+            "stage_names": stage_names,
+            "current_stage": 0,
+        }
+
     async def call_model(state: AgentState, config: RunnableConfig) -> AgentState:
         response = await model.ainvoke(state["messages"], config=config)
 
@@ -35,11 +72,13 @@ def build_graph(
             stats_delta["input_tokens"] = response.usage_metadata.get("input_tokens", 0)
             stats_delta["output_tokens"] = response.usage_metadata.get("output_tokens", 0)
 
-        if response.content:
+        if response.content.strip():
             logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
         elif not response.tool_calls:
             # Empty response from model
-            logger.info("HALLW: (empty). Retrying...")
+            logger.warning(
+                f"HALLW: (empty). Finish Reason: {response.response_metadata.get('finish_reason')}. Retrying..."
+            )
             empty_response = True
             return {
                 "stats": stats_delta,
@@ -64,15 +103,19 @@ def build_graph(
             "failures_since_last_reflection": 0,
         }
 
-        # Default to False, only set to True when no tool calls (task finished)
+        current_stage = state.get("current_stage", 0)
+
         task_completed_update = False
 
         # 1. Check for tool calls
         if not tool_calls:
-            task_completed_update = True
+            hint_message = HumanMessage(content="No tool calls made. Please make valid tool calls to proceed.")
+            stats_delta["failures"] += 1
+            stats_delta["failures_since_last_reflection"] += 1
+            messages.append(hint_message)
+            logger.warning("No tool calls made.")
             return {
                 "messages": messages,
-                "task_completed": task_completed_update,
                 "stats": stats_delta,
             }
 
@@ -102,9 +145,7 @@ def build_graph(
                 )
             stats_delta["tool_call_counts"] += 1
 
-            messages.append(
-                ToolMessage(content=tool_response, tool_call_id=tool_id, name=tool_name)
-            )
+            messages.append(ToolMessage(content=tool_response, tool_call_id=tool_id, name=tool_name))
 
             # 2.3 Parse result and log
             tool_result = parse_tool_response(tool_response)
@@ -124,8 +165,30 @@ def build_graph(
                 stats_delta["failures"] += 1
                 stats_delta["failures_since_last_reflection"] += 1
 
+            # 2.4 Exam end of stages
+            if tool_name == "end_current_stage":
+                current_stage += 1
+                if current_stage >= state.get("total_stages", 0):
+                    task_completed_update = True
+                else:
+                    stage_info = (
+                        "Current stage ({current_stage+1}/{state.get('total_stages', 0)}):"
+                        f" {state['stage_names'][current_stage]}."
+                        " Please complete this stage then proceed to the next."
+                    )
+                    messages.append(HumanMessage(content=stage_info))
+                    emit(
+                        Events.STAGE_STARTED,
+                        {
+                            "stage_index": current_stage,
+                            "total_stages": state.get("total_stages", 0),
+                            "stage_name": state["stage_names"][current_stage],
+                        },
+                    )
+
         return {
             "messages": messages,
+            "current_stage": current_stage,
             "task_completed": task_completed_update,
             "stats": stats_delta,
         }
@@ -168,7 +231,7 @@ def build_graph(
             logger.info(f"HALLW REFLECTION: {response.content.strip().replace('\n', ' ')}")
 
         # 5. Return
-        return {"messages": [response], "stats": stats_delta}
+        return {"messages": [hint_message, response], "stats": stats_delta}
 
     def route_from_model(state: AgentState) -> str:
         if state.get("empty_response", False):
@@ -192,11 +255,13 @@ def build_graph(
 
     builder = StateGraph(AgentState)
 
+    builder.add_node("build", build)
     builder.add_node("model", call_model)
     builder.add_node("tools", call_tool)
     builder.add_node("reflection", reflection)
 
-    builder.add_edge(START, "model")
+    builder.add_edge(START, "build")
+    builder.add_edge("build", "model")
     builder.add_conditional_edges(
         "model",
         route_from_model,
@@ -216,7 +281,7 @@ def build_graph(
         },
     )
 
-    builder.add_edge("reflection", "tools")
+    builder.add_edge("reflection", "model")
 
     workflow = builder.compile(checkpointer=checkpointer)
 

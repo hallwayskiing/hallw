@@ -96,4 +96,4 @@ class Events:
 
     CAPTCHA_DETECTED = "captcha_detected"
     CAPTCHA_RESOLVED = "captcha_resolved"
-    USER_ACTION_REQUIRED = "user_action_required"
+    STAGE_STARTED = "stage_started"

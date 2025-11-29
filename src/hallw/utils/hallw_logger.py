@@ -10,9 +10,9 @@ logger = logging.getLogger("hallw")
 def init_logger(task_id: str) -> None:
     """Initialize the HALLW logger configuration."""
 
-    # If logger already has handlers, do not re-initialize
+    # If logger already has handlers, clear them
     if logger.hasHandlers():
-        return
+        logger.handlers.clear()
 
     # Categorize logs by date
     log_dir = Path(config.logging_file_dir)
@@ -26,9 +26,7 @@ def init_logger(task_id: str) -> None:
     short_id = str(task_id)[:8]
     log_file_path = day_log_dir / f"{timestamp}_{short_id}.log"
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S"
-    )
+    formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S")
 
     handlers = []
 

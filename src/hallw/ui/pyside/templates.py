@@ -68,6 +68,26 @@ END_MSG_TEMPLATE = """
 </div>
 """
 
+# Stage Message
+STAGE_MSG_TEMPLATE = """
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18"
+       style="background-color: #131720; border: 1px solid #536dfe; border-radius: 16px;
+              margin-top: 20px; margin-bottom: 20px;">
+    <tr>
+        <td>
+            <div style="color: #536dfe; font-weight: bold; font-size: 14px;
+                        margin-bottom: 10px; letter-spacing: 0.5px;">
+                🚀 {title}
+            </div>
+            <div style="color: #536dfe; font-size: 16px; line-height: 150%;
+                        font-weight: bold; text-align: center;">
+                {text}
+            </div>
+        </td>
+    </tr>
+</table>
+"""
+
 # Welcome Page
 WELCOME_HTML = """
 <div style="max-width: 680px; margin: 60px auto; padding: 0 20px;">

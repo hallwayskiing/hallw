@@ -1,9 +1,13 @@
+import asyncio
 import logging
-from typing import Dict
+from concurrent.futures import CancelledError
+from typing import Dict, Optional
 
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
+
+from hallw.utils import config
 
 from .agent_event_loop import AgentEventLoop
 from .agent_graph import build_graph
@@ -31,17 +35,31 @@ class AgentTask:
         self.initial_state = initial_state
         self.checkpointer = checkpointer
         self.event_loop = event_loop
+        self._future: Optional[asyncio.Future] = None
 
     def run(self) -> None:
         """
         Synchronous entry point to run the agent task.
         """
-        future = self.event_loop.submit(self.run_async())
-        future.result()
+        self._future = self.event_loop.submit(self.run_async())
+        try:
+            self._future.result()
+        except CancelledError:
+            logger.info(f"Task {self.task_id} cancelled.")
+        finally:
+            self._future = None
+
+    def cancel(self) -> None:
+        """Request cancellation of the running task."""
+        if self._future and not self._future.done():
+            self._future.cancel()
 
     async def run_async(self) -> None:
         workflow = build_graph(self.llm, self.tools_dict, self.checkpointer)
-        invocation_config = {"recursion_limit": 200, "configurable": {"thread_id": self.task_id}}
+        invocation_config = {
+            "recursion_limit": config.model_max_recursion,
+            "configurable": {"thread_id": self.task_id},
+        }
         event = None
 
         try:

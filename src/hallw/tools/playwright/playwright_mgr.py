@@ -1,13 +1,11 @@
 """Playwright browser manager with singleton pattern."""
 
-import asyncio
 import os
 import shutil
 import socket
 import subprocess
 import tempfile
 import time
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from langchain_core.tools import ToolException
@@ -98,9 +96,7 @@ class PlaywrightManager:
                 browser = await pw.chromium.connect_over_cdp(endpoint)
                 self.browser = browser
                 # Create a new context
-                context = await browser.new_context(
-                    viewport={"width": window_width, "height": window_height}
-                )
+                context = await browser.new_context(viewport={"width": window_width, "height": window_height})
                 await self._apply_stealth(context)
                 self.context = context
                 await context.new_page()
@@ -119,17 +115,13 @@ class PlaywrightManager:
                 args = self._build_chrome_args()
                 browser = await pw.chromium.launch(args=args, headless=headless)
                 self.browser = browser
-                context = await browser.new_context(
-                    viewport={"width": window_width, "height": window_height}
-                )
+                context = await browser.new_context(viewport={"width": window_width, "height": window_height})
                 await self._apply_stealth(context)
                 self.context = context
                 await context.new_page()
             except Exception:
                 self._cleanup_chrome_process()
-                raise ToolException(
-                    "Playwright Chromium not installed, run `playwright install chromium` first"
-                )
+                raise ToolException("Playwright Chromium not installed, run `playwright install chromium` first")
             self.chrome_process = None  # It's managed by Playwright
             return "Playwright Chromium launched"
         # Launch local Chrome with CDP
@@ -297,61 +289,10 @@ def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
     return False
 
 
-@asynccontextmanager
-async def async_file_lock(lock_path: str, timeout: float = 30.0):
-    """Prevent concurrent browser launches using a file lock."""
-    start_time = time.time()
-    fd = None
-    while True:
-        try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-            os.write(fd, str(os.getpid()).encode())
-            break
-        except FileExistsError:
-            try:
-                if os.path.exists(lock_path):
-                    if time.time() - os.path.getmtime(lock_path) > 60:
-                        os.remove(lock_path)
-                        continue
-                    try:
-                        with open(lock_path, "r") as f:
-                            pid_str = f.read().strip()
-                        if pid_str:
-                            pid = int(pid_str)
-                            if pid == os.getpid():
-                                os.remove(lock_path)
-                                continue
-                    except (ValueError, OSError):
-                        pass
-            except OSError:
-                pass
-
-            if time.time() - start_time >= timeout:
-                raise ToolException(f"Timeout waiting for browser lock: {lock_path}")
-            await asyncio.sleep(0.1)
-
-    try:
-        yield
-    finally:
-        if fd is not None:
-            os.close(fd)
-            try:
-                if os.path.exists(lock_path):
-                    os.remove(lock_path)
-            except OSError:
-                pass
-
-
 # -------------------------
-# Global singleton instance
+# Exports
 # -------------------------
-
 pw_manager = PlaywrightManager()
-
-
-# -------------------------
-# Convenience functions (for backward compatibility and simpler imports)
-# -------------------------
 
 
 async def get_page(index: int) -> Optional[Page]:

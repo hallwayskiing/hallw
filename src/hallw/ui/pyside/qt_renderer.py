@@ -24,6 +24,7 @@ class QtAgentRenderer(QObject, AgentRenderer):
     # User action signals
     captcha_detected = Signal(str, int, int)  # engine, page_index, timeout_ms
     captcha_resolved = Signal(str, bool)  # engine, success
+    stage_started = Signal(int, int, str)  # stage_index, total_stages, stage_name
 
     # Pre-compiled regex for parsing partial JSON streams (optimization)
     # Captures: "key": "string" OR "key": [primitive/object]
@@ -49,11 +50,13 @@ class QtAgentRenderer(QObject, AgentRenderer):
         """Subscribe to global event bus events."""
         subscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
         subscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
+        subscribe(Events.STAGE_STARTED, self._on_stage_started)
 
     def _teardown_event_subscriptions(self) -> None:
         """Unsubscribe from global event bus events."""
         unsubscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
         unsubscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
+        unsubscribe(Events.STAGE_STARTED, self._on_stage_started)
 
     def _on_captcha_detected(self, data: dict[str, Any]) -> None:
         """Handle captcha detected event from tools."""
@@ -67,6 +70,13 @@ class QtAgentRenderer(QObject, AgentRenderer):
         engine = data.get("engine", "unknown")
         success = data.get("success", True)
         self.captcha_resolved.emit(engine, success)
+
+    def _on_stage_started(self, data: dict[str, Any]) -> None:
+        """Handle stage started event from agent."""
+        stage_index = data.get("stage_index", 0)
+        total_stages = data.get("total_stages", 0)
+        stage_name = data.get("stage_name", "")
+        self.stage_started.emit(stage_index, total_stages, stage_name)
 
     def reset_state(self) -> None:
         """Reset all state for a new task."""
@@ -256,3 +266,7 @@ class QtAgentThread(QThread):
 
     def run(self) -> None:
         self.task.run()
+
+    def cancel(self) -> None:
+        """Propagate cancellation to the underlying agent task."""
+        self.task.cancel()
