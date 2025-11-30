@@ -97,3 +97,5 @@ class Events:
     CAPTCHA_DETECTED = "captcha_detected"
     CAPTCHA_RESOLVED = "captcha_resolved"
     STAGE_STARTED = "stage_started"
+    SCRIPT_CONFIRM_REQUESTED = "script_confirm_requested"
+    SCRIPT_CONFIRM_RESPONDED = "script_confirm_responded"

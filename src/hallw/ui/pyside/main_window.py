@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 import markdown
-from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtCore import Qt, QTimer, QUrl, QUrlQuery, Slot
 from PySide6.QtGui import QCloseEvent, QIcon, QResizeEvent, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -13,10 +13,13 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSplitter,
+    QTextBrowser,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
+
+from hallw.utils import Events, emit
 
 from .history_line_edit import HistoryLineEdit
 from .layout_config import LayoutConfig
@@ -28,6 +31,9 @@ from .templates import (
     END_MSG_TEMPLATE,
     ERROR_MSG_TEMPLATE,
     INFO_MSG_TEMPLATE,
+    SCRIPT_CONFIRM_OPTIONS_TEMPLATE,
+    SCRIPT_CONFIRM_STATUS_TEMPLATE,
+    SCRIPT_CONFIRM_TEMPLATE,
     STAGE_MSG_TEMPLATE,
     USER_MSG_TEMPLATE,
     WARNING_MSG_TEMPLATE,
@@ -47,6 +53,8 @@ class ChatSegment:
     kind: str  # 'html' or 'ai_md'
     content: str
     cached_html: str = ""
+    start_pos: int = 0
+    end_pos: int = 0
 
 
 class QtAgentMainWindow(QMainWindow):
@@ -77,6 +85,9 @@ class QtAgentMainWindow(QMainWindow):
         self._sidebar_manually_hidden = False
         self._settings_mode: str = ""
         self._md_style_inserted: bool = False
+        self._handled_script_requests: set[str] = set()
+        self._script_request_commands: dict[str, str] = {}
+        self._script_request_segments: dict[str, int] = {}
 
         # Chat render state
         self._segments: List[ChatSegment] = []
@@ -98,7 +109,7 @@ class QtAgentMainWindow(QMainWindow):
         # UI Components
         self._splitter: QSplitter
         self._chat_header: QWidget
-        self._agent_output: QTextEdit
+        self._agent_output: QTextBrowser
         self._tool_plan: QTextEdit
         self._tool_execution: QTextEdit
         self._input_field: HistoryLineEdit
@@ -153,7 +164,11 @@ class QtAgentMainWindow(QMainWindow):
         chat_layout.addWidget(self._chat_header)
 
         # Chat Output Area
-        self._agent_output = QTextEdit(readOnly=True)
+        self._agent_output = QTextBrowser()
+        self._agent_output.setReadOnly(True)
+        self._agent_output.setOpenLinks(False)
+        self._agent_output.setOpenExternalLinks(False)
+        self._agent_output.anchorClicked.connect(self._on_anchor_clicked)
         chat_layout.addWidget(self._agent_output)
         self._splitter.addWidget(chat_container)
 
@@ -219,6 +234,7 @@ class QtAgentMainWindow(QMainWindow):
         r.captcha_detected.connect(self._on_captcha_detected)
         r.captcha_resolved.connect(self._on_captcha_resolved)
         r.stage_started.connect(self._on_stage_started)
+        r.script_confirm_requested.connect(self._on_script_confirm)
 
     # --- UI Helpers ---
     def _show_welcome(self) -> None:
@@ -277,13 +293,15 @@ class QtAgentMainWindow(QMainWindow):
         # 1. Capture scroll state BEFORE insertion
         was_at_bottom = self._check_if_user_at_bottom()
 
-        # Store state
-        self._segments.append(ChatSegment(kind="html", content=html_content))
-
         # Update UI incrementally (Optimization: Partial Refresh)
         cursor = self._agent_output.textCursor()
         cursor.movePosition(QTextCursor.End)
+        start_pos = cursor.position()
         cursor.insertHtml(html_content)
+        end_pos = cursor.position()
+
+        # Store state with positions
+        self._segments.append(ChatSegment(kind="html", content=html_content, start_pos=start_pos, end_pos=end_pos))
 
         # 2. Scroll AFTER insertion only if user was already at bottom
         if was_at_bottom:
@@ -537,6 +555,105 @@ class QtAgentMainWindow(QMainWindow):
     def _on_stage_started(self, stage_index: int, total_stages: int, stage_name: str) -> None:
         self._append_html(STAGE_MSG_TEMPLATE.format(title=f"Stage {stage_index + 1}/{total_stages}", text=stage_name))
 
+    @Slot(str, str)
+    def _on_script_confirm(self, request_id: str, command: str) -> None:
+        """Render script execution confirmation request."""
+        if not request_id:
+            return
+
+        self._handled_script_requests.discard(request_id)
+        self._script_request_commands[request_id] = command or ""
+        html_block = self._build_script_confirm_card(request_id, command)
+        self._append_html(html_block)
+        self._script_request_segments[request_id] = len(self._segments) - 1
+
+    def _build_script_confirm_card(self, request_id: str, command: str) -> str:
+        approve_url = f"hallw://script-confirm?request_id={request_id}&decision=approve"
+        reject_url = f"hallw://script-confirm?request_id={request_id}&decision=reject"
+        safe_command = html.escape(command) if command else "(empty command)"
+        options_bar = SCRIPT_CONFIRM_OPTIONS_TEMPLATE.format(
+            approve_url=approve_url,
+            reject_url=reject_url,
+        )
+        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=options_bar)
+
+    def _build_script_decision_card(self, request_id: str, approved: bool) -> str:
+        command = self._script_request_commands.pop(request_id, "")
+        status = "APPROVED" if approved else "REJECTED"
+        safe_command = html.escape(command) if command else "(empty command)"
+        status_bar = SCRIPT_CONFIRM_STATUS_TEMPLATE.format(text=status)
+        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=status_bar)
+
+    def _replace_html_segment(self, seg_idx: int, new_html: str) -> bool:
+        """Replace an existing HTML segment in-place without rerendering the whole document."""
+        if seg_idx < 0 or seg_idx >= len(self._segments):
+            return False
+
+        seg = self._segments[seg_idx]
+        if seg.kind != "html":
+            return False
+
+        start = seg.start_pos
+        end = seg.end_pos
+        if start < 0 or end < start:
+            return False
+
+        cursor = self._agent_output.textCursor()
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.KeepAnchor)
+        cursor.insertHtml(new_html)
+        new_end = cursor.position()
+
+        delta = new_end - end
+        seg.content = new_html
+        seg.end_pos = new_end
+
+        # Shift subsequent segments to keep positions accurate
+        if delta != 0:
+            for i in range(seg_idx + 1, len(self._segments)):
+                s = self._segments[i]
+                s.start_pos += delta
+                s.end_pos += delta
+
+        # Adjust streaming cursor anchors if they live after this segment
+        if self._current_response_start_pos > end:
+            self._current_response_start_pos += delta
+            self._current_response_end_pos += delta
+
+        self._force_scroll_to_bottom()
+        return True
+
+    @Slot(QUrl)
+    def _on_anchor_clicked(self, url: QUrl) -> None:
+        """Handle custom action links inside the chat view (e.g., script approval)."""
+        if url.scheme() != "hallw" or url.host() != "script-confirm":
+            return
+
+        query = QUrlQuery(url)
+        request_id = query.queryItemValue("request_id")
+        decision = query.queryItemValue("decision")
+
+        if not request_id or not decision or request_id in self._handled_script_requests:
+            return
+
+        approved = decision == "approve"
+        self._handled_script_requests.add(request_id)
+        replaced = False
+
+        if request_id in self._script_request_segments:
+            seg_idx = self._script_request_segments.pop(request_id)
+            new_html = self._build_script_decision_card(request_id, approved)
+            replaced = self._replace_html_segment(seg_idx, new_html)
+
+        if not replaced:
+            # Fallback: append a new notice card if we can't locate/replace the original
+            self._append_html(self._build_script_decision_card(request_id, approved))
+
+        emit(
+            Events.SCRIPT_CONFIRM_RESPONDED,
+            {"request_id": request_id, "approved": approved},
+        )
+
     # --- Helpers ---
     def _set_task_ui_state(self, running: bool) -> None:
         self._input_field.setEnabled(not running)
@@ -572,6 +689,9 @@ class QtAgentMainWindow(QMainWindow):
         self._current_response_start_pos = 0
         self._current_response_end_pos = 0
         self._md_style_inserted = False
+        self._handled_script_requests.clear()
+        self._script_request_commands.clear()
+        self._script_request_segments.clear()
 
         self._renderer.reset_state()
         self._segments.clear()

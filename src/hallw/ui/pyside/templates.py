@@ -88,6 +88,46 @@ STAGE_MSG_TEMPLATE = """
 </table>
 """
 
+SCRIPT_CONFIRM_TEMPLATE = """
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18"
+       style="background-color: #1b1208; border: 1px solid #f97316; border-radius: 16px;
+              margin-top: 20px; margin-bottom: 20px;">
+    <tr>
+        <td>
+            <div style="color: #fb923c; font-weight: bold; font-size: 14px; margin-bottom: 12px;">
+                🛡️ System Command Request
+            </div>
+            <div style="color: #ffd8b5; font-size: 14px; line-height: 150%; margin-bottom: 14px;">
+                HALLW wants to run the following system command:
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; height: 100px;">
+                <pre style="background: #24160c; color: #ffe4c7; padding: 12px; font-size: 16px; border: 1px solid #f97316; white-space: pre-wrap;  word-break: break-word; ">{command}</pre>
+            </div>
+            <div style="margin-top: 14px; text-align: center; font-weight: 700; color: #fef3c7;">
+                {notice}
+            </div>
+        </td>
+    </tr>
+</table>
+"""
+
+SCRIPT_CONFIRM_OPTIONS_TEMPLATE = """
+<div>
+    <a href="{approve_url}" style="color: #30c749; margin-right: 30px; text-decoration: none;">
+        ✅ Allow
+    </a>
+    <a href="{reject_url}" style="color: #cc1f2a; margin-left: 30px; text-decoration: none;">
+        ❌ Reject
+    </a>
+</div>
+"""
+
+SCRIPT_CONFIRM_STATUS_TEMPLATE = """
+<div style="color: #83857f; font-style: italic;">
+    {text}
+</div>
+"""
+
 # Welcome Page
 WELCOME_HTML = """
 <div style="max-width: 680px; margin: 60px auto; padding: 0 20px;">

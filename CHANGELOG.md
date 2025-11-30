@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- New: HALLW can execute system commands (powershell on Windows or bash on Linux) directly now.
 
 ## [0.6.0] - 2025-11-28
 

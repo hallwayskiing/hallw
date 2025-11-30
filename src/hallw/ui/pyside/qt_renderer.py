@@ -25,6 +25,7 @@ class QtAgentRenderer(QObject, AgentRenderer):
     captcha_detected = Signal(str, int, int)  # engine, page_index, timeout_ms
     captcha_resolved = Signal(str, bool)  # engine, success
     stage_started = Signal(int, int, str)  # stage_index, total_stages, stage_name
+    script_confirm_requested = Signal(str, str)  # request_id, command
 
     # Pre-compiled regex for parsing partial JSON streams (optimization)
     # Captures: "key": "string" OR "key": [primitive/object]
@@ -51,12 +52,14 @@ class QtAgentRenderer(QObject, AgentRenderer):
         subscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
         subscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
         subscribe(Events.STAGE_STARTED, self._on_stage_started)
+        subscribe(Events.SCRIPT_CONFIRM_REQUESTED, self._on_script_confirm_requested)
 
     def _teardown_event_subscriptions(self) -> None:
         """Unsubscribe from global event bus events."""
         unsubscribe(Events.CAPTCHA_DETECTED, self._on_captcha_detected)
         unsubscribe(Events.CAPTCHA_RESOLVED, self._on_captcha_resolved)
         unsubscribe(Events.STAGE_STARTED, self._on_stage_started)
+        unsubscribe(Events.SCRIPT_CONFIRM_REQUESTED, self._on_script_confirm_requested)
 
     def _on_captcha_detected(self, data: dict[str, Any]) -> None:
         """Handle captcha detected event from tools."""
@@ -77,6 +80,12 @@ class QtAgentRenderer(QObject, AgentRenderer):
         total_stages = data.get("total_stages", 0)
         stage_name = data.get("stage_name", "")
         self.stage_started.emit(stage_index, total_stages, stage_name)
+
+    def _on_script_confirm_requested(self, data: dict[str, Any]) -> None:
+        """Handle PowerShell execution confirmation requests from tools."""
+        request_id = data.get("request_id", "")
+        command = data.get("command", "")
+        self.script_confirm_requested.emit(request_id, command)
 
     def reset_state(self) -> None:
         """Reset all state for a new task."""
