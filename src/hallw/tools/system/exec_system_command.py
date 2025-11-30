@@ -9,7 +9,7 @@ from hallw.tools import build_tool_response
 from hallw.utils import Events, emit, subscribe, unsubscribe
 
 # Maximum time (seconds) to wait for user confirmation
-CONFIRM_TIMEOUT = 120
+CONFIRM_TIMEOUT = 60
 
 
 def _decode_output(raw: bytes) -> str:
@@ -84,6 +84,7 @@ async def exec_system_command(command: str) -> str:
         {
             "request_id": request_id,
             "command": command,
+            "timeout": CONFIRM_TIMEOUT,
         },
     )
 

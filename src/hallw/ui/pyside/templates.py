@@ -93,10 +93,17 @@ SCRIPT_CONFIRM_TEMPLATE = """
               margin-top: 20px; margin-bottom: 20px;">
     <tr>
         <td>
-            <div style="color: #fb923c; font-weight: bold; font-size: 14px; margin-bottom: 12px;">
-                🛡️ System Command Request
-            </div>
-            <div style="color: #ffd8b5; font-size: 14px; line-height: 150%; margin-bottom: 14px;">
+            <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td align="left" style="color: #fb923c; font-weight: bold; font-size: 14px;">
+                        🛡️ System Command Request
+                    </td>
+                    <td align="right" style="color: #fef3c7; font-weight: bold; font-size: 14px;">
+                        {timer}
+                    </td>
+                </tr>
+            </table>
+            <div style="color: #ffd8b5; font-size: 14px; line-height: 150%; margin-bottom: 14px; margin-top: 10px;">
                 HALLW wants to run the following system command:
             </div>
             <div style="display: flex; justify-content: center; align-items: center; height: 100px;">
@@ -111,14 +118,16 @@ SCRIPT_CONFIRM_TEMPLATE = """
 """
 
 SCRIPT_CONFIRM_OPTIONS_TEMPLATE = """
-<div>
-    <a href="{approve_url}" style="color: #30c749; margin-right: 30px; text-decoration: none;">
-        ✅ Allow
-    </a>
-    <a href="{reject_url}" style="color: #cc1f2a; margin-left: 30px; text-decoration: none;">
-        ❌ Reject
-    </a>
-</div>
+<table width="100%">
+    <tr>
+        <td align="left">
+            <a href="{approve_url}" style="color:#30c749; text-decoration: none;">✅ Allow</a>
+        </td>
+        <td align="right">
+            <a href="{reject_url}" style="color:#cc1f2a; text-decoration: none;">❌ Reject</a>
+        </td>
+    </tr>
+</table>
 """
 
 SCRIPT_CONFIRM_STATUS_TEMPLATE = """

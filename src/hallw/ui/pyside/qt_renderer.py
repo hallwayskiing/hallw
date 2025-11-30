@@ -25,7 +25,7 @@ class QtAgentRenderer(QObject, AgentRenderer):
     captcha_detected = Signal(str, int, int)  # engine, page_index, timeout_ms
     captcha_resolved = Signal(str, bool)  # engine, success
     stage_started = Signal(int, int, str)  # stage_index, total_stages, stage_name
-    script_confirm_requested = Signal(str, str)  # request_id, command
+    script_confirm_requested = Signal(str, str, int)  # request_id, command, timeout_secs
 
     # Pre-compiled regex for parsing partial JSON streams (optimization)
     # Captures: "key": "string" OR "key": [primitive/object]
@@ -85,7 +85,8 @@ class QtAgentRenderer(QObject, AgentRenderer):
         """Handle PowerShell execution confirmation requests from tools."""
         request_id = data.get("request_id", "")
         command = data.get("command", "")
-        self.script_confirm_requested.emit(request_id, command)
+        timeout = int(data.get("timeout", 0) or 0)
+        self.script_confirm_requested.emit(request_id, command, timeout)
 
     def reset_state(self) -> None:
         """Reset all state for a new task."""

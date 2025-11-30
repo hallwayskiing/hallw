@@ -88,6 +88,8 @@ class QtAgentMainWindow(QMainWindow):
         self._handled_script_requests: set[str] = set()
         self._script_request_commands: dict[str, str] = {}
         self._script_request_segments: dict[str, int] = {}
+        self._script_request_timers: dict[str, QTimer] = {}
+        self._script_request_remaining: dict[str, int] = {}
 
         # Chat render state
         self._segments: List[ChatSegment] = []
@@ -384,6 +386,11 @@ class QtAgentMainWindow(QMainWindow):
             self._append_html(END_MSG_TEMPLATE.format(icon="🛑", text="Task Stopped."))
             self._send_btn.setText("Stopping")
             self._send_btn.setEnabled(False)
+            for timer in self._script_request_timers.values():
+                timer.stop()
+                timer.deleteLater()
+            self._script_request_timers.clear()
+            self._script_request_remaining.clear()
             QApplication.processEvents()
             self._stop_task_callback()
             self._on_task_finished()
@@ -548,19 +555,24 @@ class QtAgentMainWindow(QMainWindow):
     def _on_stage_started(self, stage_index: int, total_stages: int, stage_name: str) -> None:
         self._append_html(STAGE_MSG_TEMPLATE.format(title=f"Stage {stage_index + 1}/{total_stages}", text=stage_name))
 
-    @Slot(str, str)
-    def _on_script_confirm(self, request_id: str, command: str) -> None:
-        """Render script execution confirmation request."""
+    @Slot(str, str, int)
+    def _on_script_confirm(self, request_id: str, command: str, timeout: int) -> None:
+        """Render script execution confirmation request with optional countdown."""
         if not request_id:
             return
 
         self._handled_script_requests.discard(request_id)
         self._script_request_commands[request_id] = command or ""
-        html_block = self._build_script_confirm_card(request_id, command)
+        timeout_secs = max(int(timeout or 0), 0)
+        self._script_request_remaining[request_id] = timeout_secs
+
+        html_block = self._build_script_confirm_card(request_id, command, timeout_secs)
         self._append_html(html_block)
         self._script_request_segments[request_id] = len(self._segments) - 1
 
-    def _build_script_confirm_card(self, request_id: str, command: str) -> str:
+        self._start_script_timer(request_id, timeout_secs)
+
+    def _build_script_confirm_card(self, request_id: str, command: str, timeout_secs: int) -> str:
         approve_url = f"hallw://script-confirm?request_id={request_id}&decision=approve"
         reject_url = f"hallw://script-confirm?request_id={request_id}&decision=reject"
         safe_command = html.escape(command) if command else "(empty command)"
@@ -568,14 +580,85 @@ class QtAgentMainWindow(QMainWindow):
             approve_url=approve_url,
             reject_url=reject_url,
         )
-        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=options_bar)
+        timer_text = self._format_script_timeout(timeout_secs)
+        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=options_bar, timer=timer_text)
 
-    def _build_script_decision_card(self, request_id: str, approved: bool) -> str:
+    def _build_script_decision_card(self, request_id: str, status: str) -> str:
         command = self._script_request_commands.pop(request_id, "")
-        status = "APPROVED" if approved else "REJECTED"
         safe_command = html.escape(command) if command else "(empty command)"
         status_bar = SCRIPT_CONFIRM_STATUS_TEMPLATE.format(text=status)
-        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=status_bar)
+        return SCRIPT_CONFIRM_TEMPLATE.format(command=safe_command, notice=status_bar, timer="")
+
+    def _format_script_timeout(self, seconds: int) -> str:
+        if seconds <= 0:
+            return ""
+        return f"⏳ Expire in {seconds}s"
+
+    def _start_script_timer(self, request_id: str, timeout_secs: int) -> None:
+        if timeout_secs <= 0:
+            return
+
+        self._stop_script_timer(request_id)
+        self._script_request_remaining[request_id] = timeout_secs
+        timer = QTimer(self)
+        timer.setInterval(1000)
+        timer.timeout.connect(lambda rid=request_id: self._on_script_timer_tick(rid))
+        timer.start()
+        self._script_request_timers[request_id] = timer
+
+    def _stop_script_timer(self, request_id: str) -> None:
+        timer = self._script_request_timers.pop(request_id, None)
+        if timer:
+            timer.stop()
+            timer.deleteLater()
+        self._script_request_remaining.pop(request_id, None)
+
+    def _on_script_timer_tick(self, request_id: str) -> None:
+        if request_id in self._handled_script_requests:
+            self._stop_script_timer(request_id)
+            return
+
+        remaining = self._script_request_remaining.get(request_id)
+        if remaining is None:
+            self._stop_script_timer(request_id)
+            return
+
+        if remaining <= 1:
+            self._finalize_script_request(request_id, "TIMEOUT", False)
+            return
+
+        self._script_request_remaining[request_id] = remaining - 1
+        self._update_script_request_card(request_id)
+
+    def _update_script_request_card(self, request_id: str) -> None:
+        seg_idx = self._script_request_segments.get(request_id)
+        if seg_idx is None:
+            return
+
+        command = self._script_request_commands.get(request_id, "")
+        remaining = self._script_request_remaining.get(request_id, 0)
+        new_html = self._build_script_confirm_card(request_id, command, remaining)
+        self._replace_html_segment(seg_idx, new_html)
+
+    def _finalize_script_request(self, request_id: str, status: str, approved: bool) -> None:
+        if not request_id or request_id in self._handled_script_requests:
+            return
+
+        self._handled_script_requests.add(request_id)
+        self._stop_script_timer(request_id)
+        seg_idx = self._script_request_segments.pop(request_id, None)
+        new_html = self._build_script_decision_card(request_id, status)
+        replaced = False
+        if seg_idx is not None:
+            replaced = self._replace_html_segment(seg_idx, new_html)
+
+        if not replaced:
+            self._append_html(new_html)
+
+        emit(
+            Events.SCRIPT_CONFIRM_RESPONDED,
+            {"request_id": request_id, "approved": approved},
+        )
 
     def _replace_html_segment(self, seg_idx: int, new_html: str) -> bool:
         """Replace an existing HTML segment in-place without rerendering the whole document."""
@@ -630,22 +713,8 @@ class QtAgentMainWindow(QMainWindow):
             return
 
         approved = decision == "approve"
-        self._handled_script_requests.add(request_id)
-        replaced = False
-
-        if request_id in self._script_request_segments:
-            seg_idx = self._script_request_segments.pop(request_id)
-            new_html = self._build_script_decision_card(request_id, approved)
-            replaced = self._replace_html_segment(seg_idx, new_html)
-
-        if not replaced:
-            # Fallback: append a new notice card if we can't locate/replace the original
-            self._append_html(self._build_script_decision_card(request_id, approved))
-
-        emit(
-            Events.SCRIPT_CONFIRM_RESPONDED,
-            {"request_id": request_id, "approved": approved},
-        )
+        status = "APPROVED" if approved else "REJECTED"
+        self._finalize_script_request(request_id, status, approved)
 
     # --- Helpers ---
     def _set_task_ui_state(self, running: bool) -> None:
@@ -684,6 +753,11 @@ class QtAgentMainWindow(QMainWindow):
         self._handled_script_requests.clear()
         self._script_request_commands.clear()
         self._script_request_segments.clear()
+        for timer in self._script_request_timers.values():
+            timer.stop()
+            timer.deleteLater()
+        self._script_request_timers.clear()
+        self._script_request_remaining.clear()
 
         self._renderer.reset_state()
         self._segments.clear()

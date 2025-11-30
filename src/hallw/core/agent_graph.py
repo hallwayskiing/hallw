@@ -80,7 +80,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
                 f"HALLW: (empty). Finish Reason: {response.response_metadata.get('finish_reason')}. Retrying..."
             )
             empty_response = True
+            hint_message = HumanMessage(content="continue")
             return {
+                "messages": [hint_message],
                 "stats": stats_delta,
                 "empty_response": empty_response,
             }
