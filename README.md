@@ -18,6 +18,13 @@ https://github.com/user-attachments/assets/a701bce5-c98a-40df-be75-ff1f4f733078
 
 ## ✨ Key Features
 
+### 🧠 Advanced Reasoning Engine
+
+  - **Stage Building**: Automatically deconstructs complex task into multiple stages.
+  - **Self Correcting**: Uses a **Reflection Loop**. If fails occur and accumulate to the threshold, the agent analyzes the error and tries a different strategy automatically.
+  - **State Machine**: Built on **LangGraph**, ensuring deterministic state transitions and memory management.
+  - **Model Agnostic**: Works with any OpenAI-compatible API
+
 ### 🌐 Autonomous Browser Control
 
   - **Full Interaction**: Clicks, types, and navigates websites like a human via Chrome DevTools Protocol (CDP).
@@ -25,16 +32,16 @@ https://github.com/user-attachments/assets/a701bce5-c98a-40df-be75-ff1f4f733078
   - **Resilient**: Handles timeouts, CAPTCHA (manual intervention), and dynamic content loading.
   - **Profile Persistence**: Can use your local Chrome profile to skip logins and retain cookies.
 
-### 🧠 Advanced Reasoning Engine
-
-  - **Self-Correcting**: Uses a **Reflection Loop**. If a tool fails (e.g., element not found), the agent analyzes the error and tries a different strategy automatically.
-  - **State Machine**: Built on **LangGraph**, ensuring deterministic state transitions and memory management.
-  - **Model Agnostic**: Works with any OpenAI-compatible API
 
 ### 📁 Local System Operations
 
-  - **File Management**: Read, write, and analyze local files (PDF, Markdown, Code, JSON).
-  - **Data Extraction**: Scrape web content and save it directly to local reports.
+  - **File Management**: Reads, writes, and analyzes local files (PDF, Markdown, Code, JSON).
+  - **Data Extraction**: Scrapes web content and save it directly to local reports.
+
+### 💻 System-level Command Execution
+ - **System Commnd**: Provides system commands that directly control pc.
+ - **Smart Adaption**: Smartly adapts to user's environment. (Powershell on Windows and bash on Linux)
+ - **Safety Strategy**: Controlled by user's manual confirmation.
 
 -----
 
@@ -72,13 +79,11 @@ MODEL_NAME=gemini-2.5-flash-lite  # recommended for free usage in Google AI Stud
 - **Windows**: Double-click **`start.bat`** (or run it from PowerShell by `.\start.bat`).
 - **Linux/macOS**: Make it executable once with `chmod +x start.sh`, then run `./start.sh`.
 
-Both launchers automatically download uv, install dependencies, and start the interactive console.
+Both launchers automatically download uv, install dependencies, and start the PySide GUI window.
 
 -----
 
 ## 💻 Usage (For Developers)
-
-If you prefer using the command line or want to integrate HALLW into your workflow.
 
 ### Installation
 
@@ -86,26 +91,13 @@ If you prefer using the command line or want to integrate HALLW into your workfl
 # Install via uv (including dev dependencies)
 uv sync
 
-# Install browser binaries
+# Install browser binaries (Optional)
 playwright install chromium
 ```
 
 ### Running Tasks
 
-You can run the agent directly via `main.py`:
-
-```bash
-# Syntax
-python main.py "Your task description"
-
-# Examples
-python main.py "Search for the latest AI news and save summaries to news.md"
-python main.py "Go to GitHub, find the LangGraph repo, and summarize its README"
-```
-
-### Interactive Mode
-
-If you run without arguments, it launches an interactive prompt:
+You can start the GUI window directly via `main.py`:
 
 ```bash
 python main.py
@@ -153,18 +145,20 @@ HALLW is built on a modular architecture designed for extensibility.
 
 ```text
 hallw/
-├── logs/               # Task logs
-├── src/
-│   └── hallw/
-│       ├── agent.py    # LangGraph State Machine
-│       ├── tools/      # Auto-discovered Tool Modules
+├── logs/                   # Task logs
+├── src/                    # Source codes
+│   └── hallw/              # Main Folder
+│       ├── agent.py        # LangGraph State Machine
+│       ├── tools/          # Auto-discovered Tool Modules
 │       │   ├── playwright/ # Browser Tools
-│       │   └── file/       # File System Tools
-│       └── utils/      # Config & Logger
-├── main.py             # Application Entry Point
-├── start.bat           # One-click Launcher
-├── uv.lock             # Frozen Dependencies
-└── pyproject.toml      # Package Metadata
+│       │   ├── file/       # File System Tools
+│       │   └── system/     # System Command Tools
+│       ├── ui/             # User Interface
+│       └── utils/          # Config & Logger & Others
+├── main.py                 # Application Entry Point
+├── start.bat               # One-click Launcher
+├── uv.lock                 # Frozen Dependencies
+└── pyproject.toml          # Package Metadata
 ```
 
 ### Agent Workflow (The Graph)
@@ -179,12 +173,17 @@ hallw/
           |-------------------------------------|
           |                                     |
           |        +-------------------+        |
-      +---|------->|  👁️ Observe State |        |
-      |   |        +---------+---------+        |
-      |   |                  |                  |
-      |   |                  v                  |
-      |   |        +-------------------+        |
-      |   |        |  ⚡ Decide Step   |        |
+          |        |  🧮 Analyse Task  |        |
+          |        +---------+---------+        |
+          |                  |                  |
+          |                  v                  |
+          |        +-------------------+        |
+          |        |  📝 Build Stages  |        |
+          |        +---------+---------+        |
+          |                  |                  |
+          |                  v                  |
+          |        +-------------------+        |
+      +---|------> | ⚡Start New Stage |        |
       |   |        +---------+---------+        |
       |   |                  |                  |
       |   '------------------|------------------'
@@ -194,9 +193,9 @@ hallw/
       |        [Action]            [Finish]
       |            |                   |
       |            v                   v
-      |   .-----------------.  +-----------------------+
-      |   |   🛠️ Execute    | |   ✨ Task Complete    |
-      |   |-----------------|  +-----------------------+
+      |   .-----------------.  +---------------------+
+      |   |   🛠️ Execute    | |   ✨ Task Complete  |
+      |   |-----------------|  +---------------------+
       |   | +-------------+ |
       |   | | 💻 Run Tool | |
       |   | +------+------+ |
@@ -210,24 +209,24 @@ hallw/
       |    [Yes]        [No]
       |      |           |
       |      |           v
-      |      |   .-----------------------.
-      |      |   |    🛡️ REFLECTION      |
-      |      |   |----------------------- |
-      |      |   |  < ⚠️ Retry Limit? >  |
-      |      |   |    /            \      |
-      |      |   |  (No)          (Yes)   |
-      |      |   |   |              |     |
-      |      |   |   v              v     |
-      |      |   | [Retry]      [Reflect] |
-      |      |   |               & Plan   |
-      |      |   '---+---------------+--- '
+      |      |   .-------------------------.
+      |      |   |     🛡️ REFLECTION      |
+      |      |   |------------------------ |
+      |      |   |  <⚠️Retry Threshold? > |
+      |      |   |    /            \       |
+      |      |   |  (No)          (Yes)    |
+      |      |   |   |              |      |
+      |      |   |   v              v      |
+      |      |   | [Retry]      [Reflect]  |
+      |      |   |               & Plan    |
+      |      |   '---+---------------+-----'
       |      |       |               |
       +------+-------+---------------+
 ```
-1.  **Observe**: The agent reads the state and conversation history.
-2.  **Reason**: The LLM decides which tool to call.
-3.  **Act**: The tool (e.g., Playwright) executes the action.
-4.  **Reflect**: If an error occurs (e.g., Selector not found), the failure counter increments. If it hits the threshold, the agent enters **Reflection Mode** to analyze why it failed and plan a fix.
+1.  **Analyse**: The agent reads the state and conversation history.
+2.  **Build**: The agent deconstructs the task into multiple stages.
+3.  **Act**: The agent uses appropriate tools to finish current stage goal.
+4.  **Reflect**: If an error occurs, the failure counter increments. If it hits the threshold, the agent enters **Reflection Mode** to analyze why it failed and plan a fix.
 
 -----
 
