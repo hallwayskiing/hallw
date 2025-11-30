@@ -129,62 +129,137 @@ SCRIPT_CONFIRM_STATUS_TEMPLATE = """
 
 # Welcome Page
 WELCOME_HTML = """
-<div style="max-width: 680px; margin: 60px auto; padding: 0 20px;">
-    <div style="text-align: center; margin-bottom: 48px;">
-        <div style="font-size: 56px; margin-bottom: 16px; letter-spacing: -1px;">✨</div>
-        <h1 style="color: #ffffff; font-size: 32px; font-weight: 600; margin: 0 0 12px 0; letter-spacing: -0.5px;">
-            Welcome to HALLW
-        </h1>
-        <p style="color: #888888; font-size: 15px; margin: 0; font-weight: 400;">
-            Heuristic Autonomous Logic Loop Worker
-        </p>
-    </div>
+<div style="
+    max-width: 900px;
+    margin: 40px auto 32px;
+    padding: 0 24px;
+    color: #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+">
 
-    <div style="background: linear-gradient(135deg, #111111 0%, #0d0d0d 100%);
-                border: 1px solid #222222;
-                border-radius: 16px;
-                padding: 16px 32px;
-                margin-bottom: 32px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
-        <p style="color: #e0e0e0; font-size: 16px; line-height: 1.7; margin-top: 16px;">
-            I can browse the web, manage files, and answer your questions.
-        </p>
-    </div>
-
-    <div style="margin-bottom: 24px;">
-        <p style="color: #666666; font-size: 12px; font-weight: 600;
-                  text-transform: uppercase; letter-spacing: 1.5px;
-                  margin: 0 0 20px 4px;">
-            💡 Try Asking me to
-        </p>
-
-        <div style="background-color: #0f0f0f;
-                    border: 1px solid #1f1f1f;
-                    border-radius: 12px;
-                    padding: 6px;">
-            <div style="padding: 16px 20px; margin-bottom: 2px; border-bottom: 1px solid #1a1a1a;">
-                <span style="color: #4a7fc9; font-size: 18px; margin-right: 12px;">📰</span>
-                <span style="color: #e8e8e8; font-size: 15px;">
-                    Summarize the latest news and save to news.md.
-                </span>
-            </div>
-            <div style="padding: 16px 20px; margin-bottom: 2px; border-bottom: 1px solid #1a1a1a;">
-                <span style="color: #4a7fc9; font-size: 18px; margin-right: 12px;">🔍</span>
-                <span style="color: #e8e8e8; font-size: 15px;">
-                    Read local files and provide a technical report.
-                </span>
-            </div>
-            <div style="padding: 16px 20px; margin-bottom: 2px; border-bottom: 1px solid #1a1a1a;">
-                <span style="color: #4a7fc9; font-size: 18px; margin-right: 12px;">🍝</span>
-                <span style="color: #e8e8e8; font-size: 15px;">
-                    Search for a traditional Lasagna recipe and save it.
-                </span>
-            </div>
+    <!-- Top bar: product + status badges -->
+    <div style="
+        display: table;
+        width: 100%;
+        margin-bottom: 32px;
+    ">
+        <div style="display: table-cell; vertical-align: middle;">
+            <span style="
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                color: #6b7280;
+            ">
+                HALLW • Autonomous Workspace
+            </span>
         </div>
     </div>
 
-    <p style="color: #555555; font-size: 13px; text-align: center; margin-top: 40px; font-style: italic;">
-        Type your request below to get started
-    </p>
+    <!-- Main hero section -->
+    <div style="text-align: left; margin-bottom: 40px;">
+        <div style="font-size: 36px; margin-bottom: 12px;">
+            <span style="margin-right: 10px;">✨</span>
+            <span style="font-weight: 600; letter-spacing: -1px;">HALLW - Your AI Assistant</span>
+        </div>
+
+        <p style="
+            margin: 6px 0 0 2px;
+            font-size: 16px;
+            color: #9ca3af;
+            max-width: 640px;
+            line-height: 1.7;
+        ">
+            Orchestrate web automation, file operations, and system commands. <br>
+            Think in natural language — HALLW turns it into deterministic workflows.
+        </p>
+    </div>
+
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 32px;">
+        <tr>
+            <!-- Capabilities -->
+            <td style="width: 33%; padding-right: 10px; vertical-align: top;">
+                <div style="
+                    background-color: #050712;
+                    border: 1px solid #111827;
+                    padding: 16px 16px 14px 16px;
+                ">
+                    <div style="font-size: 20px; margin-bottom: 8px;">🧠 Core Skills</div>
+                    <div style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin-bottom: 10px;">
+                        • Browse and extract information<br>
+                        • Analyze and transform documents<br>
+                        • Generate code, scripts, and reports
+                    </div>
+                </div>
+            </td>
+
+            <!-- Automation -->
+            <td style="width: 33%; padding: 0 5px; vertical-align: top;">
+                <div style="
+                    background-color: #050712;
+                    border: 1px solid #111827;
+                    padding: 16px 16px 14px 16px;
+                ">
+                    <div style="font-size: 20px; margin-bottom: 8px;">⚙️ Automation</div>
+                    <div style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin-bottom: 10px;">
+                        • Run multi-stage workflows<br>
+                        • Think with reflection<br>
+                        • Keep a structured task history
+                    </div>
+                </div>
+            </td>
+
+            <!-- Environment -->
+            <td style="width: 33%; padding-left: 10px; vertical-align: top;">
+                <div style="
+                    background-color: #050712;
+                    border: 1px solid #111827;
+                    padding: 16px 16px 14px 16px;
+                ">
+                    <div style="font-size: 20px; margin-bottom: 8px;">🖥️ Environment</div>
+                    <div style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin-bottom: 10px;">
+                        • Local-first desktop agent<br>
+                        • Transparent tool usage<br>
+                        • Human-in-the-loop approvals
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Quick actions section -->
+    <div style="margin-bottom: 24px;">
+        <div style="
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            color: #6b7280;
+            margin: 0 0 12px 4px;
+        ">
+            Quick start
+        </div>
+
+        <div style="
+            background-color: #121005;
+            border: 1px solid #111827;
+            padding: 6px;
+        ">
+            <div style="color: #e5e7eb; font-size: 16px;">
+                📰 Summarize today's tech headlines and save as tech_news.md.
+            </div>
+            <div style="color: #e5e7eb; font-size: 16px; margin-top: 8px;">
+                🍜 Learn how to cook a Chinese dish and create recipe.md.
+            </div>
+            <div style="color: #e5e7eb; font-size: 16px; margin-top: 8px;">
+                🛫 Find and tell me ten interesting places to visit in Paris.
+            </div>
+            <div style="color: #e5e7eb; font-size: 16px; margin-top: 8px;">
+                👗 Browse Lululemon's latest collection.
+            </div>
+            <div style="color: #e5e7eb; font-size: 16px; margin-top: 8px;">
+                🌤️ Gather the next ten days' weather forecast.
+            </div>
+        </div>
+    </div>
 </div>
 """
