@@ -7,12 +7,12 @@ QMainWindow {
 QWidget {
     background-color: #0a0a0a;
     color: #e8e8e8;
-    font-family: 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Roboto', sans-serif;
+    font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
     font-size: 16px;
 }
 
 /* Chat Main Window */
-QTextEdit {
+QTextBrowser {
     background-color: #0a0a0a;
     border: none;
     padding: 8px;
@@ -26,7 +26,7 @@ QTextEdit#Sidebar {
     border: 1px solid #1f1f1f;
     border-radius: 12px;
     padding: 20px;
-    font-family: 'Consolas', 'Sarasa Mono SC', 'Microsoft YaHei Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Courier New', monospace;
+    font-family: 'Consolas', 'Microsoft YaHei', monospace;
     font-size: 14px;
     color: #a8a8a8;
 }
@@ -256,81 +256,34 @@ QWidget#TabContent {
 """
 
 MARKDOWN_STYLE = """
-.md-root {
-    color: #e8e8e8;
-    font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
-    font-size: 16px;
-    line-height: 1.75;
-    letter-spacing: 0.1px;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    white-space: normal;
-}
-.md-root p {
-    margin: 8px 0;
-}
-.md-root ul {
-    margin: 6px 0 14px 20px;
-    padding: 0;
-}
-.md-root li {
-    margin: 6px 0;
-    font-size: 16px;
-    line-height: 1.65;
-}
-.md-root h1 {
-    font-size: 22px;
-    margin: 12px 0 8px;
-    font-weight: 700;
-    color: #b0caff;
-    border-bottom: 1px solid #1f1f1f;
-    padding-bottom: 6px;
-}
-.md-root h2 {
-    font-size: 20px;
-    margin: 10px 0 6px;
-    font-weight: 650;
-    color: #a8c7fa;
-}
-.md-root h3 {
-    font-size: 18px;
-    margin: 8px 0 4px;
-    font-weight: 600;
-    color: #9fb7ff;
-}
-.md-root pre {
-    background: transparent !important;
-    border: 1px solid #1f1f1f;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 14px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: 'Consolas', 'SFMono-Regular', monospace;
-}
-.md-root code {
-    background: none;
-    border: 1px solid #2a2a2a;
-    padding: 2px 6px;
+/* Dark Markdown-like style */
+pre {
+    background-color: #1e1e1e;
+    border: 1px solid #2d2d2d;
     border-radius: 6px;
-    font-size: 14px;
-    color: #dbeafe;
-    font-family: 'Consolas', 'SFMono-Regular', monospace;
+    padding: 12px;
+    margin: 12px 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-family: Consolas, "Microsoft YaHei", monospace;
+    font-size: 16px;
+    line-height: 1.5;
 }
-.md-root blockquote {
-    border-left: 3px solid #2a2a2a;
-    color: #c0c0c0;
-    margin: 10px 0;
-    padding: 6px 12px;
-    background: transparent;
+
+code {
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-family: Consolas, "Microsoft YaHei", monospace;
+    font-size: 16px;
 }
-.md-root a {
-    color: #7ab8ff;
-    text-decoration: none;
-    border-bottom: 1px dashed #2f6db5;
-}
-.md-root a:hover {
-    color: #9ccfff;
-    border-bottom-color: #4a90e2;
+
+pre code {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
 }
 """

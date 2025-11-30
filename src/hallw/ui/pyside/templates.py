@@ -1,7 +1,7 @@
 # --- HTML Templates ---
 # User Message
 USER_MSG_TEMPLATE = """
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 20px; margin-bottom: 6px;">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 20px; margin-bottom: 6px; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
     <tr>
         <td width="60%"></td>
         <td style="background-color: #1a1a1a; border-left: 4px solid #174ea6; color: #ffffff; padding: 16px 20px; font-size: 14px;">
@@ -24,7 +24,7 @@ AI_HEADER_TEMPLATE = """
 
 # Info Card
 INFO_MSG_TEMPLATE = """
-<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #3b82f6; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #3b82f6; border-radius: 16px; margin-top: 20px; margin-bottom: 20px; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
     <tr>
         <td>
             <div style="color: #60a5fa; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">{icon} {title}</div>
@@ -36,7 +36,7 @@ INFO_MSG_TEMPLATE = """
 
 # Warning Card
 WARNING_MSG_TEMPLATE = """
-<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f59e42; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f59e42; border-radius: 16px; margin-top: 20px; margin-bottom: 20px; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
     <tr>
         <td>
             <div style="color: #f59e42; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">⚠️ WARNING</div>
@@ -48,7 +48,7 @@ WARNING_MSG_TEMPLATE = """
 
 # Error Card
 ERROR_MSG_TEMPLATE = """
-<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f54c4c; border-radius: 16px; margin-top: 20px; margin-bottom: 20px;">
+<table width="95%" align="center" border="0" cellspacing="0" cellpadding="18" style="background-color: #131720; border: 1px solid #f54c4c; border-radius: 16px; margin-top: 20px; margin-bottom: 20px; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
     <tr>
         <td>
             <div style="color: #f76969; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 0.5px;">❌ ERROR</div>
@@ -60,7 +60,7 @@ ERROR_MSG_TEMPLATE = """
 
 # End Message
 END_MSG_TEMPLATE = """
-<div style="color: #666666; font-size: 14px; margin: 20px 0; font-family: monospace; padding-left: 5px;">
+<div style="color: #666666; font-size: 14px; margin: 20px 0; padding-left: 5px; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
     <br>
     <br>
     {icon} {text}
@@ -79,8 +79,7 @@ STAGE_MSG_TEMPLATE = """
                         margin-bottom: 10px; letter-spacing: 0.5px;">
                 🚀 {title}
             </div>
-            <div style="color: #536dfe; font-size: 16px; line-height: 150%;
-                        font-weight: bold; text-align: center;">
+            <div style="color: #536dfe; font-size: 16px; line-height: 150%; font-weight: bold; text-align: center; font-family: Segoe UI, Microsoft YaHei, sans-serif;">
                 {text}
             </div>
         </td>
@@ -101,7 +100,7 @@ SCRIPT_CONFIRM_TEMPLATE = """
                 HALLW wants to run the following system command:
             </div>
             <div style="display: flex; justify-content: center; align-items: center; height: 100px;">
-                <pre style="background: #24160c; color: #ffe4c7; padding: 12px; font-size: 16px; border: 1px solid #f97316; white-space: pre-wrap;  word-break: break-word; ">{command}</pre>
+                <pre style="background: #24160c; color: #ffe4c7; padding: 12px; font-size: 16px; border: 1px solid #f97316; white-space: pre-wrap;  word-break: break-word; font-family: 'Consolas', 'Microsoft YaHei', monospace;">{command}</pre>
             </div>
             <div style="margin-top: 14px; text-align: center; font-weight: 700; color: #fef3c7;">
                 {notice}

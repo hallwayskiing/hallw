@@ -82,9 +82,9 @@ class QtAgentMainWindow(QMainWindow):
         self._is_task_running = False
         self._is_first_interaction = True
         self._ai_header_inserted = False
+        self._md_style_inserted = False
         self._sidebar_manually_hidden = False
         self._settings_mode: str = ""
-        self._md_style_inserted: bool = False
         self._handled_script_requests: set[str] = set()
         self._script_request_commands: dict[str, str] = {}
         self._script_request_segments: dict[str, int] = {}
@@ -482,20 +482,13 @@ class QtAgentMainWindow(QMainWindow):
             output_format="html5",
         )
 
-        # Inject CSS once per session
-        if not self._md_style_inserted:
-            self._md_style_inserted = True
-            html_rendered = f"<style>{MARKDOWN_STYLE}</style><div class='md-root'>{html_body}</div>"
-        else:
-            html_rendered = f"<div class='md-root'>{html_body}</div>"
-
         # Partial Refresh using Cursor
         cursor = self._agent_output.textCursor()
         start_pos = self._current_response_start_pos
         end_pos = max(self._current_response_end_pos, start_pos)
         cursor.setPosition(start_pos)
         cursor.setPosition(end_pos, QTextCursor.KeepAnchor)
-        cursor.insertHtml(html_rendered)
+        cursor.insertHtml(f"<style>{MARKDOWN_STYLE}</style>{html_body}")
         self._current_response_end_pos = cursor.position()
 
         # 2. Force scroll AFTER modification only if user was previously at bottom
@@ -688,7 +681,6 @@ class QtAgentMainWindow(QMainWindow):
         self._current_ai_index = None
         self._current_response_start_pos = 0
         self._current_response_end_pos = 0
-        self._md_style_inserted = False
         self._handled_script_requests.clear()
         self._script_request_commands.clear()
         self._script_request_segments.clear()
@@ -716,10 +708,4 @@ class QtAgentMainWindow(QMainWindow):
             output_format="html5",
         )
 
-        if not self._md_style_inserted:
-            # We don't mark inserted here because sidebar and chat might share context
-            # but usually it's safer to include style in both or manage globally.
-            # Here we include it locally for the sidebar widget.
-            return f"<style>{MARKDOWN_STYLE}</style><div class='md-root'>{html_body}</div>"
-
-        return f"<div class='md-root'>{html_body}</div>"
+        return f"<style>{MARKDOWN_STYLE}</style>{html_body}"
