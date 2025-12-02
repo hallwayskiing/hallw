@@ -8,38 +8,34 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_click(
-    page_index: int,
-    role: str = None,
-    name: str = None,
-) -> str:
-    """
-    Click an element by accessible role and name.
-
-    Args:
-        page_index: Index of the page to perform the click on.
-        role: ARIA role, e.g., "button", "link", "textbox".
-        name: Accessible name of the element.
-
-    Returns:
-        Status message
-    """
+async def browser_click(page_index: int, element_id: str) -> str:
+    """Click an element by ID."""
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, f"Page with index {page_index} not found.")
-    count = await page.get_by_role(role, name=name).count()
-    if count == 0:
-        return build_tool_response(False, f"No '{role}' found with name='{name}'")
+        return build_tool_response(False, "Page not found.")
+
+    selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"
+
     try:
-        await page.get_by_role(role, name=name).first.click(timeout=config.pw_click_timeout)
-        return build_tool_response(
-            True,
-            "Element clicked successfully.",
-            {"page_index": page_index, "role": role, "name": name},
-        )
+        # 1. Check existence
+        loc = page.locator(selector).first
+        if await loc.count() == 0:
+            return build_tool_response(False, f"Element [{element_id}] not found. The page might have refreshed.")
+
+        # 2. Click
+        await loc.click(timeout=config.pw_click_timeout)
+
+        # 3. Wait for result
+        try:
+            await page.wait_for_load_state("domcontentloaded", timeout=2000)
+        except Exception:
+            pass
+
+        return build_tool_response(True, f"Clicked [{element_id}]. Page: {await page.title()}", {"url": page.url})
+
     except PlaywrightTimeoutError:
         return build_tool_response(
-            False,
-            "Timeout while clicking, maybe the element is not clickable or invisible.",
-            {"page_index": page_index, "role": role, "name": name},
+            False, f"Timeout clicking [{element_id}]. Element might be covered or non-interactive."
         )
+    except Exception as e:
+        return build_tool_response(False, f"Click error: {str(e)}")

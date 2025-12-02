@@ -44,14 +44,14 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     <examples>
     **Great example sequence for shopping online:
     1. build_stages(stage_names=['search', 'select product', 'add to cart'])
-    2. browser_goto(url='https://www.amazon.com')
-    3. browser_fill(name='search-box', text='what-to-buy')
-    4. browser_click(role='button', name='search-button-name')
+    2. browser_goto(page_index=0, url='https://www.amazon.com')
+    3. browser_fill(page_index=0, element_id='search-box-id', text='laptop')
+    4. browser_click(page_index=0, element_id='search-button-id')
     5. end_current_stage()
-    6. browser_click(role='link', name='product-name-1')
-    7. browser_click(role='link', name='product-name-2')
+    6. browser_click(page_index=0, element_id='product-name-1-id')
+    7. browser_click(page_index=0, element_id='product-name-2-id')
     8. end_current_stage()
-    9. browser_click(role='button', name='add-to-cart-button')
+    9. browser_click(page_index=0, element_id='add-to-cart-button-id')
     10. end_current_stage()
 
     **Great example sequence for gathering online information:

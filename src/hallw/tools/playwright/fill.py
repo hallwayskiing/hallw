@@ -1,5 +1,4 @@
 from langchain_core.tools import tool
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from hallw.tools import build_tool_response
 from hallw.utils import config
@@ -8,43 +7,41 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_fill(page_index: int, role: str, name: str, text: str) -> str:
-    """Fill an input field with text.
+async def browser_fill(page_index: int, element_id: str, text: str, submit_on_enter: bool = False) -> str:
+    """
+    Fill a text input.
 
     Args:
-        page_index: Index of the page to perform the fill on.
-        role: ARIA role, e.g., "textbox", "combobox", "searchbox", etc.
-        name: Accessibility name of the input field
-        text: Text to fill
-
-    Returns:
-        Status message
+        element_id: The ID of the element.
+        text: The text to fill.
+        submit_on_enter: If True, press 'Enter' after filling. Useful for search bars.
     """
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, f"Page with index {page_index} not found.")
-    count = await page.get_by_role(role=role, name=name).count()
-    if count == 0:
-        return build_tool_response(
-            False, "No input field found.", {"page_index": page_index, "role": role, "name": name}
-        )
-    elif count > 1:
-        return build_tool_response(
-            False,
-            f"Multiple ({count}) input fields found.",
-            {"page_index": page_index, "role": role, "name": name},
-        )
+        return build_tool_response(False, "Page not found.")
+
+    # CSS Selector: "id='foo' OR data-hallw-id='foo'"
+    selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"
 
     try:
-        await page.get_by_role(role=role, name=name).fill(text, timeout=config.pw_click_timeout)
-        return build_tool_response(
-            True,
-            "Input filled successfully.",
-            {"page_index": page_index, "role": role, "name": name, "text": text},
-        )
-    except PlaywrightTimeoutError:
-        return build_tool_response(
-            False,
-            "Timeout while filling, maybe the element is not editable or invisible.",
-            {"page_index": page_index, "role": role, "name": name},
-        )
+        # Verify existence
+        if await page.locator(selector).count() == 0:
+            return build_tool_response(False, f"Element [{element_id}] not found. ID might be stale.")
+
+        await page.fill(selector, text, timeout=config.pw_click_timeout)
+
+        msg = f"Filled [{element_id}] with '{text}'."
+
+        if submit_on_enter:
+            await page.press(selector, "Enter")
+            msg += " Pressed Enter."
+            # Wait for potential navigation
+            try:
+                await page.wait_for_load_state("domcontentloaded", timeout=2000)
+            except Exception:
+                pass
+
+        return build_tool_response(True, msg, {"filled_id": element_id})
+
+    except Exception as e:
+        return build_tool_response(False, f"Error: {str(e)}")
