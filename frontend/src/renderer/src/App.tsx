@@ -22,14 +22,14 @@ function AppContent() {
   // Auto-switch from Welcome to Chat when task starts
   socket?.on('user_message', () => setHasStarted(true));
 
-  const handleQuickStart = (text) => {
-    socket.emit('start_task', { task: text });
+  const handleQuickStart = (text: string) => {
+    socket?.emit('start_task', { task: text });
     setHasStarted(true);
   };
 
   const handleBack = () => {
     setHasStarted(false);
-    socket.emit('reset_session');
+    socket?.emit('reset_session');
   };
 
   return (

@@ -1,12 +1,49 @@
 import { X, Save, RotateCcw, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { cn } from '../lib/utils';
 
-export function SettingsModal({ isOpen, onClose }) {
+interface SettingsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+interface Config {
+    [key: string]: any;
+    model_name?: string;
+    model_endpoint?: string;
+    model_api_key?: string;
+    model_temperature?: number;
+    model_max_recursion?: number;
+    langsmith_tracing?: boolean;
+    langsmith_project?: string;
+    langsmith_api_key?: string;
+    langsmith_endpoint?: string;
+    logging_level?: string;
+    logging_file_dir?: string;
+    keep_browser_open?: boolean;
+    pw_headless_mode?: boolean;
+    chrome_user_data_dir?: string;
+    cdp_port?: number;
+    pw_window_width?: number;
+    pw_window_height?: number;
+    pw_goto_timeout?: number;
+    pw_click_timeout?: number;
+    manual_captcha_timeout?: number;
+    file_read_dir?: string;
+    file_save_dir?: string;
+    file_max_read_chars?: number;
+}
+
+interface ServerResponse {
+    success: boolean;
+    error?: string;
+}
+
+export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const { socket } = useSocket();
     const [activeTab, setActiveTab] = useState('Model');
-    const [config, setConfig] = useState({});
+    const [config, setConfig] = useState<Config>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [statusMsg, setStatusMsg] = useState('');
@@ -19,12 +56,12 @@ export function SettingsModal({ isOpen, onClose }) {
 
         socket.emit('get_config');
 
-        const handleConfigData = (data) => {
+        const handleConfigData = (data: Config) => {
             setConfig(data);
             setIsLoading(false);
         };
 
-        const handleConfigUpdated = (response) => {
+        const handleConfigUpdated = (response: ServerResponse) => {
             setIsSaving(false);
             if (response.success) {
                 setStatusMsg('Settings saved successfully!');
@@ -46,7 +83,7 @@ export function SettingsModal({ isOpen, onClose }) {
         };
     }, [isOpen, socket]);
 
-    const handleChange = (key, value) => {
+    const handleChange = (key: string, value: any) => {
         // Convert numbers
         if (['model_temperature', 'model_max_output_tokens', 'model_reflection_threshold', 'model_max_recursion',
             'pw_cdp_port', 'pw_window_width', 'pw_window_height', 'search_result_count', 'max_page_content_chars',
@@ -60,9 +97,11 @@ export function SettingsModal({ isOpen, onClose }) {
     };
 
     const handleSave = () => {
-        setIsSaving(true);
-        setStatusMsg('Saving...');
-        socket.emit('update_config', config);
+        if (socket) {
+            setIsSaving(true);
+            setStatusMsg('Saving...');
+            socket.emit('update_config', config);
+        }
     };
 
     if (!isOpen) return null;
@@ -111,20 +150,20 @@ export function SettingsModal({ isOpen, onClose }) {
                                     <>
                                         <SectionTitle>LLM Configuration</SectionTitle>
                                         <InputGroup label="Model Name" desc="Model name to use">
-                                            <Input name="model_name" value={config.model_name || ''} onChange={(e) => handleChange('model_name', e.target.value)} />
+                                            <Input name="model_name" value={config.model_name || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_name', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="Endpoint" desc="Base URL for the model API">
-                                            <Input name="model_endpoint" value={config.model_endpoint || ''} onChange={(e) => handleChange('model_endpoint', e.target.value)} />
+                                            <Input name="model_endpoint" value={config.model_endpoint || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_endpoint', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="API Key" desc="Secret key for authentication">
-                                            <Input name="model_api_key" type="password" value={config.model_api_key || ''} onChange={(e) => handleChange('model_api_key', e.target.value)} />
+                                            <Input name="model_api_key" type="password" value={config.model_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_api_key', e.target.value)} />
                                         </InputGroup>
                                         <div className="grid grid-cols-2 gap-4">
                                             <InputGroup label="Temperature" desc="0.0 - 1.0">
-                                                <Input name="model_temperature" type="number" step="0.1" value={config.model_temperature || 0} onChange={(e) => handleChange('model_temperature', e.target.value)} />
+                                                <Input name="model_temperature" type="number" step="0.1" value={config.model_temperature || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_temperature', e.target.value)} />
                                             </InputGroup>
                                             <InputGroup label="Max Recursion" desc="Limit loops">
-                                                <Input name="model_max_recursion" type="number" value={config.model_max_recursion || 0} onChange={(e) => handleChange('model_max_recursion', e.target.value)} />
+                                                <Input name="model_max_recursion" type="number" value={config.model_max_recursion || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_max_recursion', e.target.value)} />
                                             </InputGroup>
                                         </div>
                                     </>
@@ -144,13 +183,13 @@ export function SettingsModal({ isOpen, onClose }) {
                                             <label htmlFor="ls_enabled" className="text-sm font-medium">Enable LangSmith Tracing</label>
                                         </div>
                                         <InputGroup label="Project Name">
-                                            <Input name="langsmith_project" value={config.langsmith_project || ''} onChange={(e) => handleChange('langsmith_project', e.target.value)} />
+                                            <Input name="langsmith_project" value={config.langsmith_project || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('langsmith_project', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="API Key">
-                                            <Input name="langsmith_api_key" type="password" value={config.langsmith_api_key || ''} onChange={(e) => handleChange('langsmith_api_key', e.target.value)} />
+                                            <Input name="langsmith_api_key" type="password" value={config.langsmith_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('langsmith_api_key', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="Endpoint">
-                                            <Input name="langsmith_endpoint" value={config.langsmith_endpoint || ''} onChange={(e) => handleChange('langsmith_endpoint', e.target.value)} />
+                                            <Input name="langsmith_endpoint" value={config.langsmith_endpoint || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('langsmith_endpoint', e.target.value)} />
                                         </InputGroup>
                                     </>
                                 )}
@@ -171,7 +210,7 @@ export function SettingsModal({ isOpen, onClose }) {
                                             </select>
                                         </InputGroup>
                                         <InputGroup label="Log Directory">
-                                            <Input name="logging_file_dir" value={config.logging_file_dir || ''} onChange={(e) => handleChange('logging_file_dir', e.target.value)} />
+                                            <Input name="logging_file_dir" value={config.logging_file_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('logging_file_dir', e.target.value)} />
                                         </InputGroup>
                                     </>
                                 )}
@@ -200,31 +239,31 @@ export function SettingsModal({ isOpen, onClose }) {
                                             <label htmlFor="headless" className="text-sm font-medium">Headless Mode</label>
                                         </div>
                                         <InputGroup label="User Data Dir" desc="Path to Chrome profile">
-                                            <Input name="chrome_user_data_dir" value={config.chrome_user_data_dir} onChange={handleChange} />
+                                            <Input name="chrome_user_data_dir" value={config.chrome_user_data_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('chrome_user_data_dir', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="CDP Port">
-                                            <Input name="cdp_port" type="number" value={config.cdp_port} onChange={handleChange} />
+                                            <Input name="cdp_port" type="number" value={config.cdp_port || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('cdp_port', e.target.value)} />
                                         </InputGroup>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <InputGroup label="Window Width">
-                                                <Input name="pw_window_width" type="number" value={config.pw_window_width} onChange={handleChange} />
+                                                <Input name="pw_window_width" type="number" value={config.pw_window_width || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_window_width', e.target.value)} />
                                             </InputGroup>
                                             <InputGroup label="Window Height">
-                                                <Input name="pw_window_height" type="number" value={config.pw_window_height} onChange={handleChange} />
+                                                <Input name="pw_window_height" type="number" value={config.pw_window_height || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_window_height', e.target.value)} />
                                             </InputGroup>
                                         </div>
 
                                         <SectionTitle className="mt-6">Timeouts (ms)</SectionTitle>
                                         <div className="grid grid-cols-2 gap-4">
                                             <InputGroup label="Page Load">
-                                                <Input name="pw_goto_timeout" type="number" value={config.pw_goto_timeout} onChange={handleChange} />
+                                                <Input name="pw_goto_timeout" type="number" value={config.pw_goto_timeout || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_goto_timeout', e.target.value)} />
                                             </InputGroup>
                                             <InputGroup label="Click">
-                                                <Input name="pw_click_timeout" type="number" value={config.pw_click_timeout} onChange={handleChange} />
+                                                <Input name="pw_click_timeout" type="number" value={config.pw_click_timeout || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_click_timeout', e.target.value)} />
                                             </InputGroup>
                                             <InputGroup label="Manual Captcha">
-                                                <Input name="manual_captcha_timeout" type="number" value={config.manual_captcha_timeout} onChange={handleChange} />
+                                                <Input name="manual_captcha_timeout" type="number" value={config.manual_captcha_timeout || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('manual_captcha_timeout', e.target.value)} />
                                             </InputGroup>
                                         </div>
                                     </>
@@ -234,13 +273,13 @@ export function SettingsModal({ isOpen, onClose }) {
                                     <>
                                         <SectionTitle>File System</SectionTitle>
                                         <InputGroup label="Working Directory" desc="Root for file reads">
-                                            <Input name="file_read_dir" value={config.file_read_dir || ''} onChange={(e) => handleChange('file_read_dir', e.target.value)} />
+                                            <Input name="file_read_dir" value={config.file_read_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('file_read_dir', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="Save Directory" desc="Where to save artifacts">
-                                            <Input name="file_save_dir" value={config.file_save_dir || ''} onChange={(e) => handleChange('file_save_dir', e.target.value)} />
+                                            <Input name="file_save_dir" value={config.file_save_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('file_save_dir', e.target.value)} />
                                         </InputGroup>
                                         <InputGroup label="Max Read Chars">
-                                            <Input name="file_max_read_chars" type="number" value={config.file_max_read_chars || 0} onChange={(e) => handleChange('file_max_read_chars', e.target.value)} />
+                                            <Input name="file_max_read_chars" type="number" value={config.file_max_read_chars || 0} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('file_max_read_chars', e.target.value)} />
                                         </InputGroup>
                                     </>
                                 )}
@@ -276,11 +315,11 @@ export function SettingsModal({ isOpen, onClose }) {
     );
 }
 
-function SectionTitle({ children, className }) {
+function SectionTitle({ children, className }: { children: ReactNode; className?: string }) {
     return <h3 className={cn("text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2 mb-4", className)}>{children}</h3>;
 }
 
-function InputGroup({ label, desc, children }) {
+function InputGroup({ label, desc, children }: { label: string; desc?: string; children: ReactNode }) {
     return (
         <div className="space-y-1.5">
             <div className="flex justify-between items-baseline">
@@ -292,14 +331,15 @@ function InputGroup({ label, desc, children }) {
     );
 }
 
-function Input({ className, ...props }) {
+function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
     return (
         <input
             {...props}
             defaultValue={undefined} // Controlled component
             className={cn(
                 "w-full bg-input/50 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all placeholder:text-muted-foreground/50",
-                props.type === "password" && "font-mono"
+                props.type === "password" && "font-mono",
+                className
             )}
         />
     )

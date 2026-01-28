@@ -1,9 +1,16 @@
 import { Send, Settings, Square, ArrowLeft } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, KeyboardEvent } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { cn } from '../lib/utils';
 
-export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }) {
+interface InputAreaProps {
+    onSettingsClick: () => void;
+    onStartTask: () => void;
+    hasStarted: boolean;
+    onBack: () => void;
+}
+
+export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }: InputAreaProps) {
     const { socket, isConnected } = useSocket();
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -26,14 +33,14 @@ export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }) 
         };
     }, [socket]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
 
         // Switch to chat view immediately
         if (onStartTask) onStartTask();
 
-        if (isConnected) {
+        if (isConnected && socket) {
             console.log("Emitting start_task:", input, "is_reply:", hasStarted);
             socket.emit('start_task', { task: input, is_reply: hasStarted });
         } else {
@@ -45,14 +52,15 @@ export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }) 
     };
 
     const handleStop = () => {
-        if (isConnected) socket.emit('stop_task');
+        if (isConnected && socket) socket.emit('stop_task');
         setIsProcessing(false);
     };
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSubmit(e);
+            // We need to cast e because handleSubmit expects FormEvent
+            handleSubmit(e as unknown as FormEvent);
         }
     }
 
@@ -84,7 +92,7 @@ export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }) 
                 {/* Action Button (Send/Stop) */}
                 <button
                     type="button"
-                    onClick={isProcessing ? handleStop : handleSubmit}
+                    onClick={isProcessing ? handleStop : (e) => handleSubmit(e as unknown as FormEvent)}
                     disabled={!isProcessing && !input.trim()}
                     className={cn(
                         "flex items-center justify-center px-4 rounded-2xl transition-all shadow-lg",

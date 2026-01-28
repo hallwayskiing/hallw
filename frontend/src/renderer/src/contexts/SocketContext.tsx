@@ -1,10 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { io, Socket } from 'socket.io-client';
 
-const SocketContext = createContext(null);
+interface SocketContextType {
+    socket: Socket | null;
+    isConnected: boolean;
+}
 
-export function SocketProvider({ children }) {
-    const [socket, setSocket] = useState(null);
+const SocketContext = createContext<SocketContextType | null>(null);
+
+export function SocketProvider({ children }: { children: ReactNode }) {
+    const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
@@ -31,7 +36,9 @@ export function SocketProvider({ children }) {
 
         setSocket(newSocket);
 
-        return () => newSocket.close();
+        return () => {
+            newSocket.close();
+        };
     }, []);
 
     return (
@@ -42,5 +49,5 @@ export function SocketProvider({ children }) {
 }
 
 export function useSocket() {
-    return useContext(SocketContext);
+    return useContext(SocketContext) as SocketContextType;
 }

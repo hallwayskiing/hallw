@@ -1,7 +1,12 @@
-import { Sparkles, Bot, Terminal, Globe, FileText, Command, House } from 'lucide-react';
+import { Sparkles, Bot, Terminal, Globe, FileText, Command, House, LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { ReactNode } from 'react';
 
-export function WelcomeScreen({ onQuickStart }) {
+interface WelcomeScreenProps {
+    onQuickStart: (text: string) => void;
+}
+
+export function WelcomeScreen({ onQuickStart }: WelcomeScreenProps) {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
             <div className="max-w-5xl w-full text-left space-y-8">
@@ -77,7 +82,14 @@ export function WelcomeScreen({ onQuickStart }) {
     );
 }
 
-function FeatureCard({ icon: Icon, title, children, color }) {
+interface FeatureCardProps {
+    icon: LucideIcon;
+    title: string;
+    children: ReactNode;
+    color: string;
+}
+
+function FeatureCard({ icon: Icon, title, children, color }: FeatureCardProps) {
     return (
         <div className="p-4 rounded-lg bg-card/5 border border-border/50">
             <div className="flex items-center gap-2 mb-2">
@@ -89,7 +101,13 @@ function FeatureCard({ icon: Icon, title, children, color }) {
     )
 }
 
-function QuickStartItem({ icon, text, onClick }) {
+interface QuickStartItemProps {
+    icon: ReactNode;
+    text: string;
+    onClick: (text: string) => void;
+}
+
+function QuickStartItem({ icon, text, onClick }: QuickStartItemProps) {
     return (
         <button
             onClick={() => onClick(text)}

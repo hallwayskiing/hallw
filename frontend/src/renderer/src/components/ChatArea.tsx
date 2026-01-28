@@ -6,25 +6,40 @@ import { cn } from '../lib/utils';
 import { Bot, User } from 'lucide-react';
 import { SafetyConfirmation } from './SafetyConfirmation';
 
+interface Message {
+    role: 'user' | 'assistant' | 'system';
+    content?: string;
+    type?: 'confirmation';
+    request_id?: string;
+    command?: string;
+    status?: 'pending' | 'approved' | 'rejected' | 'timeout';
+}
+
+interface ScriptRequest {
+    request_id: string;
+    command: string;
+    timeout?: number;
+}
+
 export function ChatArea() {
     const { socket } = useSocket();
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [streamingContent, setStreamingContent] = useState('');
     const [isThinking, setIsThinking] = useState(false);
-    const [scriptRequest, setScriptRequest] = useState(null);
-    const bottomRef = useRef(null);
+    const [scriptRequest, setScriptRequest] = useState<ScriptRequest | null>(null);
+    const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!socket) return;
 
-        const handleUserMessage = (msg) => {
+        const handleUserMessage = (msg: string) => {
             console.log("ChatArea received user_message:", msg);
             setMessages(prev => [...prev, { role: 'user', content: msg }]);
             setStreamingContent('');
             setIsThinking(true);
         };
 
-        const handleNewToken = (token) => {
+        const handleNewToken = (token: string) => {
             setIsThinking(false);
             setStreamingContent(prev => prev + token);
         };
@@ -52,7 +67,7 @@ export function ChatArea() {
             setScriptRequest(null);
         }
 
-        const handleScriptConfirm = (data) => {
+        const handleScriptConfirm = (data: ScriptRequest) => {
             // Flush current streaming content to messages so the card appears AFTER the text
             setStreamingContent(current => {
                 if (current) {
@@ -101,12 +116,12 @@ export function ChatArea() {
                 <div key={idx} className="space-y-4">
                     {msg.type === 'confirmation' ? (
                         <SafetyConfirmation
-                            requestId={msg.request_id}
-                            command={msg.command}
+                            requestId={msg.request_id!}
+                            command={msg.command!}
                             initialStatus={msg.status}
                         />
                     ) : (
-                        <MessageBubble role={msg.role} content={msg.content} />
+                        <MessageBubble role={msg.role} content={msg.content || ''} />
                     )}
                 </div>
             ))}
@@ -159,7 +174,7 @@ export function ChatArea() {
     );
 }
 
-function MessageBubble({ role, content }) {
+function MessageBubble({ role, content }: { role: string; content: string }) {
     return (
         <div className={cn(
             "flex gap-4 max-w-3xl mx-auto w-full animate-in slide-in-from-bottom-2 duration-300",
@@ -188,7 +203,7 @@ function MessageBubble({ role, content }) {
     )
 }
 
-function Avatar({ role }) {
+function Avatar({ role }: { role: string }) {
     return (
         <div className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border shadow-sm",

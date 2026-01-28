@@ -3,16 +3,26 @@ import { useSocket } from '../contexts/SocketContext';
 import { useEffect, useState } from 'react';
 import { cn } from '../lib/utils';
 
-export function Sidebar({ className }) {
+interface ToolState {
+    name: string;
+    status: 'running' | 'success' | 'error';
+    args: string;
+}
+
+interface SidebarProps {
+    className?: string;
+}
+
+export function Sidebar({ className }: SidebarProps) {
     const { socket } = useSocket();
-    const [toolStates, setToolStates] = useState([]);
-    const [toolPlan, setToolPlan] = useState([]);
+    const [toolStates, setToolStates] = useState<ToolState[]>([]);
+    const [toolPlan, setToolPlan] = useState<string[]>([]);
 
     useEffect(() => {
         if (!socket) return;
 
-        const handleToolStates = (states) => setToolStates(states || []);
-        const handleToolPlan = (data) => {
+        const handleToolStates = (states: ToolState[]) => setToolStates(states || []);
+        const handleToolPlan = (data: string[] | { plan: string[] }) => {
             // Handle both raw list and {plan: []} formats
             const plan = Array.isArray(data) ? data : (data?.plan || []);
             setToolPlan(plan);
@@ -33,7 +43,7 @@ export function Sidebar({ className }) {
         };
     }, [socket]);
 
-    const parseToolArgs = (args) => {
+    const parseToolArgs = (args: string) => {
         try {
             //return JSON.parse(args);
             //

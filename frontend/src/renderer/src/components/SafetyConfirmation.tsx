@@ -2,10 +2,20 @@ import { AlertTriangle, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 
-export function SafetyConfirmation({ requestId, command, timeout, initialStatus = 'pending', onDecision }) {
+type Status = 'pending' | 'approved' | 'rejected' | 'timeout';
+
+interface SafetyConfirmationProps {
+    requestId: string;
+    command: string;
+    timeout?: number;
+    initialStatus?: Status;
+    onDecision?: (status: Status) => void;
+}
+
+export function SafetyConfirmation({ requestId, command, timeout, initialStatus = 'pending', onDecision }: SafetyConfirmationProps) {
     const { socket } = useSocket();
     const [timeLeft, setTimeLeft] = useState(timeout || 0);
-    const [status, setStatus] = useState(initialStatus); // pending, approved, rejected, timeout
+    const [status, setStatus] = useState<Status>(initialStatus); // pending, approved, rejected, timeout
 
     useEffect(() => {
         if (initialStatus !== 'pending') return;
@@ -24,12 +34,14 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
         return () => clearInterval(timer);
     }, [timeLeft, status, initialStatus]);
 
-    const handleDecision = (_status) => {
+    const handleDecision = (_status: Status) => {
         setStatus(_status);
-        socket.emit('script_response', {
-            request_id: requestId,
-            status: _status
-        });
+        if (socket) {
+            socket.emit('script_response', {
+                request_id: requestId,
+                status: _status
+            });
+        }
         if (onDecision) {
             // Small delay to let the UI update before moving to history
             setTimeout(() => onDecision(_status), 500);
