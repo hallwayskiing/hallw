@@ -2,7 +2,6 @@ import importlib
 import inspect
 import pkgutil
 import sys
-from typing import List
 
 from langchain_core.tools import BaseTool, tool
 
@@ -65,32 +64,9 @@ def dummy_for_missed_tool(name: str) -> str:
     return build_tool_response(success=False, message=f"Tool {name} Not Found")
 
 
-@tool
-def build_stages(stage_names: List[str]) -> str:
-    """
-    Analyze the task and provide a list of stages with their corresponding names.
-
-    Args:
-        stage_names: A list of stage names.
-    Returns:
-        A formatted string listing the stages.
-    """
-
-    return build_tool_response(
-        True,
-        "Stages built successfully.",
-        {
-            "stages": [
-                {"stage_num": i, "stage_name": name} for i, name in enumerate(stage_names, start=1)
-            ]
-        },
-    )
-
-
 __all__ = [
     "load_tools",
     "build_tool_response",
     "parse_tool_response",
     "dummy_for_missed_tool",
-    "build_stages",
 ]

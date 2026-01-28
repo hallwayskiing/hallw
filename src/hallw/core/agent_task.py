@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from concurrent.futures import CancelledError
 from typing import Dict, Optional
 
@@ -13,8 +12,6 @@ from .agent_event_loop import AgentEventLoop
 from .agent_graph import build_graph
 from .agent_renderer import AgentRenderer
 from .agent_state import AgentState
-
-logger = logging.getLogger("hallw")
 
 
 class AgentTask:
@@ -45,7 +42,7 @@ class AgentTask:
         try:
             self._future.result()
         except CancelledError:
-            logger.info(f"Task {self.task_id} cancelled.")
+            pass
         finally:
             self._future = None
 
@@ -71,10 +68,8 @@ class AgentTask:
                 self.renderer.handle_event(event)
         except Exception as e:
             if event is None:
-                logger.error(f"Error before event loop: {e}")
                 error_name = "unknown"
             else:
-                logger.error(f"Error during event {event['event']}: {e}")
                 error_name = event["event"]
             self.renderer.handle_event(
                 {

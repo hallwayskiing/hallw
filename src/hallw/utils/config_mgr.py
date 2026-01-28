@@ -60,9 +60,7 @@ class Settings(BaseSettings):
     # =================================================
     # Pydantic config
     # =================================================
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
 
 # Export
@@ -74,3 +72,61 @@ def reload_config():
     new_config = Settings()
     for key, value in new_config.model_dump().items():
         setattr(config, key, value)
+
+
+def save_config_to_env(updates: dict):
+    """
+    Updates the .env file with new values and reloads the config.
+    Preserves comments and structure of the existing .env file if possible,
+    or just appends/overwrites.
+    Simple implementation: Read .env lines, replace matching keys, write back.
+    """
+    import os
+
+    env_path = ".env"
+
+    if not os.path.exists(env_path):
+        # Create new
+        with open(env_path, "w", encoding="utf-8") as f:
+            for k, v in updates.items():
+                f.write(f"{k.upper()}={v}\n")
+    else:
+        # Read existing
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        new_lines = []
+        updated_keys = set()
+
+        for line in lines:
+            line_strip = line.strip()
+            if not line_strip or line_strip.startswith("#"):
+                new_lines.append(line)
+                continue
+
+            # Simple parsing of KEY=VALUE
+            if "=" in line:
+                key = line.split("=", 1)[0].strip()
+                if key.lower() in updates:
+                    # Update line
+                    val = updates[key.lower()]
+                    new_lines.append(f"{key}={val}\n")
+                    updated_keys.add(key.lower())
+                else:
+                    new_lines.append(line)
+            else:
+                new_lines.append(line)
+
+        # Append new keys that weren't in the file
+        for k, v in updates.items():
+            if k.lower() not in updated_keys:
+                new_lines.append(f"{k.upper()}={v}\n")
+
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+
+    # Force reload logic in-memory
+    # However, since we are using global 'config', we can just update attributes
+    # But for type safety/validation, creating a new Settings() (which reads .env) is safer
+    # IF pydantic reads .env on instantiation.
+    reload_config()
