@@ -22,6 +22,7 @@ interface Config {
     logging_level?: string;
     logging_file_dir?: string;
     keep_browser_open?: boolean;
+    browser_search_engine?: string;
     pw_headless_mode?: boolean;
     chrome_user_data_dir?: string;
     cdp_port?: number;
@@ -238,6 +239,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                             />
                                             <label htmlFor="headless" className="text-sm font-medium">Headless Mode</label>
                                         </div>
+                                        <InputGroup label="Search Engine" desc="Default search provider">
+                                            <select
+                                                className="w-full bg-input/50 border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                                value={config.browser_search_engine || 'google'}
+                                                onChange={(e) => handleChange('browser_search_engine', e.target.value)}
+                                            >
+                                                <option value="google">Google</option>
+                                                <option value="bing">Bing</option>
+                                                <option value="baidu">Baidu</option>
+                                            </select>
+                                        </InputGroup>
                                         <InputGroup label="User Data Dir" desc="Path to Chrome profile">
                                             <Input name="chrome_user_data_dir" value={config.chrome_user_data_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('chrome_user_data_dir', e.target.value)} />
                                         </InputGroup>
