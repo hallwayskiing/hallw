@@ -66,15 +66,15 @@ async def exec_system_command(command: str) -> str:
     request_id = str(uuid.uuid4())
     confirmation: asyncio.Future[bool] = loop.create_future()
 
-    def _resolve(decision: bool) -> None:
+    def _resolve(status: bool) -> None:
         if not confirmation.done():
-            confirmation.set_result(decision)
+            confirmation.set_result(status)
 
     def _on_user_choice(data: dict) -> None:
         if data.get("request_id") != request_id:
             return
-        approved = bool(data.get("approved", False))
-        loop.call_soon_threadsafe(_resolve, approved)
+        status = data.get("status")
+        loop.call_soon_threadsafe(_resolve, status)
 
     subscribe(Events.SCRIPT_CONFIRM_RESPONDED, _on_user_choice)
 
@@ -89,13 +89,13 @@ async def exec_system_command(command: str) -> str:
     )
 
     try:
-        approved = await asyncio.wait_for(confirmation, timeout=CONFIRM_TIMEOUT)
+        status = await asyncio.wait_for(confirmation, timeout=CONFIRM_TIMEOUT)
     except asyncio.TimeoutError:
         return build_tool_response(False, "Timed out waiting for user confirmation.")
     finally:
         unsubscribe(Events.SCRIPT_CONFIRM_RESPONDED, _on_user_choice)
 
-    if not approved:
+    if status == "rejected":
         return build_tool_response(False, "System command execution rejected by user.")
 
     return await _run_system(command)

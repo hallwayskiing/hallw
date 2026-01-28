@@ -99,3 +99,4 @@ class Events:
     STAGE_STARTED = "stage_started"
     SCRIPT_CONFIRM_REQUESTED = "script_confirm_requested"
     SCRIPT_CONFIRM_RESPONDED = "script_confirm_responded"
+    TOOL_PLAN_UPDATED = "tool_plan_updated"

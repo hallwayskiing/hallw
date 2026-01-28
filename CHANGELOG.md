@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-01-27
+
 ### Added
 - New: HALLW can execute system commands (powershell on Windows or bash on Linux) directly now.
+
+### Changed
+- Switched to `Electron` from `PySide6` for the GUI.
 
 ## [0.6.0] - 2025-11-28
 

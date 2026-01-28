@@ -1,6 +1,6 @@
 from typing import List
 
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -8,12 +8,12 @@ from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
 from hallw.tools import (
-    build_stages,
     build_tool_response,
     dummy_for_missed_tool,
     parse_tool_response,
 )
-from hallw.utils import Events, emit, logger
+from hallw.tools.build_stage import build_stages
+from hallw.utils import Events, emit
 from hallw.utils import config as hallw_config
 
 from .agent_state import AgentState, AgentStats
@@ -27,24 +27,36 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
         messages.append(response)
 
         tool_calls = response.tool_calls
+        if not tool_calls:
+            raise ValueError("Build stage expected a tool call but got none.")
+
         tool_call = tool_calls[0]
         tool_id = tool_call.get("id")
         tool_name = tool_call.get("name")
         tool_args = tool_call.get("args", {})
-        tool_message = await build_stages.ainvoke(tool_args, config=config)
-        messages.append(ToolMessage(content=tool_message, tool_call_id=tool_id, name=tool_name))
-        stage_names: List[str] = tool_args.get("stage_names", [])
-        stage_nums = len(stage_names)
-        logger.info(f"Built {stage_nums} stages: {stage_names}")
 
-        stage_info = (
-            f"Current stage (1/{stage_nums}): {stage_names[0]}." " Please complete this stage then proceed to the next."
+        tool_output = await build_stages.ainvoke(tool_args, config=config)
+        tool_output = parse_tool_response(tool_output)
+
+        stage_names: List[str] = tool_output.get("data", {}).get("stage_names", [])
+        stage_nums = len(stage_names)
+
+        emit(
+            Events.TOOL_PLAN_UPDATED,
+            {"plan": stage_names},
         )
-        messages.append(HumanMessage(content=stage_info))
         emit(
             Events.STAGE_STARTED,
             {"stage_index": 0, "total_stages": stage_nums, "stage_name": stage_names[0]},
         )
+
+        stage_info = (
+            f"Current stage (1/{stage_nums}): {stage_names[0]}." " Please complete this stage then proceed to the next."
+        )
+        combined_content = f"{tool_output}\n\n[System Note]: {stage_info}"
+
+        messages.append(ToolMessage(content=combined_content, tool_call_id=tool_id, name=tool_name))
+
         return {
             "messages": messages,
             "total_stages": stage_nums,
@@ -72,15 +84,9 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
             stats_delta["input_tokens"] = response.usage_metadata.get("input_tokens", 0)
             stats_delta["output_tokens"] = response.usage_metadata.get("output_tokens", 0)
 
-        if response.content.strip():
-            logger.info(f"HALLW: {response.content.strip().replace('\n', ' ')}")
-        elif not response.tool_calls:
-            # Empty response from model
-            logger.warning(
-                f"HALLW: (empty). Finish Reason: {response.response_metadata.get('finish_reason')}. Retrying..."
-            )
+        if not response.content.strip() and not response.tool_calls:
             empty_response = True
-            hint_message = HumanMessage(content="continue")
+            hint_message = HumanMessage(content="System: The previous response was empty. Please continue your task.")
             return {
                 "messages": [hint_message],
                 "stats": stats_delta,
@@ -106,18 +112,12 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
         }
 
         current_stage = state.get("current_stage", 0)
-
         task_completed_update = False
 
         # 1. Check for tool calls
         if not tool_calls:
-            hint_message = HumanMessage(content="No tool calls made. Please make valid tool calls to proceed.")
-            stats_delta["failures"] += 1
-            stats_delta["failures_since_last_reflection"] += 1
-            messages.append(hint_message)
-            logger.warning("No tool calls made.")
             return {
-                "messages": messages,
+                "messages": [],
                 "stats": stats_delta,
             }
 
@@ -130,10 +130,6 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
 
             # 2.1 Tool not found
             if tool_obj is None:
-                error_msg = f"Tool '{tool_name}' not found."
-                logger.error(error_msg)
-
-                # Use dummy tool for not found tools to avoid breaking the flow
                 tool_obj = dummy_for_missed_tool
                 tool_obj.name = tool_name
                 tool_args = {"name": tool_name}
@@ -145,27 +141,19 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
                 tool_response = build_tool_response(
                     success=False, message=f"Tool {tool_name} execution failed: {str(e)}"
                 )
+
             stats_delta["tool_call_counts"] += 1
 
-            messages.append(ToolMessage(content=tool_response, tool_call_id=tool_id, name=tool_name))
-
-            # 2.3 Parse result and log
+            # 2.3 Parse result
             tool_result = parse_tool_response(tool_response)
             success = tool_result.get("success", False)
-
-            logger.info(
-                _build_log_str(
-                    # Current total + this increment, for display only
-                    state["stats"].get("tool_call_counts", 0) + stats_delta["tool_call_counts"],
-                    tool_name,
-                    tool_args,
-                    success,
-                )
-            )
 
             if not success:
                 stats_delta["failures"] += 1
                 stats_delta["failures_since_last_reflection"] += 1
+
+            # Create the basic ToolMessage
+            new_tool_message = ToolMessage(content=tool_response, tool_call_id=tool_id, name=tool_name)
 
             # 2.4 Exam end of stages
             if tool_name == "end_current_stage":
@@ -174,11 +162,12 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
                     task_completed_update = True
                 else:
                     stage_info = (
-                        "Current stage ({current_stage+1}/{state.get('total_stages', 0)}):"
+                        f"Current stage ({current_stage+1}/{state.get('total_stages', 0)}):"
                         f" {state['stage_names'][current_stage]}."
                         " Please complete this stage then proceed to the next."
                     )
-                    messages.append(HumanMessage(content=stage_info))
+                    new_tool_message.content = str(new_tool_message.content) + f"\n\n[System Note]: {stage_info}"
+
                     emit(
                         Events.STAGE_STARTED,
                         {
@@ -187,6 +176,8 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
                             "stage_name": state["stage_names"][current_stage],
                         },
                     )
+
+            messages.append(new_tool_message)
 
         return {
             "messages": messages,
@@ -212,8 +203,16 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
         """
         hint_message = HumanMessage(content=hint_text.strip())
 
-        # 2. Temporarily build message list for this model call (do not directly modify state)
-        messages_for_model = state["messages"] + [hint_message]
+        last_msg = state["messages"][-1]
+        messages_to_append = [hint_message]
+
+        if isinstance(last_msg, AIMessage) and last_msg.tool_calls:
+            for tc in last_msg.tool_calls:
+                messages_to_append.insert(
+                    0, ToolMessage(content="System: Tool execution interrupted for reflection.", tool_call_id=tc["id"])
+                )
+
+        messages_for_model = state["messages"] + messages_to_append
 
         # 3. Call model for reflection
         response = await model.ainvoke(messages_for_model, config=config)
@@ -230,15 +229,21 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
             stats_delta["output_tokens"] = response.usage_metadata.get("output_tokens", 0)
 
         if response.content:
-            logger.info(f"HALLW REFLECTION: {response.content.strip().replace('\n', ' ')}")
+            pass
 
         # 5. Return
-        return {"messages": [hint_message, response], "stats": stats_delta}
+        return {"messages": [response], "stats": stats_delta}
 
     def route_from_model(state: AgentState) -> str:
         if state.get("empty_response", False):
             return "model"
-        return "tools"
+
+        # Only route to tools if there are actual tool calls
+        last_msg = state["messages"][-1]
+        if isinstance(last_msg, AIMessage) and last_msg.tool_calls:
+            return "tools"
+
+        return "model"
 
     def route_from_tools(state: AgentState) -> str:
         if state["task_completed"]:
@@ -264,6 +269,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
 
     builder.add_edge(START, "build")
     builder.add_edge("build", "model")
+
     builder.add_conditional_edges(
         "model",
         route_from_model,
@@ -288,11 +294,3 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
     workflow = builder.compile(checkpointer=checkpointer)
 
     return workflow
-
-
-def _build_log_str(tool_call_count: int, tool_name: str, tool_args: dict, success: bool) -> str:
-    status = "✅" if success else "❌"
-    str_args = str(tool_args)
-    format_tool_args = str_args[: hallw_config.max_message_chars]
-    ellipsis = "..." if len(str_args) > hallw_config.max_message_chars else ""
-    return f"[{tool_call_count}] {tool_name}: {format_tool_args}{ellipsis} => {status}"
