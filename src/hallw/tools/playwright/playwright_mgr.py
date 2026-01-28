@@ -14,8 +14,6 @@ from playwright_stealth.stealth import Stealth
 
 from hallw.utils import config, logger
 
-LOCK_FILE = os.path.join(tempfile.gettempdir(), "hallw_playwright_mgr.lock")
-
 
 class PlaywrightManager:
     """Singleton manager for Playwright browser state and operations."""
@@ -25,11 +23,14 @@ class PlaywrightManager:
     def __new__(cls) -> "PlaywrightManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._init_state()
         return cls._instance
 
-    def _init_state(self) -> None:
+    def __init__(self) -> None:
         """Initialize all state variables."""
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
+
         self.pw: Optional[Playwright] = None
         self.browser: Optional[Browser] = None
         self.context: Optional[BrowserContext] = None
@@ -37,8 +38,12 @@ class PlaywrightManager:
         self.temp_user_data_dir: Optional[str] = None
 
     def reset(self) -> None:
-        """Reset all state to None."""
-        self._init_state()
+        """Reset all state variables to initial values."""
+        self.pw = None
+        self.browser = None
+        self.context = None
+        self.chrome_process = None
+        self.temp_user_data_dir = None
 
     # -------------------------
     # Page Management
@@ -72,34 +77,34 @@ class PlaywrightManager:
         Returns:
             Status message
         """
+
         # Get fresh config values
         cdp_port = config.cdp_port
         cdp_timeout = config.pw_cdp_timeout
-        window_width, window_height = config.pw_window_width, config.pw_window_height
+        window_width = config.pw_window_width
+        window_height = config.pw_window_height
         prefer_local = config.prefer_local_chrome
         headless = config.pw_headless_mode
+        endpoint = f"http://127.0.0.1:{cdp_port}"
 
+        # Check if Chrome is already running
         chrome_already_running = False
         try:
             chrome_already_running = _wait_for_port("127.0.0.1", cdp_port, timeout=cdp_timeout)
         except Exception:
             chrome_already_running = False
 
-        # Initiate playwright instance
-        pw = await async_playwright().start()
-        self.pw = pw
+        self.pw = await async_playwright().start()
 
-        # Try to reuse existing Chrome instance
+        # 1. Connect to existing Chrome instance
         if chrome_already_running:
-            endpoint = f"http://127.0.0.1:{cdp_port}"
             try:
-                browser = await pw.chromium.connect_over_cdp(endpoint)
+                browser = await self.pw.chromium.connect_over_cdp(endpoint)
                 self.browser = browser
                 # Create a new context
-                context = await browser.new_context(viewport={"width": window_width, "height": window_height})
-                await self._apply_stealth(context)
-                self.context = context
-                await context.new_page()
+                self.context = await browser.new_context(viewport={"width": window_width, "height": window_height})
+                await self._apply_stealth(self.context)
+                await self.context.new_page()
                 self.chrome_process = None  # Since we didn't start it
 
                 return "Connected to existing Chrome instance."
@@ -107,13 +112,13 @@ class PlaywrightManager:
             except Exception as e:
                 raise ToolException(f"Failed to connect to existing Chrome via CDP: {e}")
 
-        # Launch new Chrome instance
+        # 2. Launch new Chrome instance
         chrome_path = _find_chrome_executable()
         # If local browser not preferred or not found, use Playwright Chromium
         if not prefer_local or chrome_path is None:
             try:
                 args = self._build_chrome_args()
-                browser = await pw.chromium.launch(args=args, headless=headless)
+                browser = await self.pw.chromium.launch(args=args, headless=headless)
                 self.browser = browser
                 context = await browser.new_context(viewport={"width": window_width, "height": window_height})
                 await self._apply_stealth(context)
@@ -136,19 +141,18 @@ class PlaywrightManager:
                 raise ToolException("Local Chrome failed to start with CDP.")
 
             endpoint = f"http://127.0.0.1:{cdp_port}"
-            browser = await pw.chromium.connect_over_cdp(endpoint)
-            self.browser = browser
+            self.browser = await self.pw.chromium.connect_over_cdp(endpoint)
             # Use default context which already contains a page
-            context = browser.contexts[0]
-            await self._apply_stealth(context)
-            self.context = context
+            self.context = self.browser.contexts[0]
+            await self._apply_stealth(self.context)
 
             return "Local Chrome with CDP started."
 
     async def close(self) -> None:
-        """Close Playwright session and optionally leave Chrome running."""
+        """Close current context/pages."""
         if config.keep_browser_open:
             logger.info("KEEP_PAGE_OPEN is enabled; leaving page open.")
+            self.reset()
             return
 
         if self.context is None:
@@ -178,7 +182,6 @@ class PlaywrightManager:
             except Exception:
                 pass
 
-        self.reset()
         logger.info("Browser successfully closed")
 
     # -------------------------

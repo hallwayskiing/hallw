@@ -21,7 +21,7 @@ async def remove_overlays(page: Page):
             '[aria-modal="true"]',
             '.ub-emb-iframe-wrapper',
             '.adsbox',
-            '# credential_picker_container', // Google Sign-in prompt
+            '#credential_picker_container', // Google Sign-in prompt
             'iframe[title*="consent"]'
         ];
 

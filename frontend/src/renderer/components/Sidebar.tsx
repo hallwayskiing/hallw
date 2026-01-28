@@ -45,8 +45,6 @@ export function Sidebar({ className }: SidebarProps) {
 
     const parseToolArgs = (args: string) => {
         try {
-            //return JSON.parse(args);
-            //
             const cleanStr = args.replace(/[{}']/g, '');
             return cleanStr;
         } catch (e) {

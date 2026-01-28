@@ -7,7 +7,7 @@ from langchain_core.tools import BaseTool, tool
 
 from hallw.utils import logger
 
-from .tool_response import build_tool_response, parse_tool_response
+from .tool_response import ToolResult, build_tool_response, parse_tool_response
 
 
 def _import_package_modules(package_name: str):
@@ -69,4 +69,5 @@ __all__ = [
     "build_tool_response",
     "parse_tool_response",
     "dummy_for_missed_tool",
+    "ToolResult",
 ]

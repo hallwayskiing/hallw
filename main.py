@@ -28,7 +28,7 @@ def kill_process_on_port(port: int):
     """Find and kill any process listening on the specified port."""
     for proc in psutil.process_iter(["pid", "name"]):
         try:
-            for conn in proc.connections(kind="inet"):
+            for conn in proc.net_connections(kind="inet"):
                 if conn.laddr.port == port:
                     logger.warning(f"Port {port} is in use by {proc.info['name']} (PID: {proc.info['pid']}).")
                     proc.terminate()
@@ -56,8 +56,6 @@ def main():
 
     # Check and clean up port 8000
     kill_process_on_port(8000)
-
-    logger.info("Starting HALLW Development Environment...")
 
     # 1. Start Backend in a separate thread
     frontend_thread = threading.Thread(target=run_frontend)

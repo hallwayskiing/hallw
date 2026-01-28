@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
@@ -18,6 +18,20 @@ function AppContent() {
   const { socket } = useSocket();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (socket) {
+        socket.emit('window_closing');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [socket]);
 
   // Auto-switch from Welcome to Chat when task starts
   socket?.on('user_message', () => setHasStarted(true));

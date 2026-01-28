@@ -1,4 +1,6 @@
 import asyncio
+import os
+import signal
 import threading
 import uuid
 
@@ -12,6 +14,7 @@ from pydantic import SecretStr
 from hallw.core import AgentEventLoop, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
+from hallw.tools.playwright.playwright_mgr import browser_close
 from hallw.utils import Events, config, emit, generateSystemPrompt, init_logger, logger
 
 # --- Global State (Single User Mode) ---
@@ -133,6 +136,8 @@ async def reset_session(sid):
     """
     global initiated, active_task, conversation_history, agent_renderer, task_id, event_loop
 
+    await browser_close()
+
     if event_loop:
         event_loop.stop()
 
@@ -196,6 +201,12 @@ async def script_response(sid, data):
     status = data.get("status")
     if request_id:
         emit(Events.SCRIPT_CONFIRM_RESPONDED, {"request_id": request_id, "status": status})
+
+
+@sio.event
+async def window_closing(sid):
+    """Handles the window closing event."""
+    os.kill(os.getpid(), signal.SIGINT)
 
 
 def main():

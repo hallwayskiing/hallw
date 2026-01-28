@@ -4,6 +4,7 @@ from typing import Any
 import socketio
 
 from hallw.core import AgentRenderer
+from hallw.tools import ToolResult, parse_tool_response
 from hallw.utils import Events, logger, subscribe, unsubscribe
 
 
@@ -89,9 +90,9 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_tool_end(self, run_id: str, name: str, output: Any) -> None:
         """Finalize a tool execution with success status and result data."""
-        success = self._is_success(output)
-        status = "success" if success else "error"
-        logger.info(f"{"✅" if success else "❌"} Tool {name}: {output[:200]}")
+        parsed_output = parse_tool_response(output)
+        status = "success" if parsed_output.get("success", False) else "error"
+        logger.info(self._build_log_message(name, parsed_output))
 
         if run_id and run_id in self._active_tools:
             self._active_tools[run_id]["result"] = str(output)
@@ -150,9 +151,7 @@ class SocketAgentRenderer(AgentRenderer):
             return "".join([i if isinstance(i, str) else i.get("text", "") for i in content])
         return str(content)
 
-    @staticmethod
-    def _is_success(output: Any) -> bool:
-        """Determine if a tool execution was successful based on output content."""
-        if isinstance(output, dict):
-            return bool(output.get("success", True))
-        return True
+    def _build_log_message(self, name: str, parsed_output: ToolResult) -> str:
+        sign = "✅" if parsed_output.get("success", False) else "❌"
+        data = parsed_output.get("message", "")[:200] + ("..." if len(parsed_output.get("message", "")) > 200 else "")
+        return f"{sign} Tool {name}: {data}"
