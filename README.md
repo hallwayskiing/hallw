@@ -7,9 +7,9 @@
 
 <div align='center'>
 
-https://github.com/user-attachments/assets/a701bce5-c98a-40df-be75-ff1f4f733078
+https://github.com/user-attachments/assets/e1dcae67-f06e-4412-8a2c-3e4ac02e691e
 
-<p><em>Demo for 'Summarize latest news, games and music'</em></p>
+<p><em>Demo for 'Summarize today's tech headlines and save as tech_news.md'</em></p>
 </div>
 
 **HALLW** (Heuristic Autonomous Logic Loop Worker) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
@@ -79,7 +79,7 @@ MODEL_NAME=gemini-2.5-flash-lite  # recommended for free usage in Google AI Stud
 - **Windows**: Double-click **`start.bat`** (or run it from PowerShell by `.\start.bat`).
 - **Linux/macOS**: Make it executable once with `chmod +x start.sh`, then run `./start.sh`.
 
-Both launchers automatically download uv, install dependencies, and start the PySide GUI window.
+Both launchers automatically download uv, install dependencies, and start the Electron GUI window.
 
 -----
 
