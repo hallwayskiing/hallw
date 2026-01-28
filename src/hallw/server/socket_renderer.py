@@ -81,7 +81,6 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_tool_start(self, run_id: str, name: str, args: Any) -> None:
         """Register a new tool execution and update the UI state."""
-        logger.info(f"🕒 Tool {name}: {args}")
         state = {"name": name, "status": "running", "args": str(args), "result": ""}
         self._tool_states.append(state)
         if run_id:

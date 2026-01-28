@@ -25,6 +25,12 @@
         }
     },
     "include": [
-        "src/renderer/src"
+        "src/renderer/src",
+        "src/renderer/contexts",
+        "src/renderer/lib",
+        "src/renderer/App.tsx",
+        "src/preload/env.d.ts",
+        "src/renderer/main.tsx",
+        "src/renderer/components"
     ]
 }
