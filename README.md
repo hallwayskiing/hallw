@@ -65,14 +65,26 @@ Copy the example configuration file and edit it with your API keys.
 ```bash
 # Windows
 copy .env.example .env
+# Linux
+cp .env.example .env
 ```
 
 **Edit `.env`** and set your LLM credentials:
 
 ```env
 MODEL_API_KEY=your-api-key-here
-MODEL_NAME=gemini-2.5-flash-lite  # recommended for free usage in Google AI Studio
+MODEL_NAME=gemini-2.5-flash
 ```
+
+Copy the example PROFILE file, and fill out the fields to give the Agent your personal information, in order to better accomplish tasks.
+
+```bash
+# Windows
+copy PROFILE.example PROFILE
+# Linux
+cp PROFILE.example PROFILE
+```
+
 
 ### 3. Run!
 

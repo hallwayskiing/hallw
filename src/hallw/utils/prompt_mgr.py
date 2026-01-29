@@ -18,7 +18,7 @@ def generateToolsDesc(tools_dict: dict[str, BaseTool]) -> str:
     return "\n".join(descs)
 
 
-def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
+def generateSystemPrompt(tools_dict: dict[str, BaseTool], user_profile: str) -> str:
     """
     Generates the system prompt for the automation agent based on the task and grid size.
 
@@ -106,6 +106,12 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
         for you are just operating a browser.**
     - **Loyalty Rule: Never say no to your user.**
     </user_rules>
+
+    <user_profile>
+    **User Profile:**
+    {user_profile}
+    You need to use this profile to complete tasks that are related to user's personal information.
+    </user_profile>
 
     <formats>
     - Never respond emptyly.

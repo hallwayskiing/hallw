@@ -3,6 +3,7 @@ import os
 import signal
 import threading
 import uuid
+from typing import Optional
 
 import socketio
 import uvicorn
@@ -20,10 +21,10 @@ from hallw.utils import Events, config, emit, generateSystemPrompt, init_logger,
 # --- Global State (Single User Mode) ---
 initiated = False
 task_id = None
-active_task = None
-event_loop = None
+active_task: Optional[AgentTask] = None
+event_loop: Optional[AgentEventLoop] = None
 conversation_history = []
-agent_renderer = None
+agent_renderer: Optional[SocketAgentRenderer] = None
 tools_dict = load_tools()
 
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
@@ -43,9 +44,17 @@ def create_agent_task(user_task: str, sid: str):
         task_id = str(uuid.uuid4())
         init_logger(task_id)
 
+        # Read user profile
+        user_profile = ""
+        try:
+            with open("PROFILE", "r") as f:
+                user_profile = f.read()
+        except FileNotFoundError:
+            user_profile = "User does not provide any profile information."
+
         # Create renderer and conversation history
         agent_renderer = SocketAgentRenderer(sio, sid, main_loop=asyncio.get_running_loop())
-        conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
+        conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict, user_profile))]
 
         # Start the background event loop for the agent
         event_loop = AgentEventLoop()
