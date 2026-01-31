@@ -1,15 +1,18 @@
 import urllib.parse
+import uuid
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
-from hallw.utils import Events, config, emit, logger
+from hallw.utils import config as hallw_config
+from hallw.utils import logger
 
 from .playwright_mgr import get_page
 
 
 @tool
-async def browser_search(page_index: int, query: str) -> str:
+async def browser_search(page_index: int, query: str, runnable_config: RunnableConfig) -> str:
     """Search the web for a query and return titles and URLs.
 
     Args:
@@ -19,13 +22,16 @@ async def browser_search(page_index: int, query: str) -> str:
     Returns:
         Formatted string with search results including titles and URLs or error message
     """
+    # Get renderer from config's configurable
+    renderer = runnable_config.get("configurable", {}).get("renderer")
+
     # Get fresh config values
-    goto_timeout = config.pw_goto_timeout
-    captcha_timeout = config.manual_captcha_timeout
-    result_count = config.search_result_count
+    goto_timeout = hallw_config.pw_goto_timeout
+    captcha_timeout = hallw_config.manual_captcha_timeout
+    result_count = hallw_config.search_result_count
 
     # 1. Setup search engine configuration
-    search_engine = config.browser_search_engine
+    search_engine = hallw_config.browser_search_engine
     engine = search_engine.lower() if search_engine else "google"
     supported_engines = ["google", "baidu", "bing"]
 
@@ -102,41 +108,21 @@ async def browser_search(page_index: int, query: str) -> str:
             pass  # Ignore minor errors during query
 
     # 4. If captcha detected, enter long wait mode
-    if is_captcha_detected:
-        # Emit event to notify UI that user action is required
-        emit(
-            Events.CAPTCHA_DETECTED,
-            {
-                "engine": engine,
-                "page_index": page_index,
-                "timeout_ms": captcha_timeout,
-            },
+    if is_captcha_detected and renderer:
+        request_id = str(uuid.uuid4())
+        status = await renderer.on_request_confirmation(
+            request_id,
+            captcha_timeout,
+            message=f"Captcha detected on page {page_index}. Please manually resolve it.",
         )
-        logger.info(f"CAPTCHA detected on {engine}. Waiting for user to solve...")
-
-        try:
-            # Wait for user to manually solve until the "success indicator" appears
-            await page.wait_for_selector(rule["success_selector"], timeout=captcha_timeout)
-            logger.info(f"User successfully passed {engine} CAPTCHA.")
-            # Notify UI that captcha was resolved
-            emit(Events.CAPTCHA_RESOLVED, {"engine": engine, "page_index": page_index})
-        except Exception:
-            # Notify UI that captcha resolution failed/timed out
-            emit(
-                Events.CAPTCHA_RESOLVED,
-                {"engine": engine, "page_index": page_index, "success": False},
-            )
-            return build_tool_response(
-                False,
-                f"{engine.capitalize()} CAPTCHA Timeout: Verification was not completed in time.",
-                {"page_index": page_index},
-            )
+        if status == "timeout":
+            return build_tool_response(False, "Timed out waiting for manual captcha resolution.")
+        if status == "rejected":
+            return build_tool_response(False, "Manual captcha resolution rejected by user.")
 
     # 5. Regularly wait for results to load
     try:
-        await page.wait_for_selector(
-            rule["success_selector"], state="attached", timeout=goto_timeout
-        )
+        await page.wait_for_selector(rule["success_selector"], state="attached", timeout=goto_timeout)
     except Exception:
         return build_tool_response(
             False,

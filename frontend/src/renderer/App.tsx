@@ -33,8 +33,18 @@ function AppContent() {
     };
   }, [socket]);
 
-  // Auto-switch from Welcome to Chat when task starts
-  socket?.on('user_message', () => setHasStarted(true));
+  useEffect(() => {
+    if (!socket) return;
+
+    // Auto-switch from Welcome to Chat when task starts
+    const handleUserMessage = () => setHasStarted(true);
+
+    socket.on('user_message', handleUserMessage);
+
+    return () => {
+        socket.off('user_message', handleUserMessage);
+    };
+  }, [socket]);
 
   const handleQuickStart = (text: string) => {
     socket?.emit('start_task', { task: text });

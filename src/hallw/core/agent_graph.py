@@ -7,19 +7,21 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
+from hallw.core.agent_renderer import AgentRenderer
 from hallw.tools import (
     build_tool_response,
     dummy_for_missed_tool,
     parse_tool_response,
 )
 from hallw.tools.build_stage import build_stages
-from hallw.utils import Events, emit
 from hallw.utils import config as hallw_config
 
 from .agent_state import AgentState, AgentStats
 
 
-def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer: BaseCheckpointSaver):
+def build_graph(
+    model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer: BaseCheckpointSaver, renderer: AgentRenderer
+) -> StateGraph:
     async def build(state: AgentState, config: RunnableConfig) -> AgentState:
         messages = []
         build_model = model.bind_tools([build_stages], tool_choice="required")
@@ -41,14 +43,8 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
         stage_names: List[str] = tool_output.get("data", {}).get("stage_names", [])
         stage_nums = len(stage_names)
 
-        emit(
-            Events.TOOL_PLAN_UPDATED,
-            {"plan": stage_names},
-        )
-        emit(
-            Events.STAGE_STARTED,
-            {"stage_index": 0, "total_stages": stage_nums, "stage_name": stage_names[0]},
-        )
+        renderer.on_tool_plan_updated({"plan": stage_names})
+        renderer.on_stage_started({"stage_index": 0, "total_stages": stage_nums, "stage_name": stage_names[0]})
 
         stage_info = (
             f"Current stage (1/{stage_nums}): {stage_names[0]}." " Please complete this stage then proceed to the next."
@@ -136,7 +132,14 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
 
             # 2.2 Execute tool
             try:
-                tool_response = await tool_obj.ainvoke(tool_args, config=config)
+                # Pass renderer through config's configurable
+                tool_config = RunnableConfig(
+                    configurable={
+                        **config.get("configurable", {}),
+                        "renderer": renderer,
+                    }
+                )
+                tool_response = await tool_obj.ainvoke(tool_args, config=tool_config)
             except Exception as e:
                 tool_response = build_tool_response(
                     success=False, message=f"Tool {tool_name} execution failed: {str(e)}"
@@ -157,6 +160,13 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
 
             # 2.4 Exam end of stages
             if tool_name == "end_current_stage":
+                renderer.on_stage_completed(
+                    {
+                        "stage_index": current_stage,
+                        "total_stages": state.get("total_stages", 0),
+                        "stage_name": state["stage_names"][current_stage],
+                    },
+                )
                 current_stage += 1
                 if current_stage >= state.get("total_stages", 0):
                     task_completed_update = True
@@ -168,8 +178,7 @@ def build_graph(model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer
                     )
                     new_tool_message.content = str(new_tool_message.content) + f"\n\n[System Note]: {stage_info}"
 
-                    emit(
-                        Events.STAGE_STARTED,
+                    renderer.on_stage_started(
                         {
                             "stage_index": current_stage,
                             "total_stages": state.get("total_stages", 0),

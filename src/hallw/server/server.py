@@ -1,7 +1,6 @@
 import asyncio
 import os
 import signal
-import threading
 import uuid
 from typing import Optional
 
@@ -12,17 +11,16 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import SecretStr
 
-from hallw.core import AgentEventLoop, AgentTask
+from hallw.core import AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
-from hallw.utils import Events, config, emit, generateSystemPrompt, init_logger, logger
+from hallw.utils import config, generateSystemPrompt, init_logger, logger
 
-# --- Global State (Single User Mode) ---
+# --- Global State ---
 initiated = False
 task_id = None
 active_task: Optional[AgentTask] = None
-event_loop: Optional[AgentEventLoop] = None
 conversation_history = []
 agent_renderer: Optional[SocketAgentRenderer] = None
 tools_dict = load_tools()
@@ -31,11 +29,11 @@ sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
 
 
-def create_agent_task(user_task: str, sid: str):
+def create_agent_task(user_task: str, sid: str) -> AgentTask:
     """
     Initializes the agent environment or updates the existing one for a new task.
     """
-    global initiated, task_id, event_loop, conversation_history, agent_renderer
+    global initiated, task_id, conversation_history, agent_renderer
 
     checkpointer = MemorySaver()
 
@@ -53,12 +51,8 @@ def create_agent_task(user_task: str, sid: str):
             user_profile = "User does not provide any profile information."
 
         # Create renderer and conversation history
-        agent_renderer = SocketAgentRenderer(sio, sid, main_loop=asyncio.get_running_loop())
+        agent_renderer = SocketAgentRenderer(sio, sid)
         conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict, user_profile))]
-
-        # Start the background event loop for the agent
-        event_loop = AgentEventLoop()
-        event_loop.start()
 
         initiated = True
     else:
@@ -93,7 +87,6 @@ def create_agent_task(user_task: str, sid: str):
         renderer=agent_renderer,
         initial_state={"messages": messages, "task_completed": False},
         checkpointer=checkpointer,
-        event_loop=event_loop,
     )
 
 
@@ -118,24 +111,25 @@ async def start_task(sid, data):
     # Immediately echo the user's message back to the UI
     await sio.emit("user_message", task_text, room=sid)
 
-    main_loop = asyncio.get_running_loop()
-
-    def run_wrapper():
-        """Execution wrapper to run the agent in a separate thread."""
+    async def run_wrapper():
+        """Execution wrapper to run the agent and handle completion."""
         try:
-            agent_task.run()
+            await asyncio.shield(agent_task._run())
 
             # Save final AI response to history for multi-turn memory
             if agent_renderer and agent_renderer._current_response:
                 conversation_history.append(AIMessage(content=agent_renderer._current_response))
 
             # Notify frontend that the task is complete
-            asyncio.run_coroutine_threadsafe(sio.emit("task_finished", {}, room=sid), loop=main_loop)
+            await sio.emit("task_finished", {}, room=sid)
+        except asyncio.CancelledError:
+            logger.info("Task was cancelled.")
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
+            await sio.emit("fatal_error", {"message": str(e)}, room=sid)
 
-    # Launch agent in a background thread to prevent blocking the socket loop
-    threading.Thread(target=run_wrapper, daemon=True).start()
+    # Start the agent task as a background asyncio Task
+    agent_task._task = asyncio.create_task(run_wrapper())
 
 
 @sio.event
@@ -143,12 +137,9 @@ async def reset_session(sid):
     """
     Completely resets the agent state and conversation history.
     """
-    global initiated, active_task, conversation_history, agent_renderer, task_id, event_loop
+    global initiated, active_task, conversation_history, agent_renderer, task_id
 
     await browser_close()
-
-    if event_loop:
-        event_loop.stop()
 
     if active_task:
         active_task.cancel()
@@ -157,7 +148,6 @@ async def reset_session(sid):
     conversation_history = []
     active_task = None
     task_id = None
-    event_loop = None
     agent_renderer = None
     initiated = False
 
@@ -204,12 +194,10 @@ async def stop_task(sid):
 
 
 @sio.event
-async def script_response(sid, data):
+async def resolve_confirmation(sid, data):
     """Routes user safety approval back to the agent core."""
-    request_id = data.get("request_id")
-    status = data.get("status")
-    if request_id:
-        emit(Events.SCRIPT_CONFIRM_RESPONDED, {"request_id": request_id, "status": status})
+    if agent_renderer:
+        agent_renderer.on_resolve_confirmation(data["request_id"], data["status"])
 
 
 @sio.event

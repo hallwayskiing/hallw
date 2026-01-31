@@ -182,6 +182,9 @@ class PlaywrightManager:
             except Exception:
                 pass
 
+        # Reset state
+        self.reset()
+
         logger.info("Browser successfully closed")
 
     # -------------------------

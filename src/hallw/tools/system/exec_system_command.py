@@ -3,12 +3,11 @@ import locale
 import platform
 import uuid
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
-from hallw.utils import Events, emit, subscribe, unsubscribe
 
-# Maximum time (seconds) to wait for user confirmation
 CONFIRM_TIMEOUT = 60
 
 
@@ -53,7 +52,7 @@ async def _run_system(command: str) -> str:
 
 
 @tool
-async def exec_system_command(command: str) -> str:
+async def exec_system_command(command: str, config: RunnableConfig) -> str:
     """Execute a system command, auto-selecting PowerShell on Windows or sh on POSIX.
 
     Args:
@@ -62,39 +61,20 @@ async def exec_system_command(command: str) -> str:
     Returns:
         str: The output of the command.
     """
-    loop = asyncio.get_running_loop()
+    # Get renderer from config's configurable
+    renderer = config.get("configurable", {}).get("renderer")
+    if renderer is None:
+        return build_tool_response(False, "Internal error: renderer not available.")
+
     request_id = str(uuid.uuid4())
-    confirmation: asyncio.Future[bool] = loop.create_future()
-
-    def _resolve(status: bool) -> None:
-        if not confirmation.done():
-            confirmation.set_result(status)
-
-    def _on_user_choice(data: dict) -> None:
-        if data.get("request_id") != request_id:
-            return
-        status = data.get("status")
-        loop.call_soon_threadsafe(_resolve, status)
-
-    subscribe(Events.SCRIPT_CONFIRM_RESPONDED, _on_user_choice)
-
-    # Notify UI to request user confirmation
-    emit(
-        Events.SCRIPT_CONFIRM_REQUESTED,
-        {
-            "request_id": request_id,
-            "command": command,
-            "timeout": CONFIRM_TIMEOUT,
-        },
+    status = await renderer.on_request_confirmation(
+        request_id,
+        CONFIRM_TIMEOUT,
+        f"System command execution: {command}",
     )
 
-    try:
-        status = await asyncio.wait_for(confirmation, timeout=CONFIRM_TIMEOUT)
-    except asyncio.TimeoutError:
+    if status == "timeout":
         return build_tool_response(False, "Timed out waiting for user confirmation.")
-    finally:
-        unsubscribe(Events.SCRIPT_CONFIRM_RESPONDED, _on_user_choice)
-
     if status == "rejected":
         return build_tool_response(False, "System command execution rejected by user.")
 

@@ -1,4 +1,3 @@
-from .agent_event_loop import AgentEventLoop
 from .agent_graph import build_graph
 from .agent_renderer import AgentRenderer
 from .agent_state import AgentState, AgentStats
@@ -10,5 +9,4 @@ __all__ = [
     "AgentStats",
     "AgentTask",
     "AgentRenderer",
-    "AgentEventLoop",
 ]

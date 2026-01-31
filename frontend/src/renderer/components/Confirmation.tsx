@@ -4,22 +4,21 @@ import { useSocket } from '../contexts/SocketContext';
 
 type Status = 'pending' | 'approved' | 'rejected' | 'timeout';
 
-interface SafetyConfirmationProps {
+interface ConfirmationProps {
     requestId: string;
-    command: string;
+    message: string;
     timeout?: number;
     initialStatus?: Status;
     onDecision?: (status: Status) => void;
 }
 
-export function SafetyConfirmation({ requestId, command, timeout, initialStatus = 'pending', onDecision }: SafetyConfirmationProps) {
+export function Confirmation({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) {
     const { socket } = useSocket();
     const [timeLeft, setTimeLeft] = useState(timeout || 0);
-    const [status, setStatus] = useState<Status>(initialStatus); // pending, approved, rejected, timeout
+    const [status, setStatus] = useState<Status>(initialStatus || 'pending');
 
     useEffect(() => {
-        if (initialStatus !== 'pending') return;
-        if (timeLeft <= 0 || status !== 'pending') return;
+        if (status !== 'pending') return;
 
         const timer = setInterval(() => {
             setTimeLeft(prev => {
@@ -32,37 +31,27 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timeLeft, status, initialStatus]);
+    }, [timeLeft, status]);
 
     const handleDecision = (_status: Status) => {
         setStatus(_status);
         if (socket) {
-            socket.emit('script_response', {
+            socket.emit('resolve_confirmation', {
                 request_id: requestId,
                 status: _status
             });
         }
         if (onDecision) {
             // Small delay to let the UI update before moving to history
-            setTimeout(() => onDecision(_status), 500);
+            setTimeout(() => onDecision(_status), 100);
         }
     };
-
-    // If initialStatus is set (history mode), we might want to skip the socket emit?
-    // Actually handleDecision is only called on button click.
-    // For timeout, we need to handle onDecision too.
-
-    useEffect(() => {
-        if (status === 'timeout' && onDecision && initialStatus === 'pending') {
-            onDecision('timeout');
-        }
-    }, [status, onDecision, initialStatus]);
 
     if (status === 'approved') {
         return (
             <div className="flex gap-3 max-w-3xl mx-auto w-full p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 items-center animate-in fade-in">
                 <Check className="w-5 h-5 shrink-0" />
-                <span className="text-sm font-medium">Command execution approved.</span>
+                <span className="text-sm font-medium">Confirmation approved.</span>
             </div>
         );
     }
@@ -71,7 +60,7 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
         return (
             <div className="flex gap-3 max-w-3xl mx-auto w-full p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 items-center animate-in fade-in">
                 <X className="w-5 h-5 shrink-0" />
-                <span className="text-sm font-medium">Command execution rejected.</span>
+                <span className="text-sm font-medium">Confirmation rejected.</span>
             </div>
         );
     }
@@ -80,7 +69,7 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
         return (
             <div className="flex gap-3 max-w-3xl mx-auto w-full p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 items-center animate-in fade-in">
                 <X className="w-5 h-5 shrink-0" />
-                <span className="text-sm font-medium">Command execution timed out.</span>
+                <span className="text-sm font-medium">Confirmation timed out.</span>
             </div>
         );
     }
@@ -89,7 +78,7 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
         <div className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-3 text-amber-500">
                 <AlertTriangle className="w-5 h-5" />
-                <span className="font-semibold text-sm tracking-wide uppercase">Safety Confirmation</span>
+                <span className="font-semibold text-sm tracking-wide uppercase">Confirmation</span>
                 {timeLeft > 0 && (
                     <span className="ml-auto text-xs font-mono bg-amber-500/20 px-2 py-1 rounded">
                         Expires in {timeLeft}s
@@ -98,9 +87,9 @@ export function SafetyConfirmation({ requestId, command, timeout, initialStatus 
             </div>
 
             <div className="space-y-2">
-                <p className="text-sm text-foreground/80">The agent wants to execute a system command:</p>
+                <p className="text-sm text-foreground/80">The agent wants your confirmation:</p>
                 <div className="bg-background/50 rounded-lg p-3 border border-border/50 font-mono text-xs overflow-x-auto">
-                    {command}
+                    {message}
                 </div>
             </div>
 
