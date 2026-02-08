@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     model_endpoint: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     model_api_key: SecretStr
     model_temperature: float = 0.25
-    model_max_output_tokens: int = 4096
+    model_max_output_tokens: int = 10240
     model_reflection_threshold: int = 3
     model_max_recursion: int = 50
 
@@ -29,11 +29,12 @@ class Settings(BaseSettings):
     # =================================================
     logging_level: str = "INFO"
     logging_file_dir: str = "logs"
-    max_message_chars: int = 50
+    logging_max_chars: int = 200
 
     # =================================================
-    # 4. Search
+    # 4. Exec & Search
     # =================================================
+    auto_allow_exec: bool = False
     brave_search_api_key: Optional[SecretStr] = None
     brave_search_result_count: int = 5
 
@@ -60,13 +61,6 @@ class Settings(BaseSettings):
 
 # Export
 config = Settings()
-
-
-def reload_config():
-    global config
-    new_config = Settings()
-    for key, value in new_config.model_dump().items():
-        setattr(config, key, value)
 
 
 def save_config_to_env(updates: dict):
@@ -120,8 +114,8 @@ def save_config_to_env(updates: dict):
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
 
-    # Force reload logic in-memory
-    # However, since we are using global 'config', we can just update attributes
-    # But for type safety/validation, creating a new Settings() (which reads .env) is safer
-    # IF pydantic reads .env on instantiation.
-    reload_config()
+    # Update global config
+    global config
+    for k, v in updates.items():
+        if hasattr(config, k):
+            setattr(config, k, v)

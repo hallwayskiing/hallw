@@ -4,7 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { InputArea } from './components/InputArea';
 import { WelcomeScreen } from './components/WelcomeScreen';
-import { SettingsModal } from './components/SettingsModal';
+import { Settings } from './components/Settings';
 
 export default function App() {
   const initSocket = useAppStore(s => s.initSocket);
@@ -43,7 +43,7 @@ export default function App() {
       {isChatting && <Sidebar className="flex-shrink-0" />}
 
       {/* Modals */}
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <Settings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
