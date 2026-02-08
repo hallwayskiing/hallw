@@ -27,6 +27,7 @@
     "include": [
         "src/renderer/src",
         "src/renderer/contexts",
+        "src/renderer/stores",
         "src/renderer/lib",
         "src/renderer/App.tsx",
         "src/preload/env.d.ts",

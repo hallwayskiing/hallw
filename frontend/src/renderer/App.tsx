@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { SocketProvider, useSocket } from './contexts/SocketContext';
+import { useAppStore } from './stores/appStore';
+import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { InputArea } from './components/InputArea';
@@ -7,54 +7,19 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { SettingsModal } from './components/SettingsModal';
 
 export default function App() {
-  return (
-    <SocketProvider>
-      <AppContent />
-    </SocketProvider>
-  );
-}
+  const initSocket = useAppStore(s => s.initSocket);
 
-function AppContent() {
-  const { socket } = useSocket();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
-
+  // Initialize socket on mount
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (socket) {
-        socket.emit('window_closing');
-      }
-    };
+    return initSocket();
+  }, [initSocket]);
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    // Auto-switch from Welcome to Chat when task starts
-    const handleUserMessage = () => setHasStarted(true);
-
-    socket.on('user_message', handleUserMessage);
-
-    return () => {
-        socket.off('user_message', handleUserMessage);
-    };
-  }, [socket]);
-
-  const handleQuickStart = (text: string) => {
-    socket?.emit('start_task', { task: text });
-    setHasStarted(true);
-  };
-
-  const handleBack = () => {
-    setHasStarted(false);
-    socket?.emit('reset_session');
-  };
+  // Select only needed state to minimize re-renders
+  const isChatting = useAppStore(s => s.isChatting);
+  const isSettingsOpen = useAppStore(s => s.isSettingsOpen);
+  const setIsSettingsOpen = useAppStore(s => s.setIsSettingsOpen);
+  const startTask = useAppStore(s => s.startTask);
+  const resetSession = useAppStore(s => s.resetSession);
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20">
@@ -65,14 +30,12 @@ function AppContent() {
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px] pointer-events-none" />
 
-          {hasStarted ? <ChatArea /> : <WelcomeScreen onQuickStart={handleQuickStart} />}
+          {isChatting ? <ChatArea /> : <WelcomeScreen onQuickStart={startTask} />}
         </div>
 
         <InputArea
           onSettingsClick={() => setIsSettingsOpen(true)}
-          onStartTask={() => setHasStarted(true)}
-          hasStarted={hasStarted}
-          onBack={handleBack}
+          onBack={resetSession}
         />
       </div>
 

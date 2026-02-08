@@ -1,6 +1,6 @@
 import { X, Save, RotateCcw, Loader2 } from 'lucide-react';
 import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
 interface SettingsModalProps {
@@ -42,7 +42,7 @@ interface ServerResponse {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-    const { socket } = useSocket();
+    const getSocket = useAppStore(s => s.getSocket);
     const [activeTab, setActiveTab] = useState('Model');
     const [config, setConfig] = useState<Config>({});
     const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +50,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const [statusMsg, setStatusMsg] = useState('');
 
     useEffect(() => {
+        const socket = getSocket();
         if (!isOpen || !socket) return;
 
         setIsLoading(true);
@@ -82,7 +83,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             socket.off('config_data', handleConfigData);
             socket.off('config_updated', handleConfigUpdated);
         };
-    }, [isOpen, socket]);
+    }, [isOpen, getSocket]);
 
     const handleChange = (key: string, value: any) => {
         // Convert numbers
@@ -98,6 +99,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     };
 
     const handleSave = () => {
+        const socket = getSocket();
         if (socket) {
             setIsSaving(true);
             setStatusMsg('Saving...');

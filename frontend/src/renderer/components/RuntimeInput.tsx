@@ -1,6 +1,6 @@
 import { MessageSquare, Send, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useAppStore } from '../stores/appStore';
 
 export type RuntimeInputStatus = 'pending' | 'submitted' | 'rejected' | 'timeout';
 
@@ -14,7 +14,7 @@ interface RuntimeInputProps {
 }
 
 export function RuntimeInput({ requestId, message, timeout, initialStatus, initialValue, onDecision }: RuntimeInputProps) {
-    const { socket } = useSocket();
+    const getSocket = useAppStore(s => s.getSocket);
     const [timeLeft, setTimeLeft] = useState(timeout || 0);
     const [status, setStatus] = useState<RuntimeInputStatus>(initialStatus || 'pending');
     const [inputValue, setInputValue] = useState(initialValue || '');
@@ -35,11 +35,12 @@ export function RuntimeInput({ requestId, message, timeout, initialStatus, initi
         return () => clearInterval(timer);
     }, [timeLeft, status]);
 
-    const handleSubmit = (e?: React.FormEvent) => {
+    const handleSubmit = (e?: React.SubmitEvent) => {
         e?.preventDefault();
         if (!inputValue.trim()) return;
 
         setStatus('submitted');
+        const socket = getSocket();
         if (socket) {
             socket.emit('resolve_user_input', {
                 request_id: requestId,
@@ -52,10 +53,12 @@ export function RuntimeInput({ requestId, message, timeout, initialStatus, initi
 
     const handleReject = () => {
         setStatus('rejected');
+        const socket = getSocket();
         if (socket) {
             socket.emit('resolve_user_input', {
                 request_id: requestId,
-                status: 'rejected'
+                status: 'rejected',
+                value: ''
             });
         }
         onDecision?.('rejected');

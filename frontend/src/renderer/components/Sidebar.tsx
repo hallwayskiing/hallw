@@ -1,29 +1,10 @@
-import { Activity, CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
-import { useSocket } from '../contexts/SocketContext';
-import { useEffect, useState } from 'react';
+import { Activity, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { useAppStore, ToolState } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
 // ============================================================================
 // Types
 // ============================================================================
-
-type ToolStatus = 'running' | 'success' | 'error';
-
-interface ToolState {
-    run_id: string;
-    tool_name: string;
-    status: ToolStatus;
-    args: string;
-    result: string;
-}
-
-interface StageEvent {
-    stage_index: number;
-}
-
-interface ToolPlanEvent {
-    plan?: string[];
-}
 
 interface SidebarProps {
     className?: string;
@@ -34,70 +15,10 @@ interface SidebarProps {
 // ============================================================================
 
 export function Sidebar({ className }: SidebarProps) {
-    const { socket } = useSocket();
-    const [toolStates, setToolStates] = useState<ToolState[]>([]);
-    const [toolPlan, setToolPlan] = useState<string[]>([]);
-    const [currentStageIndex, setCurrentStageIndex] = useState<number>(-1);
-    const [completedStages, setCompletedStages] = useState<number[]>([]);
-
-    useEffect(() => {
-        if (!socket) return;
-
-        // Incremental tool state update from backend
-        const onToolStateUpdate = (state: ToolState) => {
-            if (!state) return;
-            setToolStates(prev => {
-                const { run_id } = state;
-                if (!run_id) return [...prev, state];
-
-                const idx = prev.findIndex(t => t.run_id === run_id);
-                if (idx >= 0) {
-                    const updated = [...prev];
-                    updated[idx] = { ...updated[idx], ...state };
-                    return updated;
-                }
-                return [...prev, state];
-            });
-        };
-
-        // Tool plan updates
-        const onToolPlanUpdated = (data: string[] | ToolPlanEvent) => {
-            const plan = Array.isArray(data) ? data : (data?.plan || []);
-            setToolPlan(plan);
-        };
-
-        // Stage lifecycle
-        const onStageStarted = (data: StageEvent) => {
-            setCurrentStageIndex(data.stage_index);
-        };
-
-        const onStageCompleted = (data: StageEvent) => {
-            setCompletedStages(prev => [...new Set([...prev, data.stage_index])]);
-        };
-
-        // Reset all state
-        const onReset = () => {
-            setToolStates([]);
-            setToolPlan([]);
-            setCurrentStageIndex(-1);
-            setCompletedStages([]);
-        };
-
-        // Register events
-        socket.on('tool_state_update', onToolStateUpdate);
-        socket.on('tool_plan_updated', onToolPlanUpdated);
-        socket.on('stage_started', onStageStarted);
-        socket.on('stage_completed', onStageCompleted);
-        socket.on('reset', onReset);
-
-        return () => {
-            socket.off('tool_state_update', onToolStateUpdate);
-            socket.off('tool_plan_updated', onToolPlanUpdated);
-            socket.off('stage_started', onStageStarted);
-            socket.off('stage_completed', onStageCompleted);
-            socket.off('reset', onReset);
-        };
-    }, [socket]);
+    const toolStates = useAppStore(s => s.toolStates);
+    const toolPlan = useAppStore(s => s.toolPlan);
+    const currentStageIndex = useAppStore(s => s.currentStageIndex);
+    const completedStages = useAppStore(s => s.completedStages);
 
     return (
         <div className={cn("flex flex-col h-full bg-secondary/30 border-l border-border w-64", className)}>

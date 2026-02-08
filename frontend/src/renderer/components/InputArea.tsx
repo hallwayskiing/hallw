@@ -1,66 +1,35 @@
 import { Send, Settings, Square, ArrowLeft } from 'lucide-react';
-import { useState, useEffect, FormEvent, KeyboardEvent } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useState, FormEvent, KeyboardEvent } from 'react';
+import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
 interface InputAreaProps {
     onSettingsClick: () => void;
-    onStartTask: () => void;
-    hasStarted: boolean;
     onBack: () => void;
 }
 
-export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }: InputAreaProps) {
-    const { socket, isConnected } = useSocket();
+export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
+    const isChatting = useAppStore(s => s.isChatting);
+    const isProcessing = useAppStore(s => s.isProcessing);
+    const startTask = useAppStore(s => s.startTask);
+    const stopTask = useAppStore(s => s.stopTask);
+
     const [input, setInput] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
-
-    useEffect(() => {
-        if (!socket) return;
-
-        const handleTaskFinished = () => {
-            setIsProcessing(false);
-        };
-
-        // All these events should enable input
-        socket.on('task_finished', handleTaskFinished);
-        socket.on('tool_error', handleTaskFinished);
-        socket.on('fatal_error', handleTaskFinished);
-
-        return () => {
-            socket.off('task_finished', handleTaskFinished);
-            socket.off('tool_error', handleTaskFinished);
-            socket.off('fatal_error', handleTaskFinished);
-        };
-    }, [socket]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
-
-        // Switch to chat view immediately
-        if (onStartTask) onStartTask();
-
-        if (isConnected && socket) {
-            console.log("Emitting start_task:", input, "is_reply:", hasStarted);
-            socket.emit('start_task', { task: input, is_reply: hasStarted });
-        } else {
-            console.log("Task submitted while disconnected:", input);
-        }
-
+        startTask(input);
         setInput('');
-        setIsProcessing(true);
     };
 
     const handleStop = () => {
-        if (isConnected && socket) socket.emit('stop_task');
-        setIsProcessing(false);
+        stopTask();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            // We need to cast e because handleSubmit expects FormEvent
             handleSubmit(e as unknown as FormEvent);
         }
     }
@@ -71,10 +40,10 @@ export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }: 
 
                 {/* Back / Settings Button */}
                 <button
-                    onClick={hasStarted ? onBack : onSettingsClick}
+                    onClick={isChatting ? onBack : onSettingsClick}
                     className="flex items-center justify-center px-3 rounded-xl hover:bg-muted text-muted-foreground transition-colors border border-transparent"
                 >
-                    {hasStarted ? <ArrowLeft className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
+                    {isChatting ? <ArrowLeft className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
                 </button>
 
                 {/* Input Form */}

@@ -1,196 +1,40 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useEffect, useRef } from 'react';
+import { useAppStore, Message } from '../stores/appStore';
 import { cn } from '../lib/utils';
 import { Bot, User, AlertTriangle } from 'lucide-react';
 import { Confirmation } from './Confirmation';
-import { RuntimeInput, RuntimeInputStatus } from './RuntimeInput';
+import { RuntimeInput } from './RuntimeInput';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 type MessageRole = 'user' | 'assistant' | 'system';
-type ConfirmationStatus = 'pending' | 'approved' | 'rejected' | 'timeout';
-
-interface BaseMessage {
-    role: MessageRole;
-}
-
-interface TextMessage extends BaseMessage {
-    type: 'text';
-    content: string;
-}
-
-interface ErrorMessage extends BaseMessage {
-    type: 'error';
-    content: string;
-}
-
-interface ConfirmationMessage extends BaseMessage {
-    type: 'confirmation';
-    requestId: string;
-    command: string;
-    status: ConfirmationStatus;
-}
-
-interface UserInputMessage extends BaseMessage {
-    type: 'user_input';
-    requestId: string;
-    prompt: string;
-    result: string;
-    status: RuntimeInputStatus;
-}
-
-type Message = TextMessage | ErrorMessage | ConfirmationMessage | UserInputMessage;
-
-interface ConfirmationRequest {
-    request_id: string;
-    message: string;
-    timeout?: number;
-}
-
-interface UserInputRequest {
-    request_id: string;
-    message: string;
-    timeout?: number;
-}
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export function ChatArea() {
-    const { socket } = useSocket();
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [streamingContent, setStreamingContent] = useState('');
-    const [isThinking, setIsThinking] = useState(false);
-    const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
-    const [pendingInput, setPendingInput] = useState<UserInputRequest | null>(null);
+    const messages = useAppStore(s => s.messages);
+    const streamingContent = useAppStore(s => s.streamingContent);
+    const isProcessing = useAppStore(s => s.isProcessing);
+    const pendingConfirmation = useAppStore(s => s.pendingConfirmation);
+    const pendingInput = useAppStore(s => s.pendingInput);
+    const handleConfirmationDecision = useAppStore(s => s.handleConfirmationDecision);
+    const handleInputDecision = useAppStore(s => s.handleInputDecision);
+
     const bottomRef = useRef<HTMLDivElement>(null);
-
-    // Flush streaming content to messages and return empty string
-    const flushStreamingContent = useCallback(() => {
-        setStreamingContent(current => {
-            if (current) {
-                setMessages(prev => {
-                    const last = prev[prev.length - 1];
-                    // Prevent duplicates
-                    if (last?.type === 'text' && last.role === 'assistant' && last.content === current) {
-                        return prev;
-                    }
-                    return [...prev, { type: 'text', role: 'assistant', content: current }];
-                });
-            }
-            return '';
-        });
-    }, []);
-
-    // Socket event handlers
-    useEffect(() => {
-        if (!socket) return;
-
-        const onUserMessage = (msg: string) => {
-            setMessages(prev => [...prev, { type: 'text', role: 'user', content: msg }]);
-            setStreamingContent('');
-            setIsThinking(true);
-        };
-
-        const onNewToken = (token: string) => {
-            setIsThinking(false);
-            setStreamingContent(prev => prev + token);
-        };
-
-        const onTaskFinished = () => {
-            flushStreamingContent();
-            setIsThinking(false);
-        };
-
-        const onFatalError = (data: unknown) => {
-            const content = typeof data === 'string'
-                ? data
-                : (data as { message?: string }).message || JSON.stringify(data);
-            setMessages(prev => [...prev, { type: 'error', role: 'system', content }]);
-            setIsThinking(false);
-        };
-
-        const onReset = () => {
-            setMessages([]);
-            setStreamingContent('');
-            setIsThinking(false);
-            setPendingConfirmation(null);
-            setPendingInput(null);
-        };
-
-        const onRequestConfirmation = (data: ConfirmationRequest) => {
-            flushStreamingContent();
-            setPendingConfirmation(data);
-            setIsThinking(false);
-        };
-
-        const onRequestUserInput = (data: UserInputRequest) => {
-            flushStreamingContent();
-            setPendingInput(data);
-            setIsThinking(false);
-        };
-
-        // Register events
-        socket.on('user_message', onUserMessage);
-        socket.on('llm_new_token', onNewToken);
-        socket.on('task_finished', onTaskFinished);
-        socket.on('fatal_error', onFatalError);
-        socket.on('reset', onReset);
-        socket.on('request_confirmation', onRequestConfirmation);
-        socket.on('request_user_input', onRequestUserInput);
-
-        return () => {
-            socket.off('user_message', onUserMessage);
-            socket.off('llm_new_token', onNewToken);
-            socket.off('task_finished', onTaskFinished);
-            socket.off('fatal_error', onFatalError);
-            socket.off('reset', onReset);
-            socket.off('request_confirmation', onRequestConfirmation);
-            socket.off('request_user_input', onRequestUserInput);
-        };
-    }, [socket, flushStreamingContent]);
 
     // Auto-scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, streamingContent, isThinking, pendingConfirmation, pendingInput]);
-
-    // Handle confirmation decision
-    const handleConfirmationDecision = useCallback((status: ConfirmationStatus) => {
-        if (!pendingConfirmation) return;
-
-        setMessages(prev => [...prev, {
-            type: 'confirmation',
-            role: 'system',
-            requestId: pendingConfirmation.request_id,
-            command: pendingConfirmation.message,
-            status
-        }]);
-        setPendingConfirmation(null);
-    }, [pendingConfirmation]);
-
-    // Handle input decision
-    const handleInputDecision = useCallback((status: RuntimeInputStatus, value?: string) => {
-        if (!pendingInput) return;
-
-        setMessages(prev => [...prev, {
-            type: 'user_input',
-            role: 'system',
-            requestId: pendingInput.request_id,
-            prompt: pendingInput.message,
-            result: value || '',
-            status
-        }]);
-        setPendingInput(null);
-    }, [pendingInput]);
+    }, [messages, streamingContent, isProcessing, pendingConfirmation, pendingInput]);
 
     // Empty state
-    if (messages.length === 0 && !streamingContent && !isThinking) {
+    if (messages.length === 0 && !streamingContent && !isProcessing) {
         return null;
     }
 
@@ -231,7 +75,7 @@ export function ChatArea() {
             )}
 
             {/* Thinking Indicator */}
-            {isThinking && !streamingContent && <ThinkingIndicator />}
+            {isProcessing && !streamingContent && <ThinkingIndicator />}
 
             <div ref={bottomRef} className="h-4" />
         </div>
@@ -259,9 +103,10 @@ function renderMessage(msg: Message) {
                     message={msg.prompt}
                     initialStatus={msg.status}
                     initialValue={msg.result}
-                // No onDecision needed for history items
                 />
             );
+        case 'status':
+            return <StatusIndicator variant={msg.variant} />;
         case 'error':
             return <ErrorCard content={msg.content} />;
         case 'text':
@@ -350,6 +195,20 @@ function ThinkingIndicator() {
                 <div className="h-4 w-24 bg-muted/50 rounded" />
                 <div className="h-3 w-64 bg-muted/30 rounded" />
             </div>
+        </div>
+    );
+}
+
+function StatusIndicator({ variant }: { variant: 'completed' | 'cancelled' }) {
+    const isCompleted = variant === 'completed';
+    return (
+        <div className="max-w-3xl mx-auto w-full text-center py-2">
+            <span className={cn(
+                "text-xs",
+                isCompleted ? "text-muted-foreground" : "text-destructive/70"
+            )}>
+                {isCompleted ? '— Task completed —' : '— Task cancelled —'}
+            </span>
         </div>
     );
 }

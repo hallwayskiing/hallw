@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useAppStore } from '../stores/appStore';
 
 type Status = 'pending' | 'approved' | 'rejected' | 'timeout';
 
@@ -13,7 +13,7 @@ interface ConfirmationProps {
 }
 
 export function Confirmation({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) {
-    const { socket } = useSocket();
+    const getSocket = useAppStore(s => s.getSocket);
     const [timeLeft, setTimeLeft] = useState(timeout || 0);
     const [status, setStatus] = useState<Status>(initialStatus || 'pending');
 
@@ -35,6 +35,7 @@ export function Confirmation({ requestId, message, timeout, initialStatus, onDec
 
     const handleDecision = (_status: Status) => {
         setStatus(_status);
+        const socket = getSocket();
         if (socket) {
             socket.emit('resolve_confirmation', {
                 request_id: requestId,
