@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-07
+
 ### Added
 - New: User profile support
+- New: Claude Skills support
+- New: Runtime user inputs
+
+### Changed
+- Search now uses Brave Search API instead of browser retrieval.
+
+### Removed
+- Removed `file` tools. `exec` replaced them all.
 
 ## [0.7.0] - 2026-01-27
 
