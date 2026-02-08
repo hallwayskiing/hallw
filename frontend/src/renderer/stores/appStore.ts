@@ -88,6 +88,7 @@ interface AppState {
     toolPlan: string[];
     currentStageIndex: number;
     completedStages: number[];
+    cancelledStageIndex: number;
 
     // Internal
     _socket: Socket | null;
@@ -143,6 +144,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     toolPlan: [],
     currentStageIndex: -1,
     completedStages: [],
+    cancelledStageIndex: -1,
     _socket: null,
     _streamingContentRef: '',
 
@@ -341,7 +343,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 streamingContent: '',
                 _streamingContentRef: '',
                 isProcessing: false,
-                toolStates: updatedToolStates
+                toolStates: updatedToolStates,
+                cancelledStageIndex: state.currentStageIndex
             };
         });
     },

@@ -39,8 +39,8 @@ export default function App() {
         />
       </div>
 
-      {/* Sidebar (Right) */}
-      <Sidebar className="flex-shrink-0" />
+      {/* Sidebar (Right) - Only show when chatting */}
+      {isChatting && <Sidebar className="flex-shrink-0" />}
 
       {/* Modals */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
