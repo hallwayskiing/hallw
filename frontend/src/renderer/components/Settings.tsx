@@ -1,7 +1,17 @@
-import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight } from 'lucide-react';
+import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key } from 'lucide-react';
 import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
+
+// Provider definitions for API Keys tab
+const ALL_PROVIDERS = [
+    { key: 'openai_api_key', label: 'OpenAI', placeholder: 'sk-...', color: 'text-emerald-300' },
+    { key: 'google_api_key', label: 'Google', placeholder: 'AIza...', color: 'text-blue-300' },
+    { key: 'anthropic_api_key', label: 'Anthropic', placeholder: 'sk-ant-...', color: 'text-orange-300' },
+    { key: 'openrouter_api_key', label: 'OpenRouter', placeholder: 'sk-or-...', color: 'text-purple-300' },
+    { key: 'zai_api_key', label: 'ZAI', placeholder: 'Enter ZAI API key', color: 'text-cyan-300' },
+    { key: 'moonshot_api_key', label: 'Moonshot', placeholder: 'sk-...', color: 'text-yellow-300' },
+];
 
 interface SettingsProps {
     isOpen: boolean;
@@ -13,11 +23,17 @@ interface Config {
     // Model
     model_name?: string;
     model_endpoint?: string;
-    model_api_key?: string;
     model_temperature?: number;
     model_max_output_tokens?: number;
     model_reflection_threshold?: number;
     model_max_recursion?: number;
+    // Provider API Keys
+    openai_api_key?: string;
+    google_api_key?: string;
+    anthropic_api_key?: string;
+    openrouter_api_key?: string;
+    zai_api_key?: string;
+    moonshot_api_key?: string;
     // LangSmith
     langsmith_tracing?: boolean;
     langsmith_endpoint?: string;
@@ -60,6 +76,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
     { id: 'model', label: 'Model', icon: <Sparkles className="w-4 h-4" />, color: 'text-amber-300', gradient: 'from-amber-500/15 to-orange-500/5' },
+    { id: 'api-keys', label: 'API Keys', icon: <Key className="w-4 h-4" />, color: 'text-cyan-300', gradient: 'from-cyan-500/15 to-teal-500/5' },
     { id: 'langsmith', label: 'LangSmith', icon: <FileText className="w-4 h-4" />, color: 'text-emerald-300', gradient: 'from-emerald-500/15 to-teal-500/5' },
     { id: 'logging', label: 'Logging', icon: <Terminal className="w-4 h-4" />, color: 'text-sky-300', gradient: 'from-sky-500/15 to-cyan-500/5' },
     { id: 'exec-search', label: 'Exec & Search', icon: <Search className="w-4 h-4" />, color: 'text-violet-300', gradient: 'from-violet-500/15 to-purple-500/5' },
@@ -199,11 +216,8 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             <InputGroup label="Model Name" desc="e.g. gemini/gemini-2.5-flash">
                                                 <Input name="model_name" value={config.model_name || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_name', e.target.value)} placeholder="gemini/gemini-2.5-flash" />
                                             </InputGroup>
-                                            <InputGroup label="API Endpoint" desc="Base URL for the model API">
+                                            <InputGroup label="Custom Endpoint" desc="Base URL for the custom model API">
                                                 <Input name="model_endpoint" value={config.model_endpoint || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_endpoint', e.target.value)} placeholder="https://api.openai.com/v1" />
-                                            </InputGroup>
-                                            <InputGroup label="API Key" desc="Secret key for authentication">
-                                                <Input name="model_api_key" type="password" value={config.model_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_api_key', e.target.value)} placeholder="sk-..." />
                                             </InputGroup>
                                         </SectionCard>
 
@@ -224,6 +238,24 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             </div>
                                         </SectionCard>
                                     </>
+                                )}
+
+                                {activeTab === 'api-keys' && (
+                                    <SectionCard title="Provider API Keys" icon={<Key className="w-4 h-4" />} color="text-cyan-300" gradient="from-cyan-500/8 to-teal-500/3">
+                                        <div className="space-y-4">
+                                            {ALL_PROVIDERS.map(provider => (
+                                                <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API key`}>
+                                                    <Input
+                                                        name={provider.key}
+                                                        type="password"
+                                                        value={config[provider.key] || ''}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(provider.key, e.target.value)}
+                                                        placeholder={provider.placeholder}
+                                                    />
+                                                </InputGroup>
+                                            ))}
+                                        </div>
+                                    </SectionCard>
                                 )}
 
                                 {activeTab === 'langsmith' && (

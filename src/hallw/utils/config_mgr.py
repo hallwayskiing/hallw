@@ -9,15 +9,24 @@ class Settings(BaseSettings):
     # 1. Model Settings
     # =================================================
     model_name: str = "gemini-2.5-flash"
-    model_endpoint: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-    model_api_key: SecretStr
-    model_temperature: float = 0.25
+    model_endpoint: str = ""
+    model_temperature: float = 1
     model_max_output_tokens: int = 10240
     model_reflection_threshold: int = 3
-    model_max_recursion: int = 50
+    model_max_recursion: int = 200
 
     # =================================================
-    # 2. LangSmith (Tracing)
+    # 2. Provider API Keys
+    # =================================================
+    openai_api_key: Optional[SecretStr] = None
+    google_api_key: Optional[SecretStr] = None
+    anthropic_api_key: Optional[SecretStr] = None
+    openrouter_api_key: Optional[SecretStr] = None
+    zai_api_key: Optional[SecretStr] = None
+    moonshot_api_key: Optional[SecretStr] = None
+
+    # =================================================
+    # 3. LangSmith (Tracing)
     # =================================================
     langsmith_tracing: bool = False
     langsmith_endpoint: str = "https://api.smith.langchain.com"
@@ -25,14 +34,14 @@ class Settings(BaseSettings):
     langsmith_project: str = "HALLW"
 
     # =================================================
-    # 3. Logging
+    # 4. Logging
     # =================================================
     logging_level: str = "INFO"
     logging_file_dir: str = "logs"
     logging_max_chars: int = 200
 
     # =================================================
-    # 4. Exec & Search
+    # 5. Exec & Search
     # =================================================
     auto_allow_exec: bool = False
     auto_allow_blacklist: List[str] = []
@@ -40,7 +49,7 @@ class Settings(BaseSettings):
     brave_search_result_count: int = 5
 
     # =================================================
-    # 5. Playwright & Browser
+    # 6. Playwright & Browser
     # =================================================
     prefer_local_chrome: bool = True
     chrome_user_data_dir: Optional[str] = None

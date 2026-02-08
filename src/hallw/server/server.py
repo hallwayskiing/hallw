@@ -60,17 +60,10 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     conversation_history.append(user_msg)
     logger.info(f"User: {user_task}")
 
-    custom_provider = None
-    if config.model_name.startswith("gemini"):
-        custom_provider = "google_ai"
-
     # LLM Configuration
-    api_key = config.model_api_key.get_secret_value() if config.model_api_key else None
     llm = ChatLiteLLM(
         model=config.model_name,
-        base_url=config.model_endpoint,
-        api_key=api_key,
-        custom_provider=custom_provider,
+        api_base=config.model_endpoint,
         temperature=config.model_temperature,
         max_tokens=config.model_max_output_tokens,
         streaming=True,
