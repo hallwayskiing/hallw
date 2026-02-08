@@ -76,15 +76,10 @@ MODEL_API_KEY=your-api-key-here
 MODEL_NAME=gemini-2.5-flash
 ```
 
-Copy the example PROFILE file, and fill out the fields to give the Agent your personal information, in order to better accomplish tasks.
-
-```bash
-# Windows
-copy PROFILE.example PROFILE
-# Linux
-cp PROFILE.example PROFILE
+Configure your Brave Search API key in the .env file.
+```env
+BRAVE_SEARCH_API_KEY=your-brave-search-api-key-here
 ```
-
 
 ### 3. Run!
 
@@ -130,6 +125,15 @@ All settings are managed via `.env`.
 | `MODEL_API_KEY` | **Required** API Key | - |
 | `MODEL_TEMPERATURE` | Creativity (0.0 - 1.0) | `0.25` |
 
+### Exec & Search Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ALLOW_AUTO_EXEC` | Allow auto execution | `False` |
+| `ALLOW_AUTO_BLACKLIST` | Commands that still need confirmation | `[]` |
+| `BRAVE_SEARCH_API_KEY` | Brave Search API key | - |
+| `BRAVE_SEARCH_RESULT_COUNT` | Brave Search result count | `5` |
+
 ### 🌐 Browser Settings
 
 | Variable | Description | Default |
@@ -137,15 +141,7 @@ All settings are managed via `.env`.
 | `CHROME_USER_DATA_DIR` | Path to storage chrome user date | [.chrome_user_data/](./.chrome_user_data/) |
 | `PW_HEADLESS_MODE` | Run without visible window (`True`/`False`) | `False` |
 | `KEEP_PAGE_OPEN` | Keep pages open after task finishes | `True` |
-| `SEARCH_RESULT_COUNT` | Google search depth | `10` |
 | `PREFER_LOCAL_CHROME` | Use local chrome first | `True` |
-
-### 📁 File System Settings
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FILE_SAVE_DIR` |	Directory where the agent saves files |	workspace/ |
-| `FILE_READ_DIR` |	Base directory allowed for reading files	| . |
-| `FILE_MAX_READ_CHARS` |	Max characters to read from one file | 5000 |
 
 -----
 
@@ -158,17 +154,23 @@ HALLW is built on a modular architecture designed for extensibility.
 ```text
 hallw/
 ├── logs/                   # Task logs
+├── frontend/               # Frontend codes
 ├── src/                    # Source codes
 │   └── hallw/              # Main Folder
-│       ├── agent.py        # LangGraph State Machine
-│       ├── tools/          # Auto-discovered Tool Modules
+│       ├── core/           # Core codes
+│       ├── server/         # Server codes
+│       ├── tools/          # Tools codes
 │       │   ├── playwright/ # Browser Tools
-│       │   ├── file/       # File System Tools
+│       │   ├── interactive/# Interactive Tools
+│       │   ├── search/     # Search Tools
 │       │   └── system/     # System Command Tools
-│       ├── ui/             # User Interface
 │       └── utils/          # Config & Logger & Others
 ├── main.py                 # Application Entry Point
-├── start.bat               # One-click Launcher
+├── workspace/              # Workspace
+├── .env                    # Environment variables
+├── .env.example            # Environment variables example
+├── start.bat               # One-click Launcher (Windows)
+├── start.sh                # One-click Launcher (Linux)
 ├── uv.lock                 # Frozen Dependencies
 └── pyproject.toml          # Package Metadata
 ```

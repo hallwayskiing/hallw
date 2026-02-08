@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-08
+
+### Added
+- feat(ui): use Zustand to manage component states and socket
+- feat(ui): refine Sidebar UI with auto-scaling
+- feat(ui): redesign welcome page with articles, animations and interactions
+- feat(ui): redesign settings page with better layout and controls
+- feat(tools): enable auto-allow exec with configurable blacklist
+
+### Changed
+- refactor(core): migrate from langchain_openai to langchain_litellm for Gemini 3 Series support
+
 ## [0.8.0] - 2026-02-07
 
 ### Added
