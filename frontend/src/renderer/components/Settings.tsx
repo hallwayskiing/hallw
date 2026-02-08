@@ -29,6 +29,7 @@ interface Config {
     logging_max_chars?: number;
     // Exec & Search
     auto_allow_exec?: boolean;
+    auto_allow_blacklist?: string[];
     brave_search_api_key?: string;
     brave_search_result_count?: number;
     // Browser
@@ -284,6 +285,17 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                                 onChange={(checked) => handleChange('auto_allow_exec', checked)}
                                                 color="bg-gradient-to-r from-violet-400 to-purple-400"
                                             />
+                                            {config.auto_allow_exec && (
+                                                <div className="border-t border-border/30 pt-4 mt-4">
+                                                    <StringListEditor
+                                                        label="Blacklist Commands"
+                                                        desc="Commands that still require confirmation"
+                                                        items={config.auto_allow_blacklist || []}
+                                                        onChange={(items) => handleChange('auto_allow_blacklist', items)}
+                                                        placeholder="e.g. rm, del, format..."
+                                                    />
+                                                </div>
+                                            )}
                                         </SectionCard>
 
                                         <SectionCard title="Search Settings" icon={<Search className="w-4 h-4" />} color="text-purple-300" gradient="from-purple-500/8 to-violet-500/3">
@@ -469,4 +481,81 @@ function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputEleme
             )}
         />
     )
+}
+
+function StringListEditor({ label, desc, items, onChange, placeholder }: {
+    label: string;
+    desc?: string;
+    items: string[];
+    onChange: (items: string[]) => void;
+    placeholder?: string;
+}) {
+    const [inputValue, setInputValue] = useState('');
+
+    const handleAdd = () => {
+        const trimmed = inputValue.trim();
+        if (trimmed && !items.includes(trimmed)) {
+            onChange([...items, trimmed]);
+            setInputValue('');
+        }
+    };
+
+    const handleRemove = (index: number) => {
+        onChange(items.filter((_, i) => i !== index));
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAdd();
+        }
+    };
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">{label}</label>
+                {desc && <span className="text-xs text-muted-foreground">{desc}</span>}
+            </div>
+
+            {/* Input row */}
+            <div className="flex gap-2">
+                <input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    className="flex-1 bg-input/30 border border-input/50 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground/40"
+                />
+                <button
+                    type="button"
+                    onClick={handleAdd}
+                    className="px-4 py-2 text-sm font-medium bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 rounded-xl transition-colors"
+                >
+                    Add
+                </button>
+            </div>
+
+            {/* Tags */}
+            {items.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {items.map((item, index) => (
+                        <span
+                            key={index}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/15 text-violet-300 rounded-lg text-sm group"
+                        >
+                            {item}
+                            <button
+                                type="button"
+                                onClick={() => handleRemove(index)}
+                                className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-violet-500/30 transition-colors"
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }

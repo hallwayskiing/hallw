@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # 4. Exec & Search
     # =================================================
     auto_allow_exec: bool = False
+    auto_allow_blacklist: List[str] = []
     brave_search_api_key: Optional[SecretStr] = None
     brave_search_result_count: int = 5
 
@@ -70,7 +71,16 @@ def save_config_to_env(updates: dict):
     or just appends/overwrites.
     Simple implementation: Read .env lines, replace matching keys, write back.
     """
+    import json
     import os
+
+    def format_env_value(val):
+        """Format a value for .env file. Lists are JSON-encoded with double quotes."""
+        if isinstance(val, list):
+            return json.dumps(val)  # Returns ["item1", "item2"] format
+        elif isinstance(val, bool):
+            return str(val)
+        return val
 
     env_path = ".env"
 
@@ -78,7 +88,7 @@ def save_config_to_env(updates: dict):
         # Create new
         with open(env_path, "w", encoding="utf-8") as f:
             for k, v in updates.items():
-                f.write(f"{k.upper()}={v}\n")
+                f.write(f"{k.upper()}={format_env_value(v)}\n")
     else:
         # Read existing
         with open(env_path, "r", encoding="utf-8") as f:
@@ -99,7 +109,7 @@ def save_config_to_env(updates: dict):
                 if key.lower() in updates:
                     # Update line
                     val = updates[key.lower()]
-                    new_lines.append(f"{key}={val}\n")
+                    new_lines.append(f"{key}={format_env_value(val)}\n")
                     updated_keys.add(key.lower())
                 else:
                     new_lines.append(line)
@@ -109,13 +119,16 @@ def save_config_to_env(updates: dict):
         # Append new keys that weren't in the file
         for k, v in updates.items():
             if k.lower() not in updated_keys:
-                new_lines.append(f"{k.upper()}={v}\n")
+                new_lines.append(f"{k.upper()}={format_env_value(v)}\n")
 
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
+    # Reload config from .env with proper type conversion
+    from dotenv import load_dotenv
 
-    # Update global config
     global config
-    for k, v in updates.items():
-        if hasattr(config, k):
-            setattr(config, k, v)
+    load_dotenv(override=True)
+    new_config = Settings()
+    # Update existing object's attributes (preserves references in other modules)
+    for key, value in new_config.model_dump().items():
+        setattr(config, key, value)

@@ -7,6 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
+from hallw.utils import config as app_config
 
 CONFIRM_TIMEOUT = 60
 
@@ -51,6 +52,15 @@ async def _run_system(command: str) -> str:
     return build_tool_response(False, error_msg)
 
 
+def _is_command_blacklisted(command: str, blacklist: list[str]) -> bool:
+    """Check if command contains any blacklisted keywords."""
+    command_lower = command.lower()
+    for keyword in blacklist:
+        if keyword.lower() in command_lower:
+            return True
+    return False
+
+
 @tool
 async def exec(command: str, config: RunnableConfig) -> str:
     """Execute a system command. Use `sh` on Linux or `powershell` on Windows.
@@ -66,16 +76,21 @@ async def exec(command: str, config: RunnableConfig) -> str:
     if renderer is None:
         return build_tool_response(False, "Internal error: renderer not available.")
 
-    request_id = str(uuid.uuid4())
-    status = await renderer.on_request_confirmation(
-        request_id,
-        CONFIRM_TIMEOUT,
-        f"System command execution: {command}",
-    )
+    # Check auto-allow settings
+    auto_allow = getattr(app_config, "auto_allow_exec", False)
+    blacklist = getattr(app_config, "auto_allow_blacklist", [])
 
-    if status == "timeout":
-        return build_tool_response(False, "Timed out waiting for user confirmation.")
-    if status == "rejected":
-        return build_tool_response(False, "System command execution rejected by user.")
+    if not auto_allow or _is_command_blacklisted(command, blacklist):
+        request_id = str(uuid.uuid4())
+        status = await renderer.on_request_confirmation(
+            request_id,
+            CONFIRM_TIMEOUT,
+            f"System command execution: {command}",
+        )
+
+        if status == "timeout":
+            return build_tool_response(False, "Timed out waiting for user confirmation.")
+        if status == "rejected":
+            return build_tool_response(False, "System command execution rejected by user.")
 
     return await _run_system(command)
