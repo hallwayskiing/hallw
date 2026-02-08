@@ -88,7 +88,7 @@ interface AppState {
     toolPlan: string[];
     currentStageIndex: number;
     completedStages: number[];
-    cancelledStageIndex: number;
+    errorStageIndex: number;
 
     // Internal
     _socket: Socket | null;
@@ -144,7 +144,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     toolPlan: [],
     currentStageIndex: -1,
     completedStages: [],
-    cancelledStageIndex: -1,
+    errorStageIndex: -1,
     _socket: null,
     _streamingContentRef: '',
 
@@ -294,7 +294,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     },
 
     _onTaskStarted: () => {
-        set({ isProcessing: true });
+        set({
+            isProcessing: true,
+            // Reset sidebar state for new task
+            toolPlan: [],
+            currentStageIndex: -1,
+            completedStages: [],
+            errorStageIndex: -1
+        });
     },
 
     _onTaskFinished: () => {
@@ -344,7 +351,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
                 _streamingContentRef: '',
                 isProcessing: false,
                 toolStates: updatedToolStates,
-                cancelledStageIndex: state.currentStageIndex
+                errorStageIndex: state.currentStageIndex
             };
         });
     },
@@ -353,10 +360,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const content = typeof data === 'string'
             ? data
             : (data as { message?: string }).message || JSON.stringify(data);
-        set(state => ({
-            messages: [...state.messages, { type: 'error', role: 'system', content }],
-            isProcessing: false
-        }));
+        set(state => {
+            // Mark last running tool as error
+            const updatedToolStates = [...state.toolStates];
+            if (updatedToolStates.length > 0) {
+                const lastIdx = updatedToolStates.length - 1;
+                if (updatedToolStates[lastIdx].status === 'running') {
+                    updatedToolStates[lastIdx] = { ...updatedToolStates[lastIdx], status: 'error' };
+                }
+            }
+
+            return {
+                messages: [...state.messages, { type: 'error', role: 'system', content }],
+                isProcessing: false,
+                toolStates: updatedToolStates,
+                errorStageIndex: state.currentStageIndex
+            };
+        });
     },
 
     _onReset: () => {
@@ -371,6 +391,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             toolPlan: [],
             currentStageIndex: -1,
             completedStages: [],
+            errorStageIndex: -1,
             isChatting: false
         });
     },

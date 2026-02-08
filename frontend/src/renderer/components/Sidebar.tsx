@@ -21,7 +21,7 @@ export function Sidebar({ className }: SidebarProps) {
     const toolPlan = useAppStore(s => s.toolPlan);
     const currentStageIndex = useAppStore(s => s.currentStageIndex);
     const completedStages = useAppStore(s => s.completedStages);
-    const cancelledStageIndex = useAppStore(s => s.cancelledStageIndex);
+    const errorStageIndex = useAppStore(s => s.errorStageIndex);
 
     return (
         <div
@@ -47,7 +47,7 @@ export function Sidebar({ className }: SidebarProps) {
                 stages={toolPlan}
                 currentIndex={currentStageIndex}
                 completedIndices={completedStages}
-                cancelledStageIndex={cancelledStageIndex}
+                errorStageIndex={errorStageIndex}
                 isExpanded={isExpanded}
             />
 
@@ -65,11 +65,11 @@ interface StagesPanelProps {
     stages: string[];
     currentIndex: number;
     completedIndices: number[];
-    cancelledStageIndex: number | null;
+    errorStageIndex: number;
     isExpanded: boolean;
 }
 
-function StagesPanel({ stages, currentIndex, completedIndices, cancelledStageIndex, isExpanded }: StagesPanelProps) {
+function StagesPanel({ stages, currentIndex, completedIndices, errorStageIndex, isExpanded }: StagesPanelProps) {
     return (
         <div className={cn(
             "flex-1 overflow-y-auto border-b border-border transition-all duration-300",
@@ -93,7 +93,7 @@ function StagesPanel({ stages, currentIndex, completedIndices, cancelledStageInd
                             label={step}
                             isCurrent={idx === currentIndex}
                             isCompleted={completedIndices.includes(idx)}
-                            isCancelled={cancelledStageIndex === idx}
+                            isError={errorStageIndex === idx}
                             isExpanded={isExpanded}
                         />
                     ))
@@ -108,14 +108,14 @@ interface StageItemProps {
     label: string;
     isCurrent: boolean;
     isCompleted: boolean;
-    isCancelled: boolean;
+    isError: boolean;
     isExpanded: boolean;
 }
 
-function StageItem({ index, label, isCurrent, isCompleted, isCancelled, isExpanded }: StageItemProps) {
+function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }: StageItemProps) {
     const StatusIcon = isCompleted ? (
         <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-    ) : isCancelled ? (
+    ) : isError ? (
         <XCircle className="w-4 h-4 text-red-500 shrink-0" />
     ) : isCurrent ? (
         <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
@@ -134,7 +134,7 @@ function StageItem({ index, label, isCurrent, isCompleted, isCancelled, isExpand
     return (
         <div className={cn(
             "text-sm flex justify-between items-start gap-2",
-            isCancelled ? "text-red-500" : isCurrent ? "text-foreground font-medium" : "text-foreground/70"
+            isError ? "text-red-500" : isCurrent ? "text-foreground font-medium" : "text-foreground/70"
         )}>
             <div className="flex gap-2">
                 <span className="text-muted-foreground">{index + 1}.</span>
