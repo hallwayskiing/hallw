@@ -2,7 +2,7 @@
 .chrome*
 *.log
 workspace/
-PROFILE
+USER.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
