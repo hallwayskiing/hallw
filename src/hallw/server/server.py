@@ -7,7 +7,7 @@ from typing import Optional
 import socketio
 import uvicorn
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import SecretStr
 
@@ -15,7 +15,7 @@ from hallw.core import AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
-from hallw.utils import config, generateSystemPrompt, init_logger, logger
+from hallw.utils import config, generateSystemPrompt, init_logger, logger, save_config_to_env
 
 # --- Global State ---
 initiated = False
@@ -60,12 +60,17 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     conversation_history.append(user_msg)
     logger.info(f"User: {user_task}")
 
+    custom_provider = None
+    if config.model_name.startswith("gemini"):
+        custom_provider = "google_ai"
+
     # LLM Configuration
     api_key = config.model_api_key.get_secret_value() if config.model_api_key else None
-    llm = ChatOpenAI(
+    llm = ChatLiteLLM(
         model=config.model_name,
         base_url=config.model_endpoint,
         api_key=api_key,
+        custom_provider=custom_provider,
         temperature=config.model_temperature,
         max_tokens=config.model_max_output_tokens,
         streaming=True,
@@ -98,10 +103,6 @@ async def start_task(sid, data):
     if not task_text:
         return
 
-    # Cancel any existing running task before starting a new one
-    if active_task:
-        active_task.cancel()
-
     # Instantiate the new task
     agent_task = create_agent_task(task_text, sid)
     active_task = agent_task
@@ -110,21 +111,25 @@ async def start_task(sid, data):
     await sio.emit("user_message", task_text, room=sid)
 
     async def run_wrapper():
+        global active_task
         """Execution wrapper to run the agent and handle completion."""
         try:
-            await asyncio.shield(agent_task._run())
+            await agent_task._run()
 
             # Save final AI response to history for multi-turn memory
             if agent_renderer and agent_renderer._current_response:
                 conversation_history.append(AIMessage(content=agent_renderer._current_response))
 
-            await sio.emit("task_finished", {}, room=sid)
+            # Note: task_finished is already emitted by agent_task via renderer
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
-            await sio.emit("task_stopped", {}, room=sid)
+            await sio.emit("task_cancelled", {}, room=sid)
+            await active_task.cancel()
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
             await sio.emit("fatal_error", {"message": str(e)}, room=sid)
+        finally:
+            active_task = None
 
     # Start the agent task as a background asyncio Task
     agent_task._task = asyncio.create_task(run_wrapper())
@@ -140,7 +145,7 @@ async def reset_session(sid):
     await browser_close()
 
     if active_task:
-        active_task.cancel()
+        await active_task.cancel()
 
     # Reset all global variables
     conversation_history = []
@@ -175,8 +180,6 @@ async def update_config(sid, data):
     Updates the configuration and saves it to .env.
     """
     try:
-        from hallw.utils import save_config_to_env
-
         save_config_to_env(data)
         await sio.emit("config_updated", {"success": True}, room=sid)
     except Exception as e:
@@ -188,7 +191,7 @@ async def update_config(sid, data):
 async def stop_task(sid):
     """Signals the agent to stop current execution immediately."""
     if active_task:
-        active_task.cancel()
+        await active_task.cancel()
 
 
 @sio.event

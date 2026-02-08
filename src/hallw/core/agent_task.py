@@ -43,7 +43,7 @@ class AgentTask:
         self._task = asyncio.create_task(self._run())
         return self._task
 
-    def cancel(self) -> None:
+    async def cancel(self) -> None:
         """Request cancellation of the running task."""
         if self._task and not self._task.done():
             self._task.cancel()
@@ -73,7 +73,11 @@ class AgentTask:
                 name = event.get("name", "")
                 run_id = event.get("run_id", "")
 
-                if kind == "on_chat_model_start":
+                if kind == "on_chain_start" and name == "LangGraph":
+                    self.renderer.on_task_started()
+                elif kind == "on_chain_end" and name == "LangGraph":
+                    self.renderer.on_task_finished()
+                elif kind == "on_chat_model_start":
                     self.renderer.on_llm_start()
                 elif kind == "on_chat_model_stream":
                     chunk = data.get("chunk")

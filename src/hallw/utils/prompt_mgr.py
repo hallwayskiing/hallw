@@ -82,7 +82,8 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     Your main ability is enabled by `exec` tool, which can execute any command in the terminal.
     You are running in a {platform.system()} environment.
     At the beginning, you must call the `build_stages` tool to analyze the task and create stages.
-    At the end of each stage, you must call the `end_current_stage` tool to proceed to the next stage.
+    At the end of each stage, you must call the `end_current_stage` tool to proceed to the next stage,
+    or end the task if it is completed. Otherwise you will get stuck in the current stage.
     </identity>
 
     <available_tools>

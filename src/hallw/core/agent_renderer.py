@@ -9,6 +9,14 @@ class AgentRenderer(ABC):
     """
 
     @abstractmethod
+    def on_task_started(self) -> None:
+        """Called when a task starts."""
+
+    @abstractmethod
+    def on_task_finished(self) -> None:
+        """Called when a task finishes."""
+
+    @abstractmethod
     def on_llm_start(self) -> None:
         """Called when LLM starts generating response."""
 

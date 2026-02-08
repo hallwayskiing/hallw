@@ -42,6 +42,16 @@ class SocketAgentRenderer(AgentRenderer):
             # No running event loop, log and skip
             logger.warning(f"Cannot fire event {event}: no running event loop")
 
+    # --- Task Callback Handlers ---
+
+    def on_task_started(self) -> None:
+        """Notify frontend that a task has started."""
+        self._fire_event("task_started")
+
+    def on_task_finished(self) -> None:
+        """Notify frontend that a task has finished."""
+        self._fire_event("task_finished")
+
     # --- LLM Callback Handlers ---
 
     def on_llm_start(self) -> None:
