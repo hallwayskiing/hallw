@@ -52,8 +52,8 @@ async def _run_system(command: str) -> str:
 
 
 @tool
-async def exec_system_command(command: str, config: RunnableConfig) -> str:
-    """Execute a system command, auto-selecting PowerShell on Windows or sh on POSIX.
+async def exec(command: str, config: RunnableConfig) -> str:
+    """Execute a system command. Use `sh` on Linux or `powershell` on Windows.
 
     Args:
         command (str): The command to execute.

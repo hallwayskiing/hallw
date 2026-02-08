@@ -6,9 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # =================================================
-    # 1. Model Settings (LLM)
+    # 1. Model Settings
     # =================================================
-    model_name: str = "gemini-2.5-flash-lite"  # Recommended: fast and free in Google AI Studio
+    model_name: str = "gemini-2.5-flash"
     model_endpoint: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     model_api_key: SecretStr
     model_temperature: float = 0.25
@@ -26,13 +26,19 @@ class Settings(BaseSettings):
 
     # =================================================
     # 3. Logging
-    # =================================================``
+    # =================================================
     logging_level: str = "INFO"
     logging_file_dir: str = "logs"
     max_message_chars: int = 50
 
     # =================================================
-    # 4. Playwright & Browser
+    # 4. Search
+    # =================================================
+    brave_search_api_key: Optional[SecretStr] = None
+    brave_search_result_count: int = 5
+
+    # =================================================
+    # 5. Playwright & Browser
     # =================================================
     prefer_local_chrome: bool = True
     chrome_user_data_dir: Optional[str] = None
@@ -41,22 +47,10 @@ class Settings(BaseSettings):
     pw_window_width: int = 1920
     pw_window_height: int = 1080
     keep_browser_open: bool = True
-    browser_search_engine: str = "google"
-    search_result_count: int = 10
-    max_page_content_chars: int = 2000
-    # Timeouts (in seconds)
-    manual_captcha_timeout: int = 60
     # Playwright timeouts (in milliseconds)
     pw_goto_timeout: int = 10000
     pw_click_timeout: int = 6000
     pw_cdp_timeout: int = 1000
-
-    # =================================================
-    # 5. File Operations
-    # =================================================
-    file_read_dir: str = "."
-    file_save_dir: str = "workspace/"
-    file_max_read_chars: int = 5000
 
     # =================================================
     # Pydantic config
