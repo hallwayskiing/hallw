@@ -9,18 +9,21 @@ from langgraph.graph import END, START, StateGraph
 
 from hallw.core.agent_renderer import AgentRenderer
 from hallw.tools import (
+    build_stages,
     build_tool_response,
     dummy_for_missed_tool,
     parse_tool_response,
 )
-from hallw.tools.build_stage import build_stages
 from hallw.utils import config as hallw_config
 
 from .agent_state import AgentState, AgentStats
 
 
 def build_graph(
-    model: ChatOpenAI, tools_dict: dict[str, BaseTool], checkpointer: BaseCheckpointSaver, renderer: AgentRenderer
+    model: ChatOpenAI,
+    tools_dict: dict[str, BaseTool],
+    checkpointer: BaseCheckpointSaver,
+    renderer: AgentRenderer,
 ) -> StateGraph:
     async def build(state: AgentState, config: RunnableConfig) -> AgentState:
         messages = []
@@ -211,17 +214,7 @@ def build_graph(
         3. Propose the next correct tool calls.
         """
         hint_message = HumanMessage(content=hint_text.strip())
-
-        last_msg = state["messages"][-1]
-        messages_to_append = [hint_message]
-
-        if isinstance(last_msg, AIMessage) and last_msg.tool_calls:
-            for tc in last_msg.tool_calls:
-                messages_to_append.insert(
-                    0, ToolMessage(content="System: Tool execution interrupted for reflection.", tool_call_id=tc["id"])
-                )
-
-        messages_for_model = state["messages"] + messages_to_append
+        messages_for_model = state["messages"] + [hint_message]
 
         # 3. Call model for reflection
         response = await model.ainvoke(messages_for_model, config=config)
@@ -244,14 +237,12 @@ def build_graph(
         return {"messages": [response], "stats": stats_delta}
 
     def route_from_model(state: AgentState) -> str:
-        if state.get("empty_response", False):
-            return "model"
-
-        # Only route to tools if there are actual tool calls
+        # Route to tools if there are actual tool calls
         last_msg = state["messages"][-1]
         if isinstance(last_msg, AIMessage) and last_msg.tool_calls:
             return "tools"
 
+        # Route to model to keep running
         return "model"
 
     def route_from_tools(state: AgentState) -> str:
@@ -298,7 +289,7 @@ def build_graph(
         },
     )
 
-    builder.add_edge("reflection", "model")
+    builder.add_edge("reflection", "tools")
 
     workflow = builder.compile(checkpointer=checkpointer)
 

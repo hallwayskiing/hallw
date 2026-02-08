@@ -22,6 +22,7 @@ export function InputArea({ onSettingsClick, onStartTask, hasStarted, onBack }: 
             setIsProcessing(false);
         };
 
+        // All these events should enable input
         socket.on('task_finished', handleTaskFinished);
         socket.on('tool_error', handleTaskFinished);
         socket.on('fatal_error', handleTaskFinished);

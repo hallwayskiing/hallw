@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import SecretStr
 
-from hallw.core import AgentTask
+from hallw.core import AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
@@ -42,17 +42,9 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         task_id = str(uuid.uuid4())
         init_logger(task_id)
 
-        # Read user profile
-        user_profile = ""
-        try:
-            with open("PROFILE", "r") as f:
-                user_profile = f.read()
-        except FileNotFoundError:
-            user_profile = "User does not provide any profile information."
-
         # Create renderer and conversation history
         agent_renderer = SocketAgentRenderer(sio, sid)
-        conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict, user_profile))]
+        conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
 
         initiated = True
     else:
@@ -80,12 +72,18 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         stream_usage=True,
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
+    # Build initial state
+    initial_state: AgentState = {
+        "messages": messages,
+        "task_completed": False,
+    }
+
     return AgentTask(
         task_id=task_id,
         llm=llm,
         tools_dict=tools_dict,
         renderer=agent_renderer,
-        initial_state={"messages": messages, "task_completed": False},
+        initial_state=initial_state,
         checkpointer=checkpointer,
     )
 
@@ -120,10 +118,10 @@ async def start_task(sid, data):
             if agent_renderer and agent_renderer._current_response:
                 conversation_history.append(AIMessage(content=agent_renderer._current_response))
 
-            # Notify frontend that the task is complete
             await sio.emit("task_finished", {}, room=sid)
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
+            await sio.emit("task_stopped", {}, room=sid)
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
             await sio.emit("fatal_error", {"message": str(e)}, room=sid)
@@ -198,6 +196,13 @@ async def resolve_confirmation(sid, data):
     """Routes user safety approval back to the agent core."""
     if agent_renderer:
         agent_renderer.on_resolve_confirmation(data["request_id"], data["status"])
+
+
+@sio.event
+async def resolve_user_input(sid, data):
+    """Routes user input back to the agent core."""
+    if agent_renderer:
+        agent_renderer.on_resolve_user_input(data["request_id"], data["status"], data["value"])
 
 
 @sio.event

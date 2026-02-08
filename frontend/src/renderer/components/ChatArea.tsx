@@ -5,6 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { cn } from '../lib/utils';
 import { Bot, User, AlertTriangle } from 'lucide-react';
 import { Confirmation } from './Confirmation';
+import { RuntimeInput, RuntimeInputStatus } from './RuntimeInput';
 
 // ============================================================================
 // Types
@@ -34,9 +35,23 @@ interface ConfirmationMessage extends BaseMessage {
     status: ConfirmationStatus;
 }
 
-type Message = TextMessage | ErrorMessage | ConfirmationMessage;
+interface UserInputMessage extends BaseMessage {
+    type: 'user_input';
+    requestId: string;
+    prompt: string;
+    result: string;
+    status: RuntimeInputStatus;
+}
+
+type Message = TextMessage | ErrorMessage | ConfirmationMessage | UserInputMessage;
 
 interface ConfirmationRequest {
+    request_id: string;
+    message: string;
+    timeout?: number;
+}
+
+interface UserInputRequest {
     request_id: string;
     message: string;
     timeout?: number;
@@ -52,6 +67,7 @@ export function ChatArea() {
     const [streamingContent, setStreamingContent] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
+    const [pendingInput, setPendingInput] = useState<UserInputRequest | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // Flush streaming content to messages and return empty string
@@ -104,11 +120,18 @@ export function ChatArea() {
             setStreamingContent('');
             setIsThinking(false);
             setPendingConfirmation(null);
+            setPendingInput(null);
         };
 
         const onRequestConfirmation = (data: ConfirmationRequest) => {
             flushStreamingContent();
             setPendingConfirmation(data);
+            setIsThinking(false);
+        };
+
+        const onRequestUserInput = (data: UserInputRequest) => {
+            flushStreamingContent();
+            setPendingInput(data);
             setIsThinking(false);
         };
 
@@ -119,6 +142,7 @@ export function ChatArea() {
         socket.on('fatal_error', onFatalError);
         socket.on('reset', onReset);
         socket.on('request_confirmation', onRequestConfirmation);
+        socket.on('request_user_input', onRequestUserInput);
 
         return () => {
             socket.off('user_message', onUserMessage);
@@ -127,13 +151,14 @@ export function ChatArea() {
             socket.off('fatal_error', onFatalError);
             socket.off('reset', onReset);
             socket.off('request_confirmation', onRequestConfirmation);
+            socket.off('request_user_input', onRequestUserInput);
         };
     }, [socket, flushStreamingContent]);
 
     // Auto-scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, streamingContent, isThinking, pendingConfirmation]);
+    }, [messages, streamingContent, isThinking, pendingConfirmation, pendingInput]);
 
     // Handle confirmation decision
     const handleConfirmationDecision = useCallback((status: ConfirmationStatus) => {
@@ -148,6 +173,21 @@ export function ChatArea() {
         }]);
         setPendingConfirmation(null);
     }, [pendingConfirmation]);
+
+    // Handle input decision
+    const handleInputDecision = useCallback((status: RuntimeInputStatus, value?: string) => {
+        if (!pendingInput) return;
+
+        setMessages(prev => [...prev, {
+            type: 'user_input',
+            role: 'system',
+            requestId: pendingInput.request_id,
+            prompt: pendingInput.message,
+            result: value || '',
+            status
+        }]);
+        setPendingInput(null);
+    }, [pendingInput]);
 
     // Empty state
     if (messages.length === 0 && !streamingContent && !isThinking) {
@@ -171,6 +211,17 @@ export function ChatArea() {
                     message={pendingConfirmation.message}
                     timeout={pendingConfirmation.timeout}
                     onDecision={handleConfirmationDecision}
+                />
+            )}
+
+            {/* Pending Runtime Input Card */}
+            {pendingInput && (
+                <RuntimeInput
+                    key={pendingInput.request_id}
+                    requestId={pendingInput.request_id}
+                    message={pendingInput.message}
+                    timeout={pendingInput.timeout}
+                    onDecision={handleInputDecision}
                 />
             )}
 
@@ -199,6 +250,16 @@ function renderMessage(msg: Message) {
                     requestId={msg.requestId}
                     message={msg.command}
                     initialStatus={msg.status}
+                />
+            );
+        case 'user_input':
+            return (
+                <RuntimeInput
+                    requestId={msg.requestId}
+                    message={msg.prompt}
+                    initialStatus={msg.status}
+                    initialValue={msg.result}
+                // No onDecision needed for history items
                 />
             );
         case 'error':

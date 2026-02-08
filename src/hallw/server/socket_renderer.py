@@ -163,6 +163,35 @@ class SocketAgentRenderer(AgentRenderer):
             if not future.done():
                 future.set_result(status)
 
+    async def on_request_user_input(self, prompt: str, timeout: int) -> str:
+        """
+        Trigger the RuntimeInput modal in the ChatArea.
+        """
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        request_id = f"input_{id(future)}"
+        self._pending_confirmation = {"request_id": request_id, "future": future}
+
+        self._fire_event("request_user_input", {"request_id": request_id, "message": prompt, "timeout": timeout})
+
+        try:
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError:
+            return "timeout"
+        finally:
+            if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
+                self._pending_confirmation = None
+
+    def on_resolve_user_input(self, request_id: str, status: str, value: str = None) -> None:
+        """Resolve a pending user input request from the frontend."""
+        if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
+            future = self._pending_confirmation["future"]
+            if not future.done():
+                if status == "submitted" and value is not None:
+                    future.set_result(value)
+                else:
+                    future.set_result(status)
+
     # --- Internal Helpers ---
 
     def _extract_text(self, chunk: Any) -> str:
