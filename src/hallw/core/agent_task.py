@@ -1,8 +1,8 @@
 import asyncio
 from typing import Dict, Optional, cast
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 
 from hallw.utils import config
@@ -21,7 +21,7 @@ class AgentTask:
     def __init__(
         self,
         task_id: str,
-        llm: ChatOpenAI,
+        llm: BaseChatModel,
         tools_dict: Dict[str, BaseTool],
         renderer: AgentRenderer,
         initial_state: AgentState,

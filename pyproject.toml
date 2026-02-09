@@ -25,18 +25,17 @@ dependencies = [
     "markdown>=3.6",
     "langchain>=1.0.5",
     "langchain_core>=1.0.5",
-    "langchain_openai>=1.0.2",
     "langgraph>=0.2.20",
+    "langchain-litellm>=0.4.0",
     "playwright>=1.56.0",
     "playwright_stealth>=2.0.0",
     "pypdf>=6.4.0",
     "psutil>=7.0.0",
     "pydantic>=2.12.0",
     "pydantic-settings>=2.12.0",
-    "markdownify>=1.2.2",
     "python-socketio>=5.11.0",
     "uvicorn>=0.27.0",
-    "langchain-litellm>=0.4.0",
+    "trafilatura>=2.0.0",
 ]
 
 [project.urls]

@@ -1,9 +1,9 @@
 from typing import List
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
@@ -20,7 +20,7 @@ from .agent_state import AgentState, AgentStats
 
 
 def build_graph(
-    model: ChatOpenAI,
+    model: BaseChatModel,
     tools_dict: dict[str, BaseTool],
     checkpointer: BaseCheckpointSaver,
     renderer: AgentRenderer,

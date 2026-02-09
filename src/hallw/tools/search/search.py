@@ -27,10 +27,7 @@ async def _brave_search(query: str) -> str:
 
     try:
         async with httpx.AsyncClient() as client:
-            # ---------------------------------------------------
-            # 1. Web Search (extra snippets + summary trigger)
-            # ---------------------------------------------------
-
+            # 1. Web Search
             search_params = {
                 "q": query,
                 "count": config.search_result_count or 10,
@@ -48,10 +45,7 @@ async def _brave_search(query: str) -> str:
             search_res.raise_for_status()
             search_data = search_res.json()
 
-            # ---------------------------------------------------
             # 2. AI Summary + Entity Info
-            # ---------------------------------------------------
-
             summary_text = ""
             entities_info: dict = {}
 
@@ -79,53 +73,24 @@ async def _brave_search(query: str) -> str:
                     summary_text = summary_data.get("summary", {}).get("answer", "")
                     entities_info = summary_data.get("entities_info", {}) or {}
 
-            # ---------------------------------------------------
-            # 3. Supporting Sources
-            # ---------------------------------------------------
-
+            # 3. Sources
             web_results = search_data.get("web", {}).get("results", [])
 
             sources = []
             for item in web_results:
-                snippets = " ".join(item.get("extra_snippets") or [])
-
+                snippets = "\n".join(item.get("extra_snippets") or [])
                 sources.append(
                     {
                         "title": item.get("title"),
                         "url": item.get("url"),
-                        "content": f"{item.get('description', '')} {snippets}".strip(),
+                        "content": f"{item.get('description', '')}\n{snippets}".strip(),
                     }
                 )
 
     except Exception as e:
         return build_tool_response(False, f"Brave API Error: {str(e)}")
 
-    # ---------------------------------------------------
     # 4. Format Output
-    # ---------------------------------------------------
-
-    output_parts = []
-
-    if summary_text:
-        output_parts.append(f"## AI Summary\n{summary_text}")
-
-    if entities_info:
-        entity_lines = []
-        for name, ent in entities_info.items():
-            desc = ent.get("description", "")
-            entity_lines.append(f"- **{name}**: {desc}")
-
-        output_parts.append("## Entities\n" + "\n".join(entity_lines))
-
-    if sources:
-        source_lines = []
-        for s in sources:
-            source_lines.append(f"### {s['title']}\n{s['content']}\n{s['url']}")
-
-        output_parts.append("## Supporting Sources\n" + "\n\n".join(source_lines))
-
-    final_content = "\n\n---\n\n".join(output_parts)
-
     return build_tool_response(
         True,
         f"Brave search completed for '{query}'.",
@@ -134,7 +99,6 @@ async def _brave_search(query: str) -> str:
             "summary": summary_text,
             "entities": entities_info,
             "sources": sources,
-            "content": final_content,
         },
     )
 
@@ -189,21 +153,6 @@ async def _bocha_search(query: str) -> str:
     except Exception as e:
         return build_tool_response(False, f"Bocha API Error: {str(e)}")
 
-    # Format Output
-    output_parts = []
-
-    if summary_text:
-        output_parts.append(f"## AI Summary\n{summary_text}")
-
-    if sources:
-        source_lines = []
-        for s in sources:
-            source_lines.append(f"### {s['title']}\n{s['content']}\n{s['url']}")
-
-        output_parts.append("## Supporting Sources\n" + "\n\n".join(source_lines))
-
-    final_content = "\n\n---\n\n".join(output_parts)
-
     return build_tool_response(
         True,
         f"Bocha search completed for '{query}'.",
@@ -211,7 +160,6 @@ async def _bocha_search(query: str) -> str:
             "query": query,
             "summary": summary_text,
             "sources": sources,
-            "content": final_content,
         },
     )
 
