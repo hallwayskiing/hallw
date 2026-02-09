@@ -48,8 +48,10 @@ interface Config {
     // Exec & Search
     auto_allow_exec?: boolean;
     auto_allow_blacklist?: string[];
+    search_engine?: string;
+    search_result_count?: number;
     brave_search_api_key?: string;
-    brave_search_result_count?: number;
+    bocha_api_key?: string;
     // Browser
     prefer_local_chrome?: boolean;
     chrome_user_data_dir?: string;
@@ -333,11 +335,28 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                         </SectionCard>
 
                                         <SectionCard title="Search Settings" icon={<Search className="w-4 h-4" />} color="text-purple-300" gradient="from-purple-500/8 to-violet-500/3">
-                                            <InputGroup label="Brave Search API Key" desc="For web search functionality">
-                                                <Input name="brave_search_api_key" type="password" value={config.brave_search_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('brave_search_api_key', e.target.value)} placeholder="BSA..." />
+                                            <InputGroup label="Search Engine" desc="Select your preferred search provider">
+                                                <select
+                                                    className="w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400/50 transition-all"
+                                                    value={config.search_engine || 'brave'}
+                                                    onChange={(e) => handleChange('search_engine', e.target.value)}
+                                                >
+                                                    <option value="brave">Brave Search</option>
+                                                    <option value="bocha">Bocha AI Search</option>
+                                                </select>
                                             </InputGroup>
+                                            {(config.search_engine || 'brave') === 'brave' && (
+                                                <InputGroup label="Brave Search API Key" desc="Brave API Key">
+                                                    <Input name="brave_search_api_key" type="password" value={config.brave_search_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('brave_search_api_key', e.target.value)} placeholder="BSA..." />
+                                                </InputGroup>
+                                            )}
+                                            {config.search_engine === 'bocha' && (
+                                                <InputGroup label="Bocha API Key" desc="Bocha API Key">
+                                                    <Input name="bocha_api_key" type="password" value={config.bocha_api_key || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('bocha_api_key', e.target.value)} placeholder="Enter Bocha API key" />
+                                                </InputGroup>
+                                            )}
                                             <InputGroup label="Search Result Count" desc="Number of results to return">
-                                                <Input name="brave_search_result_count" type="number" min="1" max="20" value={config.brave_search_result_count ?? 5} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('brave_search_result_count', e.target.value)} />
+                                                <Input name="search_result_count" type="number" min="1" max="50" value={config.search_result_count ?? 10} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('search_result_count', e.target.value)} />
                                             </InputGroup>
                                         </SectionCard>
                                     </>

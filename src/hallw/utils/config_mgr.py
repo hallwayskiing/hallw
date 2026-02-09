@@ -47,8 +47,10 @@ class Settings(BaseSettings):
     # =================================================
     auto_allow_exec: bool = False
     auto_allow_blacklist: List[str] = []
+    search_engine: str = "brave"  # "brave" or "bocha"
+    search_result_count: int = 5
     brave_search_api_key: Optional[SecretStr] = None
-    brave_search_result_count: int = 5
+    bocha_api_key: Optional[SecretStr] = None
 
     # =================================================
     # 6. Playwright & Browser

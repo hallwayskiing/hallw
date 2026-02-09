@@ -8,13 +8,11 @@ from hallw.utils.config_mgr import config
 
 BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 BRAVE_SUMMARY_ENDPOINT = "https://api.search.brave.com/res/v1/summarizer/search"
+BOCHA_SEARCH_ENDPOINT = "https://api.bochaai.com/v1/web-search"
 
 
-@tool
-async def search(query: str) -> str:
-    """
-    Brave web search with AI summary + extra snippets + entity info.
-    """
+async def _brave_search(query: str) -> str:
+    """Brave web search with AI summary + extra snippets + entity info."""
 
     api_key = config.brave_search_api_key
     if not api_key:
@@ -35,7 +33,7 @@ async def search(query: str) -> str:
 
             search_params = {
                 "q": query,
-                "count": config.brave_search_result_count or 5,
+                "count": config.search_result_count or 10,
                 "extra_snippets": 1,
                 "summary": 1,
             }
@@ -139,3 +137,93 @@ async def search(query: str) -> str:
             "content": final_content,
         },
     )
+
+
+async def _bocha_search(query: str) -> str:
+    """Bocha AI web search."""
+
+    api_key = config.bocha_api_key
+    if not api_key:
+        return build_tool_response(False, "Bocha API key not configured.")
+
+    key_value = api_key.get_secret_value() if hasattr(api_key, "get_secret_value") else str(api_key)
+
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {key_value}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "query": query,
+        "count": config.search_result_count,
+        "summary": True,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                BOCHA_SEARCH_ENDPOINT,
+                headers=headers,
+                json=payload,
+                timeout=15.0,
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            # Parse Bocha response
+            summary_text = data.get("summary", "")
+            web_results = data.get("data", {}).get("webPages", {}).get("value", [])
+
+            sources = []
+            for result in web_results:
+                sources.append(
+                    {
+                        "title": result.get("name", ""),
+                        "url": result.get("url", ""),
+                        "content": result.get("snippet", ""),
+                    }
+                )
+
+    except Exception as e:
+        return build_tool_response(False, f"Bocha API Error: {str(e)}")
+
+    # Format Output
+    output_parts = []
+
+    if summary_text:
+        output_parts.append(f"## AI Summary\n{summary_text}")
+
+    if sources:
+        source_lines = []
+        for s in sources:
+            source_lines.append(f"### {s['title']}\n{s['content']}\n{s['url']}")
+
+        output_parts.append("## Supporting Sources\n" + "\n\n".join(source_lines))
+
+    final_content = "\n\n---\n\n".join(output_parts)
+
+    return build_tool_response(
+        True,
+        f"Bocha search completed for '{query}'.",
+        {
+            "query": query,
+            "summary": summary_text,
+            "sources": sources,
+            "content": final_content,
+        },
+    )
+
+
+@tool
+async def search(query: str) -> str:
+    """
+    Web search using the configured search engine (Brave or Bocha).
+    """
+    engine = config.search_engine or "brave"
+
+    if engine == "bocha":
+        return await _bocha_search(query)
+    else:
+        return await _brave_search(query)
