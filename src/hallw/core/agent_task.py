@@ -102,6 +102,10 @@ class AgentTask:
             # Task was cancelled, this is expected behavior
             raise
         except Exception as e:
-            error_name = event["event"] if event else "unknown"
-            self.renderer.on_fatal_error(self.task_id, error_name, str(e))
+            # Safely get event type if available
+            error_type = "unknown"
+            if event and isinstance(event, dict):
+                error_type = event.get("event", "unknown")
+
+            self.renderer.on_fatal_error(self.task_id, error_type, str(e))
             return None

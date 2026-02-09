@@ -57,7 +57,20 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     messages = conversation_history.copy()
 
     # Append the new user request
+    builder_msg = SystemMessage(
+        content="""
+            Now build the stages for the user request.
+            <rules>
+            CRITICAL INSTRUCTIONS:
+            1. You MUST call the `build_stages` tool exactly once.
+            2. The `stages` list you provide must be clear, actionable, and in the correct order.
+            3. Do NOT call any other tools. Only call `build_stages`.
+            4. If the user request is simple, create only one stage to finish it quickly.
+            </rules>
+        """
+    )
     user_msg = HumanMessage(content=f"User: {user_task}")
+    messages.append(builder_msg)
     messages.append(user_msg)
     conversation_history.append(user_msg)
     logger.info(f"User: {user_task}")
@@ -72,7 +85,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         stream_usage=True,
         stream_options={"include_usage": True},
         model_kwargs={
-            "reasoning_effort": "medium",
+            "reasoning_effort": "low",
         },
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
@@ -114,12 +127,15 @@ async def start_task(sid, data):
         """Execution wrapper to run the agent and handle completion."""
         try:
             final_state = await agent_task._run()
-            initial_count = len(conversation_history)
-            new_messages = final_state["messages"][initial_count:]
-            conversation_history.extend(new_messages)
+            if final_state:
+                initial_count = len(conversation_history)
+                new_messages = final_state["messages"][initial_count:]
+                conversation_history.extend(new_messages)
 
-            input_tokens += final_state["stats"].get("input_tokens", 0)
-            output_tokens += final_state["stats"].get("output_tokens", 0)
+                input_tokens += final_state["stats"].get("input_tokens", 0)
+                output_tokens += final_state["stats"].get("output_tokens", 0)
+            else:
+                logger.error("Task failed to produce a final state.")
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             await sio.emit("task_cancelled", {}, room=sid)
