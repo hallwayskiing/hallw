@@ -180,6 +180,66 @@
   }
 }
 
-.animate-glow {
-  animation: glow 3s ease-in-out infinite;
+/* Rainbow Pulse - Combines color shifting and breathing */
+@keyframes rainbow-pulse {
+  0% {
+    background-color: hsl(0, 45%, 55%);
+    box-shadow: 0 0 15px hsla(0, 45%, 55%, 0.8), 0 0 30px hsla(0, 45%, 55%, 0.3);
+    transform: scale(1);
+  }
+
+  16% {
+    background-color: hsl(60, 45%, 55%);
+    box-shadow: 0 0 20px hsla(60, 45%, 55%, 0.8), 0 0 40px hsla(60, 45%, 55%, 0.3);
+    transform: scale(1.1);
+  }
+
+  33% {
+    background-color: hsl(120, 45%, 55%);
+    box-shadow: 0 0 15px hsla(120, 45%, 55%, 0.8), 0 0 30px hsla(120, 45%, 55%, 0.3);
+    transform: scale(1);
+  }
+
+  50% {
+    background-color: hsl(180, 45%, 55%);
+    box-shadow: 0 0 20px hsla(180, 45%, 55%, 0.8), 0 0 40px hsla(180, 45%, 55%, 0.3);
+    transform: scale(1.1);
+  }
+
+  66% {
+    background-color: hsl(240, 45%, 55%);
+    box-shadow: 0 0 15px hsla(240, 45%, 55%, 0.8), 0 0 30px hsla(240, 45%, 55%, 0.3);
+    transform: scale(1);
+  }
+
+  83% {
+    background-color: hsl(300, 45%, 55%);
+    box-shadow: 0 0 20px hsla(300, 45%, 55%, 0.8), 0 0 40px hsla(300, 45%, 55%, 0.3);
+    transform: scale(1.1);
+  }
+
+  100% {
+    background-color: hsl(0, 45%, 55%);
+    box-shadow: 0 0 15px hsla(0, 45%, 55%, 0.8), 0 0 30px hsla(0, 45%, 55%, 0.3);
+    transform: scale(1);
+  }
+}
+
+.dark .animate-rainbow-pulse {
+  animation: rainbow-pulse 16s ease-in-out infinite;
+}
+
+/* Simpler hue-rotate alternative if needed */
+@keyframes hue-rotate {
+  from {
+    filter: hue-rotate(0deg);
+  }
+
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.animate-hue-rotate {
+  animation: hue-rotate 16s linear infinite;
 }

@@ -83,7 +83,6 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     Your main ability is enabled by `exec` tool, which can execute any command in the terminal.
     You are running in a {platform.system()} environment.
     Today is {datetime.now().strftime("%Y-%m-%d")}.
-
     </identity>
 
     <stages>
@@ -140,5 +139,4 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
 
 
     **Now analyze the task, arrange your plan, and take actions.
-    /nothink
     """

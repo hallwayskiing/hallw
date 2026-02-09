@@ -1,5 +1,6 @@
-import { FileText, Globe, House, Code, Search, Mail, Calendar, Music, Camera, Coffee, Zap } from 'lucide-react';
+import { FileText, Globe, House, Search, Mail, Calendar, Music, Camera, Coffee, Zap, Heart, Star, Sparkles, Utensils, MapPin, Gift, Sun, Moon, Plane, Book, Gamepad2, Palette, ShoppingBag, Leaf, Film, Dumbbell, Brain, Lightbulb, RefreshCw } from 'lucide-react';
 import { ReactNode, useEffect, useState, useMemo, useRef } from 'react';
+import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
 // ============================================================================
@@ -7,16 +8,36 @@ import { cn } from '../lib/utils';
 // ============================================================================
 
 const ALL_QUICK_STARTS = [
-    { icon: <FileText className="w-4 h-4" />, color: 'emerald', text: "Summarize today's tech headlines and save as tech_news.md." },
-    { icon: <Globe className="w-4 h-4" />, color: 'orange', text: "Learn how to cook a Chinese dish and create recipe.md." },
-    { icon: <House className="w-4 h-4" />, color: 'blue', text: "Find and tell me ten interesting places to visit in Paris." },
-    { icon: <Code className="w-4 h-4" />, color: 'purple', text: "Create a simple Python script that generates random passwords." },
-    { icon: <Search className="w-4 h-4" />, color: 'pink', text: "Research the latest AI trends and summarize key findings." },
-    { icon: <Mail className="w-4 h-4" />, color: 'cyan', text: "Draft a professional email template for job applications." },
-    { icon: <Calendar className="w-4 h-4" />, color: 'amber', text: "Create a weekly study schedule and save it as schedule.md." },
-    { icon: <Music className="w-4 h-4" />, color: 'rose', text: "Find top 10 relaxing instrumental music for studying." },
-    { icon: <Camera className="w-4 h-4" />, color: 'teal', text: "Research best practices for smartphone photography." },
-    { icon: <Coffee className="w-4 h-4" />, color: 'yellow', text: "Find the best coffee shops near Times Square, New York." },
+    { icon: <Utensils className="w-4 h-4" />, color: 'orange', text: "Suggest a simple brunch recipe that feels special and Instagram-worthy." },
+    { icon: <Globe className="w-4 h-4" />, color: 'blue', text: "Search for hidden gems and underrated neighborhoods to explore in Tokyo." },
+    { icon: <Heart className="w-4 h-4" />, color: 'rose', text: "What are some creative but affordable Valentine's Day gift ideas?" },
+    { icon: <Star className="w-4 h-4" />, color: 'amber', text: "What movies are coming out this year? Help me create a must-watch list." },
+    { icon: <Coffee className="w-4 h-4" />, color: 'yellow', text: "Recommend some creative coffee drinks I can make at home." },
+    { icon: <MapPin className="w-4 h-4" />, color: 'emerald', text: "I want to go camping solo this weekend. Any beginner-friendly spots?" },
+    { icon: <Music className="w-4 h-4" />, color: 'purple', text: "Find me some chill Lofi playlists perfect for late night vibes." },
+    { icon: <Gift className="w-4 h-4" />, color: 'pink', text: "My friend's birthday is coming up. What can I get for under $30?" },
+    { icon: <Sun className="w-4 h-4" />, color: 'orange', text: "Where are the best flower fields for a spring photo shoot?" },
+    { icon: <Moon className="w-4 h-4" />, color: 'cyan', text: "I can't sleep at night. What are some science-backed tips for better sleep?" },
+    { icon: <Plane className="w-4 h-4" />, color: 'blue', text: "First time going to Thailand! Help me plan what to prepare." },
+    { icon: <Book className="w-4 h-4" />, color: 'teal', text: "Recommend some addictive mystery novels I won't be able to put down." },
+    { icon: <Gamepad2 className="w-4 h-4" />, color: 'purple', text: "What are the best Nintendo Switch games to play in 2024?" },
+    { icon: <Palette className="w-4 h-4" />, color: 'pink', text: "I want to learn to draw but I'm a total beginner. Where do I start?" },
+    { icon: <ShoppingBag className="w-4 h-4" />, color: 'rose', text: "Spring is here! What fashion trends are in style this season?" },
+    { icon: <Leaf className="w-4 h-4" />, color: 'emerald', text: "What houseplants are easy to care for and look aesthetic?" },
+    { icon: <Film className="w-4 h-4" />, color: 'amber', text: "Find me the funniest comedy movies for a movie night with friends." },
+    { icon: <Dumbbell className="w-4 h-4" />, color: 'orange', text: "Quick stretching exercises office workers can do during breaks?" },
+    { icon: <Brain className="w-4 h-4" />, color: 'cyan', text: "Share some fun psychology facts I can post on social media." },
+    { icon: <Lightbulb className="w-4 h-4" />, color: 'yellow', text: "Life feels boring. What are some unique hobbies I could pick up?" },
+    { icon: <Camera className="w-4 h-4" />, color: 'teal', text: "What phone photography tips make photos look more professional?" },
+    { icon: <Calendar className="w-4 h-4" />, color: 'blue', text: "How can I scientifically plan my week to be more productive?" },
+    { icon: <House className="w-4 h-4" />, color: 'purple', text: "Budget-friendly tips to make a rented apartment look amazing?" },
+    { icon: <Sparkles className="w-4 h-4" />, color: 'pink', text: "What's a simple skincare routine for someone who's too lazy?" },
+    { icon: <Mail className="w-4 h-4" />, color: 'emerald', text: "Long distance relationship tips? Give me some romantic ideas!" },
+    { icon: <Search className="w-4 h-4" />, color: 'amber', text: "What are the hottest restaurants trending on social media right now?" },
+    { icon: <FileText className="w-4 h-4" />, color: 'cyan', text: "I want to start journaling but don't know what to write. Give me prompts!" },
+    { icon: <Star className="w-4 h-4" />, color: 'rose', text: "Looking for wholesome and healing anime to watch tonight." },
+    { icon: <Globe className="w-4 h-4" />, color: 'teal', text: "Unique small towns to visit that feel like traveling abroad?" },
+    { icon: <Heart className="w-4 h-4" />, color: 'purple', text: "How can I make each day feel more meaningful? Share some little joys." },
 ] as const;
 
 // ============================================================================
@@ -131,8 +152,8 @@ function ParticleCanvas() {
                 const toCenterX = centerX - p.x;
                 const toCenterY = centerY - p.y;
                 // Perpendicular direction for circular motion (counter-clockwise)
-                p.vx += -toCenterY * 0.000012;
-                p.vy += toCenterX * 0.000012;
+                p.vx += -toCenterY * 0.000008;
+                p.vy += toCenterX * 0.000008;
 
                 // Apply velocity with damping
                 p.x += p.vx;
@@ -190,9 +211,9 @@ function ParticleCanvas() {
             window.removeEventListener('resize', resize);
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('click', handleClick);
-            cancelAnimationFrame(animationRef.current);
         };
     }, []);
+
 
     return (
         <canvas
@@ -211,12 +232,21 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onQuickStart }: WelcomeScreenProps) {
+    const { theme } = useAppStore();
     const [isLoaded, setIsLoaded] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
-    const quickStarts = useMemo(() => {
+    const getRandomQuickStarts = () => {
         const shuffled = [...ALL_QUICK_STARTS].sort(() => Math.random() - 0.5);
         return shuffled.slice(0, 3);
-    }, []);
+    };
+
+    const [quickStarts, setQuickStarts] = useState(getRandomQuickStarts);
+
+    const refreshQuickStarts = () => {
+        setQuickStarts(getRandomQuickStarts());
+        setRefreshKey(prev => prev + 1);
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoaded(true), 50);
@@ -236,24 +266,31 @@ export function WelcomeScreen({ onQuickStart }: WelcomeScreenProps) {
                     isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
                 )}>
 
-                    {/* Elegant Logo - Abstract Shape */}
+                    {/* Elegant Glowing Orb */}
                     <div className={cn(
-                        "relative mb-6 transition-all duration-500 delay-100",
+                        "relative mb-8 transition-all duration-500 delay-100",
                         isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     )}>
-                        {/* Outer glow */}
-                        <div className="absolute -inset-4 rounded-full bg-amber-500/10 blur-2xl animate-pulse" />
+                        <div className="relative w-24 h-24 flex items-center justify-center">
+                            {/* Outer soft glow */}
+                            <div className="absolute w-36 h-36 bg-amber-500/15 blur-2xl rounded-full" />
 
-                        {/* Logo Container */}
-                        <div className="relative w-20 h-20 flex items-center justify-center">
                             {/* Rotating ring */}
-                            <div className="absolute inset-0 rounded-full border border-amber-500/30 animate-spin-slow" />
+                            <div className="absolute w-24 h-24 rounded-full border border-amber-500/20 animate-spin-slow" />
 
-                            {/* Inner circle */}
-                            <div className="absolute inset-2 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/10" />
+                            {/* Inner Glow effects - Dark Mode Only */}
+                            {theme === 'dark' && (
+                                <>
+                                    <div className="absolute w-12 h-12 bg-amber-400/25 blur-xl rounded-full" />
+                                    <div className="absolute w-6 h-6 bg-amber-300/50 blur-md rounded-full" />
+                                </>
+                            )}
 
-                            {/* Center dot */}
-                            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/50" />
+                            {/* Core orb - Dynamic in Dark Mode, Static in Light Mode */}
+                            <div className={cn(
+                                "relative w-4 h-4 rounded-full",
+                                theme === 'dark' ? "bg-amber-400 animate-rainbow-pulse" : "bg-amber-400"
+                            )} />
                         </div>
                     </div>
 
@@ -280,21 +317,38 @@ export function WelcomeScreen({ onQuickStart }: WelcomeScreenProps) {
                 "w-full max-w-2xl mx-auto px-6 pb-6 z-10 transition-all duration-500 delay-400",
                 isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-                <div className="flex items-center gap-2 mb-3">
-                    <Zap className="w-3 h-3 text-amber-500/50" />
-                    <span className="text-[12px] text-muted-foreground/40 uppercase tracking-[0.2em]">
-                        Quick Start
-                    </span>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex items-center justify-center w-5 h-5">
+                            {theme === 'dark' && (
+                                <div className="absolute inset-0 bg-amber-400/60 blur-lg rounded-full animate-pulse" />
+                            )}
+                            <Zap className={cn(
+                                "relative w-3.5 h-3.5",
+                                theme === 'dark' ? "text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]" : "text-amber-600"
+                            )} />
+                        </div>
+                        <span className="text-[12px] text-muted-foreground/40 uppercase tracking-[0.2em]">
+                            Quick Start
+                        </span>
+                    </div>
+                    <button
+                        onClick={refreshQuickStarts}
+                        className="group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90"
+                        title="Shuffle prompts"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-180" />
+                    </button>
                 </div>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                     {quickStarts.map((item, idx) => (
                         <QuickStartCard
-                            key={idx}
+                            key={`${refreshKey}-${idx}`}
                             icon={item.icon}
                             color={item.color as ColorName}
                             text={item.text}
                             onClick={onQuickStart}
-                            delay={100}
+                            delay={100 + idx * 80}
                             isLoaded={isLoaded}
                         />
                     ))}
@@ -334,6 +388,16 @@ interface QuickStartCardProps {
 
 function QuickStartCard({ icon, color, text, onClick, delay, isLoaded }: QuickStartCardProps) {
     const colors = colorMap[color] || colorMap.blue;
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        if (isLoaded) {
+            const timer = setTimeout(() => setIsVisible(true), delay);
+            return () => clearTimeout(timer);
+        } else {
+            setIsVisible(false);
+        }
+    }, [isLoaded, delay]);
 
     return (
         <button
@@ -341,13 +405,12 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded }: QuickSt
             className={cn(
                 "group w-full flex items-center gap-3 p-3 text-left rounded-xl",
                 "bg-card/20 backdrop-blur-sm border border-border/30",
-                "transition-all duration-200 ease-out",
+                "transition-all duration-400 ease-out",
                 colors.bg, colors.border,
                 "hover:shadow-lg hover:-translate-y-0.5",
                 "active:scale-[0.99]",
-                isLoaded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
             )}
-            style={{ transitionDelay: isLoaded ? `${delay}ms` : '0ms' }}
         >
             <div className={cn("flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 transition-transform duration-200 group-hover:scale-110", colors.icon)}>
                 {icon}
