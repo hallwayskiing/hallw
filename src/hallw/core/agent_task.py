@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -53,8 +53,8 @@ class AgentTask:
         """Check if the task is still running."""
         return self._task is not None and not self._task.done()
 
-    async def _run(self) -> None:
-        """Internal async execution of the agent workflow."""
+    async def _run(self) -> AgentState:
+        """Internal async execution of the agent workflow. Returns the final agent state."""
         workflow = build_graph(self.llm, self.tools_dict, self.checkpointer, self.renderer)
         invocation_config = {
             "recursion_limit": config.model_max_recursion,
@@ -94,9 +94,14 @@ class AgentTask:
                 elif kind == "on_fatal_error":
                     self.renderer.on_fatal_error(run_id, name, data.get("error"))
 
+            # Get the final state after stream processing is complete
+            final_state = workflow.get_state(invocation_config)
+            return cast(AgentState, final_state.values)
+
         except asyncio.CancelledError:
             # Task was cancelled, this is expected behavior
             raise
         except Exception as e:
             error_name = event["event"] if event else "unknown"
             self.renderer.on_fatal_error(self.task_id, error_name, str(e))
+            return None

@@ -31,6 +31,18 @@ def build_graph(
         response = await build_model.ainvoke(state["messages"], config=config)
         messages.append(response)
 
+        # Track stats from build stage
+        stats_delta: AgentStats = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "tool_call_counts": 1,
+            "failures": 0,
+            "failures_since_last_reflection": 0,
+        }
+        if response.usage_metadata:
+            stats_delta["input_tokens"] = response.usage_metadata.get("input_tokens", 0)
+            stats_delta["output_tokens"] = response.usage_metadata.get("output_tokens", 0)
+
         tool_calls = response.tool_calls
         if not tool_calls:
             raise ValueError("Build stage expected a tool call but got none.")
@@ -61,6 +73,7 @@ def build_graph(
             "total_stages": stage_nums,
             "stage_names": stage_names,
             "current_stage": 0,
+            "stats": stats_delta,
         }
 
     async def call_model(state: AgentState, config: RunnableConfig) -> AgentState:

@@ -6,7 +6,7 @@ from typing import Optional
 
 import socketio
 import uvicorn
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import SecretStr
@@ -20,10 +20,12 @@ from hallw.utils import config, generateSystemPrompt, init_logger, logger, save_
 # --- Global State ---
 initiated = False
 task_id = None
-active_task: Optional[AgentTask] = None
-conversation_history = []
 agent_renderer: Optional[SocketAgentRenderer] = None
 tools_dict = load_tools()
+active_task: Optional[AgentTask] = None
+conversation_history = []
+input_tokens = 0
+output_tokens = 0
 
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
@@ -68,6 +70,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         max_tokens=config.model_max_output_tokens,
         streaming=True,
         stream_usage=True,
+        stream_options={"include_usage": True},
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
     # Build initial state
@@ -104,16 +107,16 @@ async def start_task(sid, data):
     await sio.emit("user_message", task_text, room=sid)
 
     async def run_wrapper():
-        global active_task
+        global active_task, conversation_history, input_tokens, output_tokens
         """Execution wrapper to run the agent and handle completion."""
         try:
-            await agent_task._run()
+            final_state = await agent_task._run()
+            initial_count = len(conversation_history)
+            new_messages = final_state["messages"][initial_count:]
+            conversation_history.extend(new_messages)
 
-            # Save final AI response to history for multi-turn memory
-            if agent_renderer and agent_renderer._current_response:
-                conversation_history.append(AIMessage(content=agent_renderer._current_response))
-
-            # Note: task_finished is already emitted by agent_task via renderer
+            input_tokens += final_state["stats"].get("input_tokens", 0)
+            output_tokens += final_state["stats"].get("output_tokens", 0)
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             await sio.emit("task_cancelled", {}, room=sid)
@@ -133,15 +136,21 @@ async def reset_session(sid):
     """
     Completely resets the agent state and conversation history.
     """
-    global initiated, active_task, conversation_history, agent_renderer, task_id
+    global initiated, active_task, conversation_history, agent_renderer, task_id, input_tokens, output_tokens
 
     await browser_close()
 
     if active_task:
         await active_task.cancel()
 
+    if input_tokens > 0 and output_tokens > 0:
+        logger.info(f"Input tokens: {input_tokens}")
+        logger.info(f"Output tokens: {output_tokens}")
+
     # Reset all global variables
     conversation_history = []
+    input_tokens = 0
+    output_tokens = 0
     active_task = None
     task_id = None
     agent_renderer = None
