@@ -57,20 +57,26 @@ class SocketAgentRenderer(AgentRenderer):
     def on_llm_start(self) -> None:
         """Reset buffer and notify frontend that AI has started generating a response."""
         self._current_response = ""
-        self._fire_event("ai_response_start")
+        self._fire_event("llm_started")
 
     def on_llm_chunk(self, chunk: Any) -> None:
-        """Extract text from the stream and emit tokens to the ChatArea in real-time."""
+        """Extract both text and reasoning from the stream chunk and emit to frontend."""
+        # 1. Process Reasoning (Thinking)
+        reasoning = self._extract_reasoning(chunk)
+        if reasoning:
+            self._fire_event("llm_new_reasoning", reasoning)
+
+        # 2. Process Content (Text)
         text = self._extract_text(chunk)
         if text:
             self._current_response += text
-            self._fire_event("llm_new_token", text)
+            self._fire_event("llm_new_text", text)
 
     def on_llm_end(self) -> None:
         """Notify frontend that the current LLM stream has finished."""
         if self._current_response:
-            logger.info(f"HALLW: {self._current_response}")
-        self._fire_event("ai_response_end")
+            logger.info(f"HALLW: {self._current_response.replace('\n', ' ').strip()}")
+        self._fire_event("llm_finished")
 
     # --- Tool Execution Handlers (Used by Sidebar.jsx) ---
 
@@ -204,17 +210,64 @@ class SocketAgentRenderer(AgentRenderer):
 
     # --- Internal Helpers ---
 
+    def _extract_reasoning(self, chunk: Any) -> str:
+        """Utility to parse reasoning content from various LLM provider chunk formats."""
+        if not chunk:
+            return ""
+
+        # Case 1: Direct attribute (AIMessageChunk)
+        reasoning = getattr(chunk, "reasoning_content", None)
+        if reasoning:
+            return str(reasoning)
+
+        # Case 2: additional_kwargs (commonly used for provider-specific fields)
+        if hasattr(chunk, "additional_kwargs"):
+            reasoning = chunk.additional_kwargs.get("reasoning_content")
+            if reasoning:
+                return str(reasoning)
+
+        # Case 3: type: thought
+        if hasattr(chunk, "type") and chunk.type == "thought":
+            reasoning = chunk.text
+            if reasoning:
+                return str(reasoning)
+
+        # Case 4: Dictionary format (if data is pre-parsed)
+        if isinstance(chunk, dict):
+            reasoning = chunk.get("reasoning_content") or chunk.get("additional_kwargs", {}).get("reasoning_content")
+            if reasoning:
+                return str(reasoning)
+
+        return ""
+
     def _extract_text(self, chunk: Any) -> str:
         """Utility to parse text content from various LLM provider chunk formats."""
         if not chunk:
             return ""
 
-        content = getattr(chunk, "content", chunk)
+        # Case 1: AIMessageChunk or similar object
+        content = getattr(chunk, "content", None)
+
+        # Case 2: Dictionary format
+        if content is None and isinstance(chunk, dict):
+            content = chunk.get("content")
+
+        # Fallback: if it's already a string, use it
+        if content is None and isinstance(chunk, str):
+            content = chunk
+
+        if content is None:
+            return ""
+
+        if content == "</think>":
+            return ""
+
         if isinstance(content, str):
             return content
         if isinstance(content, list):
             return "".join([i if isinstance(i, str) else i.get("text", "") for i in content])
-        return str(content)
+
+        return ""
 
     def _build_log_message(self, name: str, parsed_output: Any) -> str:
         sign = "✅" if parsed_output.get("success", False) else "❌"

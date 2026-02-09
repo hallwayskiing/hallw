@@ -81,7 +81,7 @@ class AgentTask:
                     self.renderer.on_llm_start()
                 elif kind == "on_chat_model_stream":
                     chunk = data.get("chunk")
-                    if chunk is not None:
+                    if chunk:
                         self.renderer.on_llm_chunk(chunk)
                 elif kind == "on_chat_model_end":
                     self.renderer.on_llm_end()

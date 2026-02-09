@@ -103,13 +103,6 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     If you need to use any skill, find and read the full content of the SKILL.md file.
     </available_skills>
 
-    <thinking-chain>
-    1. **Identify current stage:** Which stage am I on? What should I do in this stage?
-    2. **Gap analysis:** What's missing to complete the task?
-    3. **Next logical steps:** What action(s) bridge the gap?
-    4. **Tool calls:** Call tools.
-    </thinking-chain>
-
     <user_profile>
     **User Profile:**
     {generateUserProfile()}
@@ -125,7 +118,6 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
 
     <formats>
     - Never respond emptyly.
-    - You must provide explicit reasoning chains before tool calls.
     - Don't invent tool names, only use the provided tools without any prefix.
     - Use markdown style for all your plain responses, for they will be shown in a markdown viewer.
     - Prefer markdown to save files and structure them gracefully for better readability.

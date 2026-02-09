@@ -1,9 +1,9 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore, Message } from '../stores/appStore';
 import { cn } from '../lib/utils';
-import { Bot, User, AlertTriangle } from 'lucide-react';
+import { Bot, User, AlertTriangle, ChevronDown, ChevronRight, Brain } from 'lucide-react';
 import { Confirmation } from './Confirmation';
 import { RuntimeInput } from './RuntimeInput';
 
@@ -20,6 +20,7 @@ type MessageRole = 'user' | 'assistant' | 'system';
 export function ChatArea() {
     const messages = useAppStore(s => s.messages);
     const streamingContent = useAppStore(s => s.streamingContent);
+    const streamingReasoning = useAppStore(s => s.streamingReasoning);
     const isProcessing = useAppStore(s => s.isProcessing);
     const pendingConfirmation = useAppStore(s => s.pendingConfirmation);
     const pendingInput = useAppStore(s => s.pendingInput);
@@ -31,7 +32,7 @@ export function ChatArea() {
     // Auto-scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, streamingContent, isProcessing, pendingConfirmation, pendingInput]);
+    }, [messages, streamingContent, streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
 
     // Empty state
     if (messages.length === 0 && !streamingContent && !isProcessing) {
@@ -70,12 +71,17 @@ export function ChatArea() {
             )}
 
             {/* Streaming Response */}
-            {streamingContent && (
-                <MessageBubble role="assistant" content={streamingContent + ' ▌'} isStreaming />
+            {(streamingContent || streamingReasoning) && (
+                <MessageBubble
+                    role="assistant"
+                    content={streamingContent + ' ▌'}
+                    reasoning={streamingReasoning}
+                    isStreaming
+                />
             )}
 
             {/* Thinking Indicator */}
-            {isProcessing && !streamingContent && <ThinkingIndicator />}
+            {isProcessing && !streamingContent && !streamingReasoning && <ThinkingIndicator />}
 
             <div ref={bottomRef} className="h-4" />
         </div>
@@ -111,7 +117,7 @@ function renderMessage(msg: Message) {
             return <ErrorCard content={msg.content} />;
         case 'text':
         default:
-            return <MessageBubble role={msg.role} content={msg.content} />;
+            return <MessageBubble role={msg.role} content={msg.content} reasoning={msg.reasoning} />;
     }
 }
 
@@ -122,10 +128,11 @@ function renderMessage(msg: Message) {
 interface MessageBubbleProps {
     role: MessageRole;
     content: string;
+    reasoning?: string;
     isStreaming?: boolean;
 }
 
-function MessageBubble({ role, content, isStreaming }: MessageBubbleProps) {
+function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleProps) {
     const isUser = role === 'user';
 
     return (
@@ -138,6 +145,12 @@ function MessageBubble({ role, content, isStreaming }: MessageBubbleProps) {
                 <div className="font-semibold text-sm text-foreground/80">
                     {isUser ? 'You' : 'HALLW'}
                 </div>
+
+                {/* Reasoning Accordion */}
+                {reasoning && (
+                    <ReasoningAccordion content={reasoning} isStreaming={isStreaming} />
+                )}
+
                 <div className={cn(
                     "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm",
                     "bg-muted/50 text-foreground border border-border/50"
@@ -209,6 +222,40 @@ function StatusIndicator({ variant }: { variant: 'completed' | 'cancelled' }) {
             )}>
                 {isCompleted ? '— Task completed —' : '— Task cancelled —'}
             </span>
+        </div>
+    );
+}
+
+function ReasoningAccordion({ content, isStreaming }: { content: string, isStreaming?: boolean }) {
+    const [isOpen, setIsOpen] = useState(isStreaming || false);
+
+    // Auto-expand when streaming starts
+    useEffect(() => {
+        if (isStreaming) setIsOpen(true);
+    }, [isStreaming]);
+
+    return (
+        <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-colors text-left"
+            >
+                {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                <Brain className="w-4 h-4 text-purple-400" />
+                <span className="text-xs font-medium text-muted-foreground">
+                    {isStreaming ? "Thinking..." : "Thought Process"}
+                </span>
+            </button>
+
+            {isOpen && (
+                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-muted-foreground animate-in slide-in-from-top-1">
+                    <div className="prose prose-sm prose-invert dark:prose-invert max-w-none break-words opacity-80">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {content + (isStreaming ? ' ▋' : '')}
+                        </ReactMarkdown>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

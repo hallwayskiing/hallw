@@ -71,6 +71,9 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         streaming=True,
         stream_usage=True,
         stream_options={"include_usage": True},
+        model_kwargs={
+            "reasoning_effort": "medium",
+        },
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
     # Build initial state

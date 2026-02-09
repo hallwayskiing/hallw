@@ -17,6 +17,7 @@ interface BaseMessage {
 interface TextMessage extends BaseMessage {
     type: 'text';
     content: string;
+    reasoning?: string;
 }
 
 interface ErrorMessage extends BaseMessage {
@@ -81,6 +82,7 @@ interface AppState {
     // Chat State
     messages: Message[];
     streamingContent: string;
+    streamingReasoning: string;
     pendingConfirmation: ConfirmationRequest | null;
     pendingInput: UserInputRequest | null;
 
@@ -114,7 +116,8 @@ interface AppActions {
 
     // Internal actions for socket events
     _onUserMessage: (msg: string) => void;
-    _onNewToken: (token: string) => void;
+    _onNewReasoning: (reasoning: string) => void;
+    _onNewText: (text: string) => void;
     _onTaskStarted: () => void;
     _onTaskFinished: () => void;
     _onTaskCancelled: () => void;
@@ -141,6 +144,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     theme: (localStorage.getItem('theme') as 'dark' | 'light') || 'dark',
     messages: [],
     streamingContent: '',
+    streamingReasoning: '',
     pendingConfirmation: null,
     pendingInput: null,
     toolStates: [],
@@ -190,7 +194,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         // Bind all event handlers
         const actions = get();
         socket.on('user_message', actions._onUserMessage);
-        socket.on('llm_new_token', actions._onNewToken);
+        socket.on('llm_new_reasoning', actions._onNewReasoning);
+        socket.on('llm_new_text', actions._onNewText);
         socket.on('task_started', actions._onTaskStarted);
         socket.on('task_finished', actions._onTaskFinished);
         socket.on('task_cancelled', actions._onTaskCancelled);
@@ -214,7 +219,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
             socket.off('user_message', actions._onUserMessage);
-            socket.off('llm_new_token', actions._onNewToken);
+            socket.off('llm_new_reasoning', actions._onNewReasoning);
+            socket.off('llm_new_text', actions._onNewText);
             socket.off('task_started', actions._onTaskStarted);
             socket.off('task_finished', actions._onTaskFinished);
             socket.off('task_cancelled', actions._onTaskCancelled);
@@ -295,9 +301,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         }));
     },
 
-    _onNewToken: (token) => {
+    _onNewReasoning: (reasoning) => {
+        set(state => ({
+            streamingReasoning: state.streamingReasoning + reasoning
+        }));
+    },
+
+    _onNewText: (text) => {
         set(state => {
-            const newContent = state.streamingContent + token;
+            const newContent = state.streamingContent + text;
             return {
                 streamingContent: newContent,
                 _streamingContentRef: newContent
@@ -323,13 +335,19 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             if (content) {
                 const last = state.messages[state.messages.length - 1];
                 if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
-                    newMessages.push({ type: 'text', role: 'assistant', content });
+                    newMessages.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content,
+                        reasoning: state.streamingReasoning
+                    });
                 }
             }
             newMessages.push({ type: 'status', role: 'system', variant: 'completed' });
             return {
                 messages: newMessages,
                 streamingContent: '',
+                streamingReasoning: '',
                 _streamingContentRef: '',
                 isProcessing: false
             };
@@ -343,7 +361,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             if (content) {
                 const last = state.messages[state.messages.length - 1];
                 if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
-                    newMessages.push({ type: 'text', role: 'assistant', content });
+                    newMessages.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content,
+                        reasoning: state.streamingReasoning
+                    });
                 }
             }
             newMessages.push({ type: 'status', role: 'system', variant: 'cancelled' });
@@ -360,6 +383,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             return {
                 messages: newMessages,
                 streamingContent: '',
+                streamingReasoning: '',
                 _streamingContentRef: '',
                 isProcessing: false,
                 toolStates: updatedToolStates,
