@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     google_api_key: Optional[SecretStr] = None
     anthropic_api_key: Optional[SecretStr] = None
     openrouter_api_key: Optional[SecretStr] = None
+    deepseek_api_key: Optional[SecretStr] = None
     zai_api_key: Optional[SecretStr] = None
     moonshot_api_key: Optional[SecretStr] = None
+    xiaomi_mimo_api_key: Optional[SecretStr] = None
 
     # =================================================
     # 3. LangSmith (Tracing)

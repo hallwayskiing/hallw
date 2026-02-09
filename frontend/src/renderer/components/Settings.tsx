@@ -5,12 +5,14 @@ import { cn } from '../lib/utils';
 
 // Provider definitions for API Keys tab
 const ALL_PROVIDERS = [
-    { key: 'openai_api_key', label: 'OpenAI', placeholder: 'sk-...', color: 'text-emerald-300' },
-    { key: 'google_api_key', label: 'Google', placeholder: 'AIza...', color: 'text-blue-300' },
-    { key: 'anthropic_api_key', label: 'Anthropic', placeholder: 'sk-ant-...', color: 'text-orange-300' },
-    { key: 'openrouter_api_key', label: 'OpenRouter', placeholder: 'sk-or-...', color: 'text-purple-300' },
-    { key: 'zai_api_key', label: 'ZAI', placeholder: 'Enter ZAI API key', color: 'text-cyan-300' },
-    { key: 'moonshot_api_key', label: 'Moonshot', placeholder: 'sk-...', color: 'text-yellow-300' },
+    { key: 'openai_api_key', label: 'OpenAI', placeholder: 'sk-...' },
+    { key: 'google_api_key', label: 'Google', placeholder: 'AIza...' },
+    { key: 'anthropic_api_key', label: 'Anthropic', placeholder: 'sk-ant-...' },
+    { key: 'openrouter_api_key', label: 'OpenRouter', placeholder: 'sk-or-...' },
+    { key: 'deepseek_api_key', label: 'DeepSeek', placeholder: 'sk-...' },
+    { key: 'zai_api_key', label: 'ZAI', placeholder: 'Enter ZAI API key' },
+    { key: 'moonshot_api_key', label: 'Moonshot', placeholder: 'sk-...' },
+    { key: 'xiaomi_mimo_api_key', label: 'Xiaomi Mimo', placeholder: 'sk-...' },
 ];
 
 interface SettingsProps {
@@ -244,7 +246,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                     <SectionCard title="Provider API Keys" icon={<Key className="w-4 h-4" />} color="text-cyan-300" gradient="from-cyan-500/8 to-teal-500/3">
                                         <div className="space-y-4">
                                             {ALL_PROVIDERS.map(provider => (
-                                                <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API key`}>
+                                                <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API Key`}>
                                                     <Input
                                                         name={provider.key}
                                                         type="password"
