@@ -209,15 +209,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         socket.on('stage_started', actions._onStageStarted);
         socket.on('stage_completed', actions._onStageCompleted);
 
-        // Window closing
-        const handleBeforeUnload = () => socket.emit('window_closing');
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
         set({ _socket: socket });
 
         // Return cleanup function
         return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
             socket.off('user_message', actions._onUserMessage);
             socket.off('llm_new_reasoning', actions._onNewReasoning);
             socket.off('llm_new_text', actions._onNewText);

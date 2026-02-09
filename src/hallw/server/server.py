@@ -1,6 +1,4 @@
 import asyncio
-import os
-import signal
 import uuid
 from typing import Optional
 
@@ -230,9 +228,13 @@ async def resolve_user_input(sid, data):
 
 
 @sio.event
-async def window_closing(sid):
-    """Handles the window closing event."""
-    os.kill(os.getpid(), signal.SIGINT)
+async def disconnect(sid):
+    """Handles the socket disconnect event."""
+    global active_task
+    print(f"Client disconnected: {sid}")
+    if active_task:
+        await active_task.cancel()
+        active_task = None
 
 
 def main():

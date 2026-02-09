@@ -1,8 +1,10 @@
 import os
+import signal
 import subprocess
 import sys
 import threading
 import warnings
+from typing import Optional
 
 import psutil
 
@@ -39,34 +41,40 @@ def kill_process_on_port(port: int):
             pass
 
 
-def run_frontend():
+def run_frontend() -> Optional[subprocess.Popen]:
     """Run npm run dev in the frontend directory."""
     frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 
     try:
-        subprocess.check_call(["npm", "run", "dev"], cwd=frontend_dir, shell=True)
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Frontend failed: {e}")
-    except KeyboardInterrupt:
-        pass
+        return subprocess.Popen(["npm", "run", "dev"], cwd=frontend_dir, shell=True)
+    except Exception as e:
+        logger.error(f"Failed to start frontend: {e}")
+        return None
 
 
 def main():
     _patch_windows_asyncio()
-
-    # Check and clean up port 8000
     kill_process_on_port(8000)
 
-    # 1. Start Backend in a separate thread
-    frontend_thread = threading.Thread(target=run_frontend)
-    frontend_thread.daemon = True
-    frontend_thread.start()
+    # 1. Start Frontend in a separate thread
+    fe_proc = run_frontend()
+
+    # 2. Start monitor thread for frontend
+    def monitor_frontend():
+        if fe_proc:
+            fe_proc.wait()
+            os.kill(os.getpid(), signal.SIGINT)
+
+    monitor_thread = threading.Thread(target=monitor_frontend, daemon=True)
+    monitor_thread.start()
 
     # 2. Start Backend (runs in main thread)
     try:
         server_main()
     except KeyboardInterrupt:
         logger.info("Stopping...")
+        if fe_proc:
+            fe_proc.terminate()
 
 
 if __name__ == "__main__":
