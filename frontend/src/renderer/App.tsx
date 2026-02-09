@@ -8,11 +8,17 @@ import { Settings } from './components/Settings';
 
 export default function App() {
   const initSocket = useAppStore(s => s.initSocket);
+  const theme = useAppStore(s => s.theme);
 
   // Initialize socket on mount
   useEffect(() => {
     return initSocket();
   }, [initSocket]);
+
+  // Apply theme on mount and when theme changes
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   // Select only needed state to minimize re-renders
   const isChatting = useAppStore(s => s.isChatting);

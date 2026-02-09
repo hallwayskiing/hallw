@@ -1,4 +1,4 @@
-import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key } from 'lucide-react';
+import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key, Moon, Sun, Palette } from 'lucide-react';
 import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
@@ -85,6 +85,7 @@ const TABS: TabConfig[] = [
     { id: 'logging', label: 'Logging', icon: <Terminal className="w-4 h-4" />, color: 'text-sky-300', gradient: 'from-sky-500/15 to-cyan-500/5' },
     { id: 'exec-search', label: 'Exec & Search', icon: <Search className="w-4 h-4" />, color: 'text-violet-300', gradient: 'from-violet-500/15 to-purple-500/5' },
     { id: 'browser', label: 'Browser', icon: <Globe className="w-4 h-4" />, color: 'text-rose-300', gradient: 'from-rose-500/15 to-pink-500/5' },
+    { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" />, color: 'text-indigo-300', gradient: 'from-indigo-500/15 to-purple-500/5' },
 ];
 
 const NUMBER_FIELDS = [
@@ -95,6 +96,8 @@ const NUMBER_FIELDS = [
 
 export function Settings({ isOpen, onClose }: SettingsProps) {
     const getSocket = useAppStore(s => s.getSocket);
+    const theme = useAppStore(s => s.theme);
+    const toggleTheme = useAppStore(s => s.toggleTheme);
     const [activeTab, setActiveTab] = useState('model');
     const [config, setConfig] = useState<Config>({});
     const [isLoading, setIsLoading] = useState(true);
@@ -422,6 +425,38 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             </div>
                                         </SectionCard>
                                     </>
+                                )}
+
+                                {activeTab === 'appearance' && (
+                                    <SectionCard title="Theme" icon={<Palette className="w-4 h-4" />} color="text-indigo-300" gradient="from-indigo-500/8 to-purple-500/3">
+                                        <div className="flex items-center justify-between py-3">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm font-medium text-foreground">Dark Mode</span>
+                                                <span className="text-xs text-muted-foreground">Toggle between light and dark theme</span>
+                                            </div>
+                                            <button
+                                                onClick={toggleTheme}
+                                                className={cn(
+                                                    "relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
+                                                    theme === 'dark'
+                                                        ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
+                                                        : "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300"
+                                                )}
+                                            >
+                                                {theme === 'dark' ? (
+                                                    <>
+                                                        <Moon className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">Dark</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Sun className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">Light</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </SectionCard>
                                 )}
                             </div>
                         )}

@@ -76,6 +76,7 @@ interface AppState {
     isProcessing: boolean;
     isSettingsOpen: boolean;
     isConnected: boolean;
+    theme: 'dark' | 'light';
 
     // Chat State
     messages: Message[];
@@ -98,6 +99,7 @@ interface AppState {
 interface AppActions {
     // Setters
     setIsSettingsOpen: (open: boolean) => void;
+    toggleTheme: () => void;
 
     // Socket
     initSocket: () => () => void;
@@ -136,6 +138,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     isProcessing: false,
     isSettingsOpen: false,
     isConnected: false,
+    theme: (localStorage.getItem('theme') as 'dark' | 'light') || 'dark',
     messages: [],
     streamingContent: '',
     pendingConfirmation: null,
@@ -150,6 +153,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     // Setters
     setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
+
+    toggleTheme: () => {
+        set(state => {
+            const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            document.documentElement.classList.toggle('dark', newTheme === 'dark');
+            return { theme: newTheme };
+        });
+    },
 
     // Socket
     getSocket: () => get()._socket,
