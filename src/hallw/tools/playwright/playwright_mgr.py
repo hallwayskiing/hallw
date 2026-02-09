@@ -52,7 +52,7 @@ class PlaywrightManager:
     async def get_page(self, index: int) -> Optional[Page]:
         """Get page by index, auto-launching browser if needed."""
         if self.context is None:
-            await self.launch()
+            return None
 
         pages = self.context.pages
         if index >= len(pages):
@@ -62,7 +62,7 @@ class PlaywrightManager:
     async def add_page(self) -> int:
         """Add a new page and return its index."""
         if self.context is None:
-            await self.launch()
+            return -1
 
         await self.context.new_page()
         return len(self.context.pages) - 1
@@ -71,20 +71,16 @@ class PlaywrightManager:
     # Browser Lifecycle
     # -------------------------
 
-    async def launch(self) -> str:
+    async def launch(self, headless: bool = True) -> str:
         """Open Chrome or reuse an existing instance and connect via CDP.
 
         Returns:
             Status message
         """
-
-        # Get fresh config values
+        # Get config values
         cdp_port = config.cdp_port
         cdp_timeout = config.pw_cdp_timeout
-        window_width = config.pw_window_width
-        window_height = config.pw_window_height
         prefer_local = config.prefer_local_chrome
-        headless = config.pw_headless_mode
         endpoint = f"http://127.0.0.1:{cdp_port}"
 
         # Check if Chrome is already running
@@ -102,7 +98,7 @@ class PlaywrightManager:
                 browser = await self.pw.chromium.connect_over_cdp(endpoint)
                 self.browser = browser
                 # Create a new context
-                self.context = await browser.new_context(viewport={"width": window_width, "height": window_height})
+                self.context = await browser.new_context()
                 await self._apply_stealth(self.context)
                 await self.context.new_page()
                 self.chrome_process = None  # Since we didn't start it
@@ -117,10 +113,10 @@ class PlaywrightManager:
         # If local browser not preferred or not found, use Playwright Chromium
         if not prefer_local or chrome_path is None:
             try:
-                args = self._build_chrome_args()
+                args = self._build_chrome_args(headless=headless)
                 browser = await self.pw.chromium.launch(args=args, headless=headless)
                 self.browser = browser
-                context = await browser.new_context(viewport={"width": window_width, "height": window_height})
+                context = await browser.new_context()
                 await self._apply_stealth(context)
                 self.context = context
                 await context.new_page()
@@ -131,7 +127,7 @@ class PlaywrightManager:
             return "Playwright Chromium launched"
         # Launch local Chrome with CDP
         else:
-            args = self._build_chrome_args(chrome_path)
+            args = self._build_chrome_args(chrome_path, headless)
 
             process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.chrome_process = process
@@ -196,12 +192,10 @@ class PlaywrightManager:
         stealth = Stealth()
         await stealth.apply_stealth_async(context)
 
-    def _build_chrome_args(self, chrome_path: str = None) -> list:
+    def _build_chrome_args(self, chrome_path: str = None, headless: bool = True) -> list:
         """Build Chrome command-line arguments."""
         chrome_user_data_dir = config.chrome_user_data_dir
         cdp_port = config.cdp_port
-        window_width, window_height = config.pw_window_width, config.pw_window_height
-        headless = config.pw_headless_mode
 
         if chrome_user_data_dir:
             user_data_dir = os.path.abspath(chrome_user_data_dir)
@@ -215,7 +209,6 @@ class PlaywrightManager:
                 f"--remote-debugging-port={cdp_port}",
                 f"--user-data-dir={user_data_dir}",
                 "--no-first-run",
-                f"--window-size={window_width}x{window_height}",
                 "--no-default-browser-check",
                 "--exclude-switches=enable-automation",
                 "--disable-dev-shm-usage",
@@ -230,7 +223,6 @@ class PlaywrightManager:
         else:
             args = [
                 "--no-first-run",
-                f"--window-size={window_width}x{window_height}",
                 "--no-default-browser-check",
                 "--disable-dev-shm-usage",
                 "--disable-default-apps",
@@ -311,9 +303,9 @@ async def add_page() -> int:
     return await pw_manager.add_page()
 
 
-async def browser_launch() -> str:
+async def browser_launch(headless: bool = True) -> str:
     """Launch browser."""
-    return await pw_manager.launch()
+    return await pw_manager.launch(headless)
 
 
 async def browser_close() -> None:

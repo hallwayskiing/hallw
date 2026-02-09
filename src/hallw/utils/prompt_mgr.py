@@ -89,8 +89,8 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     - At the beginning of the task, you **MUST** call the `build_stages` tool to analyze the task and create stages.
     - At the end of each stage, you **MUST** call the `end_current_stage` tool to proceed to the next stage,
     or end the task if it is completed. Otherwise you will get stuck in the current stage.
-    - If you completed multiple stages at once, just call the `end_current_stage` tool multiple times.
-    - Do not generate duplicate responses.
+    - If you completed multiple stages at once, just call the `end_current_stage` tool multiple times,
+    **DO NOT** generate duplicate responses for every stage.
     </stages>
 
     <available_tools>

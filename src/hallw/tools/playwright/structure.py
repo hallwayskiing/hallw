@@ -116,7 +116,7 @@ async def browser_get_structure(page_index: int) -> str:
     """Get the robust structure of the page (Viewport independent)."""
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, f"Page {page_index} not found.")
+        return build_tool_response(False, "Launch browser first or page index is invalid.")
 
     # 1. Preprocess: Wait for load, remove overlays, handle consent
     try:

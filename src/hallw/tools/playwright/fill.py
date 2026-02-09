@@ -18,7 +18,7 @@ async def browser_fill(page_index: int, element_id: str, text: str, submit_on_en
     """
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, "Page not found.")
+        return build_tool_response(False, "Launch browser first or page index is invalid.")
 
     # CSS Selector: "id='foo' OR data-hallw-id='foo'"
     selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"

@@ -58,9 +58,6 @@ class Settings(BaseSettings):
     prefer_local_chrome: bool = True
     chrome_user_data_dir: Optional[str] = None
     cdp_port: int = 9222
-    pw_headless_mode: bool = False
-    pw_window_width: int = 1920
-    pw_window_height: int = 1080
     keep_browser_open: bool = True
     # Playwright timeouts (in milliseconds)
     pw_goto_timeout: int = 10000

@@ -20,7 +20,7 @@ async def browser_goto(page_index: int, url: str) -> str:
     """
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, f"Page with index {page_index} not found.")
+        return build_tool_response(False, "Launch browser first or page index is invalid.")
 
     try:
         # 1. Basic Navigation

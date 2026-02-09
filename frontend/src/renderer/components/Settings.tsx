@@ -56,9 +56,6 @@ interface Config {
     prefer_local_chrome?: boolean;
     chrome_user_data_dir?: string;
     cdp_port?: number;
-    pw_headless_mode?: boolean;
-    pw_window_width?: number;
-    pw_window_height?: number;
     keep_browser_open?: boolean;
     pw_goto_timeout?: number;
     pw_click_timeout?: number;
@@ -89,9 +86,8 @@ const TABS: TabConfig[] = [
 ];
 
 const NUMBER_FIELDS = [
-    'model_temperature', 'model_max_output_tokens', 'model_reflection_threshold', 'model_max_recursion',
-    'logging_max_chars', 'brave_search_result_count', 'cdp_port', 'pw_window_width', 'pw_window_height',
-    'pw_goto_timeout', 'pw_click_timeout', 'pw_cdp_timeout'
+    'model_temperature', 'model_max_output_tokens', 'model_reflection_threshold', 'model_max_recursion', 'logging_max_chars',
+    'brave_search_result_count', 'cdp_port', 'pw_goto_timeout', 'pw_click_timeout', 'pw_cdp_timeout'
 ];
 
 export function Settings({ isOpen, onClose }: SettingsProps) {
@@ -384,14 +380,6 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                                 onChange={(checked) => handleChange('keep_browser_open', checked)}
                                                 color="bg-gradient-to-r from-rose-400 to-pink-400"
                                             />
-                                            <ToggleGroup
-                                                id="pw_headless_mode"
-                                                label="Headless Mode"
-                                                desc="Run browser without visible window"
-                                                checked={config.pw_headless_mode || false}
-                                                onChange={(checked) => handleChange('pw_headless_mode', checked)}
-                                                color="bg-gradient-to-r from-rose-400 to-pink-400"
-                                            />
                                         </SectionCard>
 
                                         <SectionCard title="Chrome Settings" icon={<Monitor className="w-4 h-4" />} color="text-pink-300" gradient="from-pink-500/8 to-rose-500/3">
@@ -401,14 +389,6 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             <InputGroup label="CDP Port" desc="Chrome DevTools Protocol port">
                                                 <Input name="cdp_port" type="number" value={config.cdp_port ?? 9222} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('cdp_port', e.target.value)} />
                                             </InputGroup>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <InputGroup label="Window Width">
-                                                    <Input name="pw_window_width" type="number" value={config.pw_window_width ?? 1920} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_window_width', e.target.value)} />
-                                                </InputGroup>
-                                                <InputGroup label="Window Height">
-                                                    <Input name="pw_window_height" type="number" value={config.pw_window_height ?? 1080} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_window_height', e.target.value)} />
-                                                </InputGroup>
-                                            </div>
                                         </SectionCard>
 
                                         <SectionCard title="Timeouts (ms)" icon={<Clock className="w-4 h-4" />} color="text-amber-300" gradient="from-amber-500/8 to-yellow-500/3">

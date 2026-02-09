@@ -20,7 +20,7 @@ async def browser_click(page_index: int, element_id: str) -> str:
     """
     page = await get_page(page_index)
     if page is None:
-        return build_tool_response(False, "Page not found.")
+        return build_tool_response(False, "Launch browser first or page index is invalid.")
 
     selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"
 
