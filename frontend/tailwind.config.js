@@ -4,6 +4,7 @@ module.exports = {
         "./src/renderer/index.html",
         "./src/renderer/**/*.{js,ts,jsx,tsx}",
     ],
+    darkMode: 'class',
     theme: {
         container: {
             center: true,

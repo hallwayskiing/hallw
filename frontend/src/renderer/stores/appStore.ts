@@ -397,6 +397,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             ? data
             : (data as { message?: string }).message || JSON.stringify(data);
         set(state => {
+            const newMessages = [...state.messages];
+
+            // Flush any pending streaming content
+            const pendingContent = state._streamingContentRef;
+            if (pendingContent) {
+                const last = state.messages[state.messages.length - 1];
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === pendingContent)) {
+                    newMessages.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content: pendingContent,
+                        reasoning: state.streamingReasoning
+                    });
+                }
+            }
+
             // Mark last running tool as error
             const updatedToolStates = [...state.toolStates];
             if (updatedToolStates.length > 0) {
@@ -407,7 +423,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             }
 
             return {
-                messages: [...state.messages, { type: 'error', role: 'system', content }],
+                messages: [...newMessages, { type: 'error', role: 'system', content }],
+                streamingContent: '',
+                streamingReasoning: '',
+                _streamingContentRef: '',
                 isProcessing: false,
                 toolStates: updatedToolStates,
                 errorStageIndex: state.currentStageIndex
