@@ -34,7 +34,19 @@ uv sync --no-group dev
 if errorlevel 1 goto :fail
 
 :: ==========================================
-:: 3. Launch Application
+:: 3. Install Frontend Dependencies
+:: ==========================================
+echo [SETUP] Installing frontend dependencies...
+pushd frontend
+call npm install
+if errorlevel 1 (
+    popd
+    goto :fail
+)
+popd
+
+:: ==========================================
+:: 4. Launch Application
 :: ==========================================
 :: Check for .env configuration
 if not exist ".env" (

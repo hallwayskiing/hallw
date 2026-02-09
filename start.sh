@@ -41,7 +41,15 @@ echo "[SETUP] Syncing environment with uv..."
 uv sync --no-group dev
 
 # ==========================================
-# 3. Launch Application
+# 3. Install Frontend Dependencies
+# ==========================================
+echo "[SETUP] Installing frontend dependencies..."
+pushd frontend > /dev/null
+npm install
+popd > /dev/null
+
+# ==========================================
+# 4. Launch Application
 # ==========================================
 
 # Check for .env configuration
