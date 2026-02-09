@@ -9,7 +9,15 @@ from .playwright_mgr import get_page
 
 @tool
 async def browser_click(page_index: int, element_id: str) -> str:
-    """Click an element by ID."""
+    """Click an element by ID.
+
+    Args:
+        page_index: The index of the page to click on.
+        element_id: The ID of the element to click.
+
+    Returns:
+        str: The result of the click operation.
+    """
     page = await get_page(page_index)
     if page is None:
         return build_tool_response(False, "Page not found.")
