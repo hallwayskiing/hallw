@@ -327,14 +327,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set(state => {
             const content = state._streamingContentRef;
             const newMessages = [...state.messages];
-            if (content) {
+            const reasoning = state.streamingReasoning;
+
+            if (content || reasoning) {
                 const last = state.messages[state.messages.length - 1];
-                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
+                // Avoid duplicating the message if it's already the last one
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content && last.reasoning === reasoning)) {
                     newMessages.push({
                         type: 'text',
                         role: 'assistant',
                         content,
-                        reasoning: state.streamingReasoning
+                        reasoning
                     });
                 }
             }
@@ -353,14 +356,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set(state => {
             const content = state._streamingContentRef;
             const newMessages = [...state.messages];
-            if (content) {
+            const reasoning = state.streamingReasoning;
+
+            if (content || reasoning) {
                 const last = state.messages[state.messages.length - 1];
-                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content && last.reasoning === reasoning)) {
                     newMessages.push({
                         type: 'text',
                         role: 'assistant',
                         content,
-                        reasoning: state.streamingReasoning
+                        reasoning
                     });
                 }
             }
@@ -396,14 +401,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
             // Flush any pending streaming content
             const pendingContent = state._streamingContentRef;
-            if (pendingContent) {
+            const pendingReasoning = state.streamingReasoning;
+
+            if (pendingContent || pendingReasoning) {
                 const last = state.messages[state.messages.length - 1];
-                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === pendingContent)) {
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === pendingContent && last.reasoning === pendingReasoning)) {
                     newMessages.push({
                         type: 'text',
                         role: 'assistant',
                         content: pendingContent,
-                        reasoning: state.streamingReasoning
+                        reasoning: pendingReasoning
                     });
                 }
             }

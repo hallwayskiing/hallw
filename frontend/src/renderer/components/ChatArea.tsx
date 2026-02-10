@@ -32,7 +32,7 @@ export function ChatArea() {
     // Auto-scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, streamingContent, streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
+    }, [messages, streamingContent, !!streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
 
     // Empty state
     if (messages.length === 0 && !streamingContent && !isProcessing) {
@@ -52,7 +52,7 @@ export function ChatArea() {
             {(streamingContent || streamingReasoning) && (
                 <MessageBubble
                     role="assistant"
-                    content={streamingContent + ' ▌'}
+                    content={streamingContent ? streamingContent + ' ▌' : ''}
                     reasoning={streamingReasoning}
                     isStreaming
                 />
@@ -151,19 +151,21 @@ function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleP
                     <ReasoningAccordion content={reasoning} isStreaming={isStreaming} />
                 )}
 
-                <div className={cn(
-                    "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm",
-                    "bg-muted/50 text-foreground border border-border/50"
-                )}>
+                {content && (
                     <div className={cn(
-                        "prose prose-sm dark:prose-invert max-w-none break-words",
-                        isStreaming && "leading-relaxed text-foreground/90"
+                        "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm",
+                        "bg-muted/50 text-foreground border border-border/50"
                     )}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {content}
-                        </ReactMarkdown>
+                        <div className={cn(
+                            "prose prose-sm dark:prose-invert max-w-none break-words",
+                            isStreaming && "leading-relaxed text-foreground/90"
+                        )}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {content}
+                            </ReactMarkdown>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
