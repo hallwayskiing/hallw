@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.10.0 (2026-02-10)
+
+### Feat
+
+- **core**: add MODEL_REASONING_EFFORT configuration
+- **ui**: add recently used models to choose in the settings
+- **skills**: add stage-builder skill
+- **tools**: add `browser_get_content` tool
+- **core**: add support for model reasoning
+- **ui**: add better light effects for dark mode
+- **ui**: support light & dark mode switch
+- **tools**: support Bocha Search Engine for Chinese users
+- add frontend `npm install` step
+- support DeepSeek and Xiaomi Mimo
+- **tools**: create read & write tools for better file management
+- **core**: support multi-provider api keys management
+
+### Fix
+
+- **ui**: avoid rendering empty bubbles
+- **ui**: improve reasoning content rendering
+- **server**: fix connection after refresh
+- **ui**: fix fatal error renderring
+- **core**: improve stability of tool calls
+- **core**: refine data statistics and history message logics
+- **ui**: refine ui logic on fatal error and cancellation
+
+### Refactor
+
+- **core**: decouple core components and improve agent stability
+- **tools**: refactor browser management
+- **core**: remove unused dependencies
+
 ## v0.9.0 (2026-02-08)
 
 ### Feat
