@@ -117,6 +117,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     )
 
 
+# --- SocketIO Events ---
 @sio.event
 async def start_task(sid, data):
     global active_task, current_session
@@ -130,6 +131,9 @@ async def start_task(sid, data):
 
     # Immediately echo the user's message back to the UI
     await sio.emit("user_message", task_text, room=sid)
+
+    # Update recent models list
+    _save_recent_model()
 
     async def run_wrapper():
         global active_task, current_session
@@ -238,6 +242,21 @@ async def disconnect(sid):
         active_task = None
 
 
+# --- Helper Functions ---
+def _save_recent_model():
+    recent_models = list(config.model_recent_used)
+    model_name = config.model_name
+    if model_name in recent_models:
+        recent_models.remove(model_name)
+    recent_models.insert(0, model_name)
+    recent_models = recent_models[:10]
+
+    if recent_models != config.model_recent_used:
+        config.model_recent_used = recent_models
+        save_config_to_env({"model_recent_used": recent_models})
+
+
+# --- Main ---
 def main():
     """Main entry point for the Uvicorn server."""
     uvicorn.run(app, host="0.0.0.0", port=8000)

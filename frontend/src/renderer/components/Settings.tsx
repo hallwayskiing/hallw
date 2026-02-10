@@ -1,4 +1,4 @@
-import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key, Moon, Sun, Palette } from 'lucide-react';
+import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key, Moon, Sun, Palette, ChevronDown } from 'lucide-react';
 import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
@@ -60,6 +60,8 @@ interface Config {
     pw_goto_timeout?: number;
     pw_click_timeout?: number;
     pw_cdp_timeout?: number;
+    // Recent Models
+    model_recent_used?: string[];
 }
 
 interface ServerResponse {
@@ -217,7 +219,12 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                     <>
                                         <SectionCard title="LLM Configuration" icon={<Sparkles className="w-4 h-4" />} color="text-amber-300" gradient="from-amber-500/8 to-orange-500/3">
                                             <InputGroup label="Model Name" desc="e.g. gemini/gemini-2.5-flash">
-                                                <Input name="model_name" value={config.model_name || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_name', e.target.value)} placeholder="gemini/gemini-2.5-flash" />
+                                                <Combobox
+                                                    value={config.model_name || ''}
+                                                    onChange={(val) => handleChange('model_name', val)}
+                                                    options={config.model_recent_used || []}
+                                                    placeholder="gemini/gemini-2.5-flash"
+                                                />
                                             </InputGroup>
                                             <InputGroup label="Custom Endpoint" desc="Base URL for the custom model API">
                                                 <Input name="model_endpoint" value={config.model_endpoint || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_endpoint', e.target.value)} placeholder="https://api.openai.com/v1" />
@@ -485,6 +492,71 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 }
 
 // ===== Sub-components =====
+
+function Combobox({ value, onChange, options, placeholder }: { value: string, onChange: (val: string) => void, options: string[], placeholder?: string }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [wrapperRef, setWrapperRef] = useState<HTMLDivElement | null>(null);
+
+    // Filter duplicates just in case
+    const uniqueOptions = Array.from(new Set(options));
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            // Check if wrapperRef exists and if the click target is within it
+            if (wrapperRef && !wrapperRef.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [wrapperRef]);
+
+    return (
+        <div className="relative" ref={setWrapperRef}>
+            <div className="relative">
+                <input
+                    className={cn(
+                        "w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground/40 pr-10"
+                    )}
+                    value={value}
+                    onChange={(e) => {
+                        onChange(e.target.value);
+                        if (!isOpen) setIsOpen(true);
+                    }}
+                    onFocus={() => setIsOpen(true)}
+                    placeholder={placeholder}
+                />
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                    <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                </button>
+            </div>
+
+            {isOpen && uniqueOptions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-1 space-y-0.5">
+                        {uniqueOptions.map((option, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                    onChange(option);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted/50 transition-colors truncate text-foreground/80 hover:text-foreground"
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 function SectionCard({ title, icon, color, gradient, children }: { title: string; icon?: ReactNode; color?: string; gradient?: string; children: ReactNode }) {
     return (

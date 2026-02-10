@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_max_output_tokens: int = 10240
     model_reflection_threshold: int = 3
     model_max_recursion: int = 200
+    model_recent_used: List[str] = []
 
     # =================================================
     # 2. Provider API Keys
