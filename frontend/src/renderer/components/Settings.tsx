@@ -29,6 +29,7 @@ interface Config {
     model_max_output_tokens?: number;
     model_reflection_threshold?: number;
     model_max_recursion?: number;
+    model_reasoning_effort?: string;
     // Provider API Keys
     openai_api_key?: string;
     google_api_key?: string;
@@ -244,6 +245,16 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                                 </InputGroup>
                                                 <InputGroup label="Max Recursion" desc="Limit loops">
                                                     <Input name="model_max_recursion" type="number" min="1" value={config.model_max_recursion ?? 50} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_max_recursion', e.target.value)} />
+                                                </InputGroup>
+                                            </div>
+                                            <div className="grid grid-cols-1 pt-4 border-t border-border/30">
+                                                <InputGroup label="Reasoning Effort" desc="For supported models">
+                                                    <Combobox
+                                                        value={config.model_reasoning_effort || 'low'}
+                                                        onChange={(val) => handleChange('model_reasoning_effort', val)}
+                                                        options={['low', 'medium', 'high']}
+                                                        placeholder="low"
+                                                    />
                                                 </InputGroup>
                                             </div>
                                         </SectionCard>

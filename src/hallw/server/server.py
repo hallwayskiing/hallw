@@ -78,7 +78,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
         stream_usage=True,
         stream_options={"include_usage": True},
         model_kwargs={
-            "reasoning_effort": "low",
+            "reasoning_effort": config.model_reasoning_effort,
         },
     ).bind_tools(list(tools_dict.values()), tool_choice="auto")
 
