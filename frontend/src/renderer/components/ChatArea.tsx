@@ -48,6 +48,16 @@ export function ChatArea() {
                 </div>
             ))}
 
+            {/* Streaming Response */}
+            {(streamingContent || streamingReasoning) && (
+                <MessageBubble
+                    role="assistant"
+                    content={streamingContent + ' ▌'}
+                    reasoning={streamingReasoning}
+                    isStreaming
+                />
+            )}
+
             {/* Pending Confirmation Card */}
             {pendingConfirmation && (
                 <Confirmation
@@ -67,16 +77,6 @@ export function ChatArea() {
                     message={pendingInput.message}
                     timeout={pendingInput.timeout}
                     onDecision={handleInputDecision}
-                />
-            )}
-
-            {/* Streaming Response */}
-            {(streamingContent || streamingReasoning) && (
-                <MessageBubble
-                    role="assistant"
-                    content={streamingContent + ' ▌'}
-                    reasoning={streamingReasoning}
-                    isStreaming
                 />
             )}
 
@@ -141,7 +141,7 @@ function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleP
             isUser && "flex-row-reverse"
         )}>
             <Avatar role={role} />
-            <div className={cn("flex-1 space-y-2", isUser ? "text-right" : "text-left")}>
+            <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
                 <div className="font-semibold text-sm text-foreground/80">
                     {isUser ? 'You' : 'HALLW'}
                 </div>
@@ -227,33 +227,60 @@ function StatusIndicator({ variant }: { variant: 'completed' | 'cancelled' }) {
 }
 
 function ReasoningAccordion({ content, isStreaming }: { content: string, isStreaming?: boolean }) {
-    const [isOpen, setIsOpen] = useState(isStreaming || false);
+    const [isOpen, setIsOpen] = useState(false);
+    const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Auto-expand when streaming starts
     useEffect(() => {
-        if (isStreaming) setIsOpen(true);
-    }, [isStreaming]);
+        if (isOpen) {
+            // Scroll to the bottom of this accordion when opened or content updates
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }, [isOpen, content, isStreaming]);
+
+    // Extract last non-empty line specific for reasoning updates
+    const lastLine = content
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .pop() || '';
 
     return (
         <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-colors text-left"
+                className={cn(
+                    "flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-all text-left group",
+                    !isOpen && isStreaming && "bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
+                )}
             >
-                {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                <Brain className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-medium text-muted-foreground">
-                    {isStreaming ? "Thinking..." : "Thought Process"}
-                </span>
+                {isOpen ?
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200" /> :
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200" />
+                }
+                <Brain className={cn(
+                    "w-4 h-4 text-purple-400 shrink-0",
+                    isStreaming && "animate-pulse"
+                )} />
+                <div className="flex-1 min-w-0">
+                    {!isOpen && isStreaming && lastLine ? (
+                        <span className="text-xs text-muted-foreground/80 truncate block font-mono">
+                            {lastLine.slice(0, 100)}
+                        </span>
+                    ) : (
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {isStreaming ? "Thinking..." : "Thought Process"}
+                        </span>
+                    )}
+                </div>
             </button>
 
             {isOpen && (
-                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-muted-foreground animate-in slide-in-from-top-1">
+                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-muted-foreground animate-in slide-in-from-top-1 max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
                     <div className="prose prose-sm prose-invert dark:prose-invert max-w-none break-words opacity-80">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {content + (isStreaming ? ' ▋' : '')}
                         </ReactMarkdown>
                     </div>
+                    <div ref={bottomRef} className="h-0 w-0" />
                 </div>
             )}
         </div>
