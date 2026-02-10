@@ -50,6 +50,7 @@ dev = [
     "mypy>=1.5.0",
     "pre-commit>=3.0.0",
     "ruff>=0.7.3",
+    "commitizen>=3.12.0",
 ]
 
 [tool.ruff]
@@ -130,3 +131,13 @@ exclude_lines = [
 where = ["src"]
 include = ["hallw*"]
 namespaces = false
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_incremental = true
+version_files = [
+    "src/hallw/__init__.py:__version__",
+]
