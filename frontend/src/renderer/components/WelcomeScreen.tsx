@@ -20,7 +20,7 @@ const ALL_QUICK_STARTS = [
     { icon: <Moon className="w-4 h-4" />, color: 'cyan', text: "I can't sleep at night. What are some science-backed tips for better sleep?" },
     { icon: <Plane className="w-4 h-4" />, color: 'blue', text: "First time going to Thailand! Help me plan what to prepare." },
     { icon: <Book className="w-4 h-4" />, color: 'teal', text: "Recommend some addictive mystery novels I won't be able to put down." },
-    { icon: <Gamepad2 className="w-4 h-4" />, color: 'purple', text: "What are the best Nintendo Switch games to play in 2024?" },
+    { icon: <Gamepad2 className="w-4 h-4" />, color: 'purple', text: "What are the best Nintendo Switch games to play in 2025?" },
     { icon: <Palette className="w-4 h-4" />, color: 'pink', text: "I want to learn to draw but I'm a total beginner. Where do I start?" },
     { icon: <ShoppingBag className="w-4 h-4" />, color: 'rose', text: "Spring is here! What fashion trends are in style this season?" },
     { icon: <Leaf className="w-4 h-4" />, color: 'emerald', text: "What houseplants are easy to care for and look aesthetic?" },
@@ -36,7 +36,7 @@ const ALL_QUICK_STARTS = [
     { icon: <Search className="w-4 h-4" />, color: 'amber', text: "What are the hottest restaurants trending on social media right now?" },
     { icon: <FileText className="w-4 h-4" />, color: 'cyan', text: "I want to start journaling but don't know what to write. Give me prompts!" },
     { icon: <Star className="w-4 h-4" />, color: 'rose', text: "Looking for wholesome and healing anime to watch tonight." },
-    { icon: <Globe className="w-4 h-4" />, color: 'teal', text: "Unique small towns to visit that feel like traveling abroad?" },
+    { icon: <Globe className="w-4 h-4" />, color: 'teal', text: "Recommend some unique small towns to visit that feel like traveling abroad!" },
     { icon: <Heart className="w-4 h-4" />, color: 'purple', text: "How can I make each day feel more meaningful? Share some little joys." },
 ] as const;
 

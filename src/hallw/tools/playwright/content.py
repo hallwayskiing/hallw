@@ -22,7 +22,7 @@ async def browser_get_content(page_index: int) -> str:
         return build_tool_response(False, "Launch browser first or page index is invalid.")
 
     try:
-        page.wait_for_event("networkidle", timeout=10000)
+        await page.wait_for_load_state("networkidle", timeout=10000)
 
         try:
             await auto_consent(page)

@@ -9,50 +9,45 @@ from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import SecretStr
 
-from hallw.core import AgentState, AgentTask
+from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
 from hallw.utils import config, generateSystemPrompt, init_logger, logger, save_config_to_env
 
 # --- Global State ---
-initiated = False
-task_id = None
-agent_renderer: Optional[SocketAgentRenderer] = None
 tools_dict = load_tools()
 active_task: Optional[AgentTask] = None
-conversation_history = []
-input_tokens = 0
-output_tokens = 0
+
+
+class Session:
+    def __init__(self, sid: str):
+        self.task_id = str(uuid.uuid4())
+        self.renderer = SocketAgentRenderer(sio, sid)
+        self.history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
+        self.input_tokens = 0
+        self.output_tokens = 0
+        init_logger(self.task_id)
+
+
+current_session: Optional[Session] = None
 
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
 
 
 def create_agent_task(user_task: str, sid: str) -> AgentTask:
-    """
-    Initializes the agent environment or updates the existing one for a new task.
-    """
-    global initiated, task_id, conversation_history, agent_renderer
+    global current_session
 
     checkpointer = MemorySaver()
 
-    # Initialization logic for the first run after start or reset
-    if not initiated:
-        task_id = str(uuid.uuid4())
-        init_logger(task_id)
-
-        # Create renderer and conversation history
-        agent_renderer = SocketAgentRenderer(sio, sid)
-        conversation_history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
-
-        initiated = True
+    if not current_session:
+        current_session = Session(sid)
     else:
-        # Update existing renderer with the current session ID in case of reconnection
-        agent_renderer.sid = sid
+        current_session.renderer.sid = sid
 
     # Always prepare the current message stack from history
-    messages = conversation_history.copy()
+    messages = current_session.history.copy()
 
     # Append the new user request
     builder_msg = SystemMessage(
@@ -70,7 +65,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     user_msg = HumanMessage(content=f"User: {user_task}")
     messages.append(builder_msg)
     messages.append(user_msg)
-    conversation_history.append(user_msg)
+    current_session.history.append(user_msg)
     logger.info(f"User: {user_task}")
 
     # LLM Configuration
@@ -90,25 +85,41 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     # Build initial state
     initial_state: AgentState = {
         "messages": messages,
+        "stats": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "tool_call_counts": 0,
+            "failures": 0,
+            "failures_since_last_reflection": 0,
+        },
+        "current_stage": 0,
+        "total_stages": 0,
+        "stage_names": [],
         "task_completed": False,
     }
 
+    invocation_config = {
+        "recursion_limit": config.model_max_recursion,
+        "configurable": {
+            "thread_id": current_session.task_id,
+            "renderer": current_session.renderer,
+        },
+    }
+
     return AgentTask(
-        task_id=task_id,
+        task_id=current_session.task_id,
         llm=llm,
         tools_dict=tools_dict,
-        renderer=agent_renderer,
+        dispatcher=AgentEventDispatcher(current_session.renderer),
         initial_state=initial_state,
         checkpointer=checkpointer,
+        invocation_config=invocation_config,
     )
 
 
 @sio.event
 async def start_task(sid, data):
-    """
-    Triggered when the user sends a message.
-    """
-    global active_task
+    global active_task, current_session
     task_text = data.get("task")
     if not task_text:
         return
@@ -121,19 +132,18 @@ async def start_task(sid, data):
     await sio.emit("user_message", task_text, room=sid)
 
     async def run_wrapper():
-        global active_task, conversation_history, input_tokens, output_tokens
-        """Execution wrapper to run the agent and handle completion."""
+        global active_task, current_session
         try:
             final_state = await agent_task._run()
-            if final_state:
-                initial_count = len(conversation_history)
+            if final_state and current_session:
+                initial_count = len(current_session.history)
                 new_messages = final_state["messages"][initial_count:]
-                conversation_history.extend(new_messages)
+                current_session.history.extend(new_messages)
 
-                input_tokens += final_state["stats"].get("input_tokens", 0)
-                output_tokens += final_state["stats"].get("output_tokens", 0)
+                current_session.input_tokens += final_state["stats"].get("input_tokens", 0)
+                current_session.output_tokens += final_state["stats"].get("output_tokens", 0)
             else:
-                logger.error("Task failed to produce a final state.")
+                logger.error("Task failed or session lost.")
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             await sio.emit("task_cancelled", {}, room=sid)
@@ -150,28 +160,21 @@ async def start_task(sid, data):
 
 @sio.event
 async def reset_session(sid):
-    """
-    Completely resets the agent state and conversation history.
-    """
-    global initiated, active_task, conversation_history, agent_renderer, task_id, input_tokens, output_tokens
+    global current_session, active_task
 
     await browser_close()
 
     if active_task:
         await active_task.cancel()
 
-    if input_tokens > 0 and output_tokens > 0:
-        logger.info(f"Input tokens: {input_tokens}")
-        logger.info(f"Output tokens: {output_tokens}")
+    if current_session:
+        if current_session.input_tokens > 0 and current_session.output_tokens > 0:
+            logger.info(f"Input tokens: {current_session.input_tokens}")
+            logger.info(f"Output tokens: {current_session.output_tokens}")
 
-    # Reset all global variables
-    conversation_history = []
-    input_tokens = 0
-    output_tokens = 0
+    # Reset session related globals
+    current_session = None
     active_task = None
-    task_id = None
-    agent_renderer = None
-    initiated = False
 
     await sio.emit("reset", room=sid)
 
@@ -215,16 +218,14 @@ async def stop_task(sid):
 
 @sio.event
 async def resolve_confirmation(sid, data):
-    """Routes user safety approval back to the agent core."""
-    if agent_renderer:
-        agent_renderer.on_resolve_confirmation(data["request_id"], data["status"])
+    if current_session:
+        current_session.renderer.on_resolve_confirmation(data["request_id"], data["status"])
 
 
 @sio.event
 async def resolve_user_input(sid, data):
-    """Routes user input back to the agent core."""
-    if agent_renderer:
-        agent_renderer.on_resolve_user_input(data["request_id"], data["status"], data["value"])
+    if current_session:
+        current_session.renderer.on_resolve_user_input(data["request_id"], data["status"], data["value"])
 
 
 @sio.event

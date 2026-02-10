@@ -4,167 +4,84 @@ from typing import Any, Optional
 import socketio
 
 from hallw.core import AgentRenderer
-from hallw.tools import parse_tool_response
 from hallw.utils import logger
 
 
 class SocketAgentRenderer(AgentRenderer):
-    """
-    Socket.IO-based renderer optimized for single-user Electron applications.
-    Handles real-time UI updates for LLM tokens, tool executions, and system events.
-
-    Now runs in a single event loop (uvicorn's), eliminating cross-loop complexity.
-    """
-
     def __init__(self, sio: socketio.AsyncServer, sid: str) -> None:
         super().__init__()
-        self.sio = sio
-        self.sid = sid  # The unique session ID for the connected client
+        self.sio, self.sid = sio, sid
         self._current_response = ""
-        self._active_tool: Optional[dict[str, Any]] = None
-        self._pending_confirmation: Optional[dict[str, Any]] = None
+        self._pending_confirmation: Optional[dict] = None
 
     async def emit(self, event: str, data: Any = None):
-        """Asynchronous helper to send data to the frontend via Socket.IO."""
         try:
             await self.sio.emit(event, data, room=self.sid)
         except Exception as e:
-            logger.error(f"Socket Emit Error: {e}")
+            logger.error(f"Socket Error: {e}")
 
-    def _fire_event(self, event: str, data: Any = None):
-        """
-        Fire an event to the frontend. Since we're now in a single event loop,
-        we can use asyncio.create_task() directly.
-        """
+    def _fire(self, event: str, data: Any = None):
         try:
             asyncio.create_task(self.emit(event, data))
         except RuntimeError:
-            # No running event loop, log and skip
-            logger.warning(f"Cannot fire event {event}: no running event loop")
+            logger.warning(f"No loop for {event}")
 
-    # --- Task Callback Handlers ---
+    def on_task_started(self):
+        self._fire("task_started")
 
-    def on_task_started(self) -> None:
-        """Notify frontend that a task has started."""
-        self._fire_event("task_started")
+    def on_task_finished(self):
+        self._fire("task_finished")
 
-    def on_task_finished(self) -> None:
-        """Notify frontend that a task has finished."""
-        self._fire_event("task_finished")
-
-    # --- LLM Callback Handlers ---
-
-    def on_llm_start(self) -> None:
-        """Reset buffer and notify frontend that AI has started generating a response."""
+    def on_llm_start(self):
         self._current_response = ""
-        self._fire_event("llm_started")
+        self._fire("llm_started")
 
-    def on_llm_chunk(self, chunk: Any) -> None:
-        """Extract both text and reasoning from the stream chunk and emit to frontend."""
-        # 1. Process Reasoning (Thinking)
-        reasoning = self._extract_reasoning(chunk)
+    def on_llm_chunk(self, text: str, reasoning: str):
         if reasoning:
-            self._fire_event("llm_new_reasoning", reasoning)
-
-        # 2. Process Content (Text)
-        text = self._extract_text(chunk)
+            self._fire("llm_new_reasoning", reasoning)
         if text:
             self._current_response += text
-            self._fire_event("llm_new_text", text)
+            self._fire("llm_new_text", text)
 
-    def on_llm_end(self) -> None:
-        """Notify frontend that the current LLM stream has finished."""
+    def on_llm_end(self):
         if self._current_response:
-            logger.info(f"HALLW: {self._current_response.replace('\n', ' ').strip()}")
-        self._fire_event("llm_finished")
+            logger.info(f"AI: {self._current_response.strip()[:100]}...")
+        self._fire("llm_finished")
 
-    # --- Tool Execution Handlers (Used by Sidebar.jsx) ---
+    def on_tool_start(self, run_id: str, name: str, args: Any):
+        self._fire("tool_state_update", {"run_id": run_id, "tool_name": name, "status": "running", "args": str(args)})
 
-    def on_tool_start(self, run_id: str, name: str, args: Any) -> None:
-        """Register a new tool execution and emit an incremental update."""
-        state = {
-            "run_id": run_id,  # Ensure run_id is included for matching
-            "tool_name": name,
-            "status": "running",
-            "args": str(args),
-            "result": "",
-        }
+    def on_tool_end(self, run_id: str, name: str, output: Any, is_success: bool, log_msg: str):
+        logger.info(log_msg)
+        self._fire(
+            "tool_state_update",
+            {"run_id": run_id, "status": "success" if is_success else "error", "result": str(output)},
+        )
 
-        self._active_tool = state
+    def on_tool_error(self, run_id: str, name: str, error: str):
+        logger.error(f"Tool {name} Error: {error}")
+        self._fire("tool_state_update", {"run_id": run_id, "status": "error", "result": error})
 
-        # Incremental update: send only the new state object
-        self._fire_event("tool_state_update", state)
+    def on_fatal_error(self, run_id: str, name: str, error: str):
+        logger.critical(f"Fatal: {name} - {error}")
+        self._fire("fatal_error", error)
 
-    def on_tool_end(self, run_id: str, name: str, output: Any) -> None:
-        """Finalize a tool execution and emit an incremental update."""
-        parsed_output = parse_tool_response(output)
-        status = "success" if parsed_output.get("success", False) else "error"
-
-        logger.info(self._build_log_message(name, parsed_output))
-
-        state = self._active_tool
-        if state:
-            state["result"] = str(output)
-            state["status"] = status
-        self._active_tool = None
-
-        if state:
-            # Incremental update: send the updated state object
-            self._fire_event("tool_state_update", state)
-
-    def on_tool_error(self, run_id: str, name: str, error: Any) -> None:
-        """Handle tool failures and emit an incremental update."""
-        logger.error(f"❌ Tool {name} Error: {str(error)[:200]}")
-
-        state = self._active_tool
-        if state:
-            state["result"] = str(error)
-            state["status"] = "error"
-        self._active_tool = None
-
-        if state:
-            # Incremental update
-            self._fire_event("tool_state_update", state)
-
-    def on_fatal_error(self, run_id: str, name: str, error: Any) -> None:
-        """Handle fatal agent errors."""
-        logger.critical(f"FATAL AGENT ERROR: {name} - {error}")
-
-        state = self._active_tool
-        if state:
-            state["result"] = str(error)
-            state["status"] = "error"
-        self._active_tool = None
-
-        if state:
-            # Incremental update
-            self._fire_event("tool_state_update", state)
-        self._fire_event("fatal_error", str(error))
-
-    # --- Domain Specific Events ---
-
-    def on_stage_started(self, data: dict) -> None:
-        """Callback for high-level plan stage changes."""
-        self._fire_event("stage_started", data)
-
-    def on_stage_completed(self, data: dict) -> None:
-        """Callback for high-level plan stage completion."""
-        self._fire_event("stage_completed", data)
-
-    def on_tool_plan_updated(self, data: dict) -> None:
+    def on_stages_built(self, data: dict) -> None:
         """Forward partial plan updates to the frontend."""
-        self._fire_event("tool_plan_updated", data)
+        self._fire("stages_built", data)
 
+    def on_stage_started(self, data: dict):
+        self._fire("stage_started", data)
+
+    def on_stage_completed(self, data: dict):
+        self._fire("stage_completed", data)
+
+    # User Input / Confirmation
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
-        """
-        Trigger the Confirmation modal in the ChatArea.
-        """
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         self._pending_confirmation = {"request_id": request_id, "future": future}
-
-        self._fire_event("request_confirmation", {"request_id": request_id, "message": message, "timeout": timeout})
-
+        self._fire("request_confirmation", {"request_id": request_id, "message": message, "timeout": timeout})
         try:
             return await asyncio.wait_for(future, timeout)
         except asyncio.TimeoutError:
@@ -172,23 +89,19 @@ class SocketAgentRenderer(AgentRenderer):
         finally:
             self._pending_confirmation = None
 
-    def on_resolve_confirmation(self, request_id: str, status: str) -> None:
-        """Resolve a pending confirmation request from the frontend."""
+    def on_resolve_confirmation(self, request_id: str, status: str):
         if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
-            future = self._pending_confirmation["future"]
-            if not future.done():
-                future.set_result(status)
+            if not self._pending_confirmation["future"].done():
+                self._pending_confirmation["future"].set_result(status)
 
     async def on_request_user_input(self, prompt: str, timeout: int) -> str:
-        """
-        Trigger the RuntimeInput modal in the ChatArea.
-        """
+        """Trigger the RuntimeInput modal in the UI and wait for result."""
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         request_id = f"input_{id(future)}"
         self._pending_confirmation = {"request_id": request_id, "future": future}
 
-        self._fire_event("request_user_input", {"request_id": request_id, "message": prompt, "timeout": timeout})
+        self._fire("request_user_input", {"request_id": request_id, "message": prompt, "timeout": timeout})
 
         try:
             return await asyncio.wait_for(future, timeout)
@@ -203,77 +116,4 @@ class SocketAgentRenderer(AgentRenderer):
         if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
             future = self._pending_confirmation["future"]
             if not future.done():
-                if status == "submitted" and value is not None:
-                    future.set_result(value)
-                else:
-                    future.set_result(status)
-
-    # --- Internal Helpers ---
-
-    def _extract_reasoning(self, chunk: Any) -> str:
-        """Utility to parse reasoning content from various LLM provider chunk formats."""
-        if not chunk:
-            return ""
-
-        # Case 1: Direct attribute (AIMessageChunk)
-        reasoning = getattr(chunk, "reasoning_content", None)
-        if reasoning:
-            return str(reasoning)
-
-        # Case 2: additional_kwargs (commonly used for provider-specific fields)
-        if hasattr(chunk, "additional_kwargs"):
-            reasoning = chunk.additional_kwargs.get("reasoning_content")
-            if reasoning:
-                return str(reasoning)
-
-        # Case 3: type: thought
-        if hasattr(chunk, "type") and chunk.type == "thought":
-            reasoning = chunk.text
-            if reasoning:
-                return str(reasoning)
-
-        # Case 4: Dictionary format (if data is pre-parsed)
-        if isinstance(chunk, dict):
-            reasoning = chunk.get("reasoning_content") or chunk.get("additional_kwargs", {}).get("reasoning_content")
-            if reasoning:
-                return str(reasoning)
-
-        return ""
-
-    def _extract_text(self, chunk: Any) -> str:
-        """Utility to parse text content from various LLM provider chunk formats."""
-        if not chunk:
-            return ""
-
-        # Case 1: AIMessageChunk or similar object
-        content = getattr(chunk, "content", None)
-
-        # Case 2: Dictionary format
-        if content is None and isinstance(chunk, dict):
-            content = chunk.get("content")
-
-        # Fallback: if it's already a string, use it
-        if content is None and isinstance(chunk, str):
-            content = chunk
-
-        if content is None:
-            return ""
-
-        if content == "</think>":
-            return ""
-
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            return "".join([i if isinstance(i, str) else i.get("text", "") for i in content])
-
-        return ""
-
-    def _build_log_message(self, name: str, parsed_output: Any) -> str:
-        sign = "✅" if parsed_output.get("success", False) else "❌"
-        data = (
-            parsed_output.get("message", "")[:200] + ("..." if len(parsed_output.get("message", "")) > 200 else "")
-            if parsed_output.get("message")
-            else ""
-        )
-        return f"{sign} Tool {name}: {data}"
+                future.set_result(value if status == "submitted" and value is not None else status)

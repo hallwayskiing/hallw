@@ -1,14 +1,12 @@
 import asyncio
-from typing import Dict, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 
-from hallw.utils import config
-
+from .agent_event_dispatcher import AgentEventDispatcher
 from .agent_graph import build_graph
-from .agent_renderer import AgentRenderer
 from .agent_state import AgentState
 
 
@@ -23,16 +21,18 @@ class AgentTask:
         task_id: str,
         llm: BaseChatModel,
         tools_dict: Dict[str, BaseTool],
-        renderer: AgentRenderer,
+        dispatcher: AgentEventDispatcher,
         initial_state: AgentState,
         checkpointer: BaseCheckpointSaver,
+        invocation_config: Dict[str, Any],
     ):
         self.task_id = task_id
         self.llm = llm
         self.tools_dict = tools_dict
-        self.renderer = renderer
+        self.dispatcher = dispatcher
         self.initial_state = initial_state
         self.checkpointer = checkpointer
+        self.invocation_config = invocation_config
         self._task: Optional[asyncio.Task] = None
 
     def start(self) -> asyncio.Task:
@@ -55,47 +55,20 @@ class AgentTask:
 
     async def _run(self) -> AgentState:
         """Internal async execution of the agent workflow. Returns the final agent state."""
-        workflow = build_graph(self.llm, self.tools_dict, self.checkpointer, self.renderer)
-        invocation_config = {
-            "recursion_limit": config.model_max_recursion,
-            "configurable": {"thread_id": self.task_id},
-        }
+        workflow = build_graph(self.llm, self.tools_dict, self.checkpointer)
         event = None
 
         try:
             async for event in workflow.astream_events(
                 self.initial_state,
-                config=invocation_config,
+                config=self.invocation_config,
                 version="v2",
             ):
-                kind = event.get("event")
-                data = event.get("data", {})
-                name = event.get("name", "")
-                run_id = event.get("run_id", "")
-
-                if kind == "on_chain_start" and name == "LangGraph":
-                    self.renderer.on_task_started()
-                elif kind == "on_chain_end" and name == "LangGraph":
-                    self.renderer.on_task_finished()
-                elif kind == "on_chat_model_start":
-                    self.renderer.on_llm_start()
-                elif kind == "on_chat_model_stream":
-                    chunk = data.get("chunk")
-                    if chunk:
-                        self.renderer.on_llm_chunk(chunk)
-                elif kind == "on_chat_model_end":
-                    self.renderer.on_llm_end()
-                elif kind == "on_tool_start":
-                    self.renderer.on_tool_start(run_id, name, data.get("input"))
-                elif kind == "on_tool_end":
-                    self.renderer.on_tool_end(run_id, name, data.get("output"))
-                elif kind == "on_tool_error":
-                    self.renderer.on_tool_error(run_id, name, data.get("error"))
-                elif kind == "on_fatal_error":
-                    self.renderer.on_fatal_error(run_id, name, data.get("error"))
+                # Delegate event handling to the dispatcher
+                await self.dispatcher.dispatch(event)
 
             # Get the final state after stream processing is complete
-            final_state = workflow.get_state(invocation_config)
+            final_state = workflow.get_state(self.invocation_config)
             return cast(AgentState, final_state.values)
 
         except asyncio.CancelledError:
@@ -107,5 +80,7 @@ class AgentTask:
             if event and isinstance(event, dict):
                 error_type = event.get("event", "unknown")
 
-            self.renderer.on_fatal_error(self.task_id, error_type, str(e))
+            await self.dispatcher.dispatch(
+                {"event": "on_fatal_error", "run_id": self.task_id, "name": error_type, "data": {"error": str(e)}}
+            )
             return None

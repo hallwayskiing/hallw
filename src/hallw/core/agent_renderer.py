@@ -21,7 +21,7 @@ class AgentRenderer(ABC):
         """Called when LLM starts generating response."""
 
     @abstractmethod
-    def on_llm_chunk(self, chunk: Any) -> None:
+    def on_llm_chunk(self, text: str, reasoning: str) -> None:
         """Called when a new chunk of LLM response is received."""
 
     @abstractmethod
@@ -33,7 +33,7 @@ class AgentRenderer(ABC):
         """Called when a tool execution starts."""
 
     @abstractmethod
-    def on_tool_end(self, run_id: str, name: str, output: Any) -> None:
+    def on_tool_end(self, run_id: str, name: str, output: Any, is_success: bool, log_msg: str) -> None:
         """Called when a tool execution completes successfully."""
 
     @abstractmethod
@@ -44,7 +44,11 @@ class AgentRenderer(ABC):
     def on_fatal_error(self, run_id: str, name: str, error: Any) -> None:
         """Called when a fatal error occurs in the agent."""
 
-    # --- Domain Specific Events (Migrated from Event Bus) ---
+    # --- Domain Specific Events ---
+
+    @abstractmethod
+    def on_stages_built(self, data: dict) -> None:
+        """Called when task stages are built."""
 
     @abstractmethod
     def on_stage_started(self, data: dict) -> None:
@@ -53,10 +57,6 @@ class AgentRenderer(ABC):
     @abstractmethod
     def on_stage_completed(self, data: dict) -> None:
         """Called when a task stage completes."""
-
-    @abstractmethod
-    def on_tool_plan_updated(self, data: dict) -> None:
-        """Called when the high-level tool execution plan is updated."""
 
     @abstractmethod
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:

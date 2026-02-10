@@ -18,7 +18,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const toolStates = useAppStore(s => s.toolStates);
-    const toolPlan = useAppStore(s => s.toolPlan);
+    const toolPlan = useAppStore(s => s.stages);
     const currentStageIndex = useAppStore(s => s.currentStageIndex);
     const completedStages = useAppStore(s => s.completedStages);
     const errorStageIndex = useAppStore(s => s.errorStageIndex);

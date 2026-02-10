@@ -1,37 +1,36 @@
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, Optional, TypedDict
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
 
-class AgentStats(TypedDict, total=False):
-    tool_call_counts: int
+def merge_stats(left: Optional[dict], right: Optional[dict]) -> dict:
+    """Automatically sums up token counts and tool metrics."""
+    if left is None:
+        left = {}
+    if right is None:
+        return left
+
+    new_stats = left.copy()
+    for k, v in right.items():
+        new_stats[k] = left.get(k, 0) + v
+    return new_stats
+
+
+class AgentStats(TypedDict):
     input_tokens: int
     output_tokens: int
+    tool_call_counts: int
     failures: int
     failures_since_last_reflection: int
 
 
-def merge_agent_stats(a: AgentStats, b: AgentStats) -> AgentStats:
-    if not a:
-        a = {}
-    if not b:
-        return a
-    return {
-        "tool_call_counts": a.get("tool_call_counts", 0) + b.get("tool_call_counts", 0),
-        "input_tokens": a.get("input_tokens", 0) + b.get("input_tokens", 0),
-        "output_tokens": a.get("output_tokens", 0) + b.get("output_tokens", 0),
-        "failures": a.get("failures", 0) + b.get("failures", 0),
-        "failures_since_last_reflection": a.get("failures_since_last_reflection", 0)
-        + b.get("failures_since_last_reflection", 0),
-    }
-
-
-class AgentState(TypedDict, total=False):
+class AgentState(TypedDict):
+    # Reducer: add_messages appends new messages to the list
     messages: Annotated[List[BaseMessage], add_messages]
-    task_completed: bool
-    empty_response: bool
+    # Reducer: merge_stats sums up the increments
+    stats: Annotated[AgentStats, merge_stats]
+    current_stage: int
     total_stages: int
     stage_names: List[str]
-    current_stage: int
-    stats: Annotated[AgentStats, merge_agent_stats]
+    task_completed: bool

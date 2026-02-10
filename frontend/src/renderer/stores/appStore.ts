@@ -88,7 +88,7 @@ interface AppState {
 
     // Sidebar State
     toolStates: ToolState[];
-    toolPlan: string[];
+    stages: string[];
     currentStageIndex: number;
     completedStages: number[];
     errorStageIndex: number;
@@ -126,7 +126,7 @@ interface AppActions {
     _onRequestConfirmation: (data: ConfirmationRequest) => void;
     _onRequestUserInput: (data: UserInputRequest) => void;
     _onToolStateUpdate: (state: ToolState) => void;
-    _onToolPlanUpdated: (data: string[] | { plan?: string[] }) => void;
+    _onStagesBuilt: (data: string[] | { stages?: string[] }) => void;
     _onStageStarted: (data: { stage_index: number }) => void;
     _onStageCompleted: (data: { stage_index: number }) => void;
 }
@@ -148,7 +148,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     pendingConfirmation: null,
     pendingInput: null,
     toolStates: [],
-    toolPlan: [],
+    stages: [],
     currentStageIndex: -1,
     completedStages: [],
     errorStageIndex: -1,
@@ -205,7 +205,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         socket.on('request_confirmation', actions._onRequestConfirmation);
         socket.on('request_user_input', actions._onRequestUserInput);
         socket.on('tool_state_update', actions._onToolStateUpdate);
-        socket.on('tool_plan_updated', actions._onToolPlanUpdated);
+        socket.on('stages_built', actions._onStagesBuilt);
         socket.on('stage_started', actions._onStageStarted);
         socket.on('stage_completed', actions._onStageCompleted);
 
@@ -225,7 +225,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             socket.off('request_confirmation', actions._onRequestConfirmation);
             socket.off('request_user_input', actions._onRequestUserInput);
             socket.off('tool_state_update', actions._onToolStateUpdate);
-            socket.off('tool_plan_updated', actions._onToolPlanUpdated);
+            socket.off('stages_built', actions._onStagesBuilt);
             socket.off('stage_started', actions._onStageStarted);
             socket.off('stage_completed', actions._onStageCompleted);
             socket.close();
@@ -316,7 +316,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({
             isProcessing: true,
             // Reset sidebar state for new task
-            toolPlan: [],
+            stages: [],
             currentStageIndex: -1,
             completedStages: [],
             errorStageIndex: -1
@@ -438,7 +438,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             pendingConfirmation: null,
             pendingInput: null,
             toolStates: [],
-            toolPlan: [],
+            stages: [],
             currentStageIndex: -1,
             completedStages: [],
             errorStageIndex: -1,
@@ -499,9 +499,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         });
     },
 
-    _onToolPlanUpdated: (data) => {
-        const plan = Array.isArray(data) ? data : (data?.plan || []);
-        set({ toolPlan: plan });
+    _onStagesBuilt: (data) => {
+        const stages = Array.isArray(data) ? data : (data?.stages || []);
+        set({ stages: stages });
     },
 
     _onStageStarted: (data) => {
