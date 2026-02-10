@@ -1,131 +1,110 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## v0.9.0 (2026-02-08)
 
-## [Unreleased]
+### Feat
+- **ui**: use Zustand to manage component states and socket
+- **ui**: refine Sidebar UI with auto-scaling
+- **ui**: redesign welcome page with articles, animations and interactions
+- **ui**: redesign settings page with better layout and controls
+- **tools**: enable auto-allow exec with configurable blacklist
 
-## [0.9.0] - 2026-02-08
+### Refactor
+- **core**: migrate from langchain_openai to langchain_litellm for Gemini 3 Series support
 
-### Added
-- feat(ui): use Zustand to manage component states and socket
-- feat(ui): refine Sidebar UI with auto-scaling
-- feat(ui): redesign welcome page with articles, animations and interactions
-- feat(ui): redesign settings page with better layout and controls
-- feat(tools): enable auto-allow exec with configurable blacklist
+## v0.8.0 (2026-02-07)
 
-### Changed
-- refactor(core): migrate from langchain_openai to langchain_litellm for Gemini 3 Series support
+### Feat
+- add user profile support
+- add Claude Skills support
+- add runtime user inputs
 
-## [0.8.0] - 2026-02-07
+### Refactor
+- search now uses Brave Search API instead of browser retrieval
 
-### Added
-- New: User profile support
-- New: Claude Skills support
-- New: Runtime user inputs
+### Breaking Changes
+- remove `file` tools. `exec` replaced them all.
 
-### Changed
-- Search now uses Brave Search API instead of browser retrieval.
+## v0.7.0 (2026-01-27)
 
-### Removed
-- Removed `file` tools. `exec` replaced them all.
+### Feat
+- HALLW can execute system commands (powershell on Windows or bash on Linux) directly now
 
-## [0.7.0] - 2026-01-27
+### Refactor
+- switch to `Electron` from `PySide6` for the GUI
 
-### Added
-- New: HALLW can execute system commands (powershell on Windows or bash on Linux) directly now.
+## v0.6.0 (2025-11-28)
 
-### Changed
-- Switched to `Electron` from `PySide6` for the GUI.
+### Feat
+- **core**: brand new graph logic: Auto-create multi-stages chain of actions
+- **tools**: add `build_stages` and `end_current_stage` tools
 
-## [0.6.0] - 2025-11-28
+### Fix
+- **ui**: adjusted and fixed UI logic for better user experience
 
-### Added
-- Brand new graph logic: Auto-create multi-stages chain of actions at the start of every coversation, bringing far more effective workflow
-- New Tools: `build_stages` and `end_current_stage` for models to explictly manage stages.
+## v0.5.0 (2025-11-25)
 
-### Changed
-- Adjusted and fixed UI logic for better user experiments
+### Feat
+- add EventBus to manage cross-module communications
+- add a Back button to reset the app
+- add HistoryLineEdit to reuse history inputs conveniently
+- add more tests
 
-## [0.5.0] - 2025-11-25
+### Refactor
+- **ui**: rewrite Main Window for much better performance
 
-### Added
-- Added a EventBus to manage cross-module communications
-- Added a Back button to reset the app
-- New dependency: markdown for solving PySide compatiability
-- Added HistoryLineEdit to reuse history inputs conveniently
-- More tests
+### Chore
+- **deps**: add markdown for solving PySide compatibility
 
-### Changed
-- Rewrite Main Window for much better performance
+## v0.4.0 (2025-11-25)
 
-## [0.4.0] - 2025-11-25
+### Feat
+- support multi-task calls in a window
+- add manual controlled event loop in `agent_event_loop.py`
+- support edit and save settings in main window
 
-### Added
-- Support multi-task calls in a window now
-- Manual controlled event loop in `agent_event_loop.py`
-- You can now edit and save settings in main window now
+### Refactor
+- merge `playwright_state.py` into `playwright_mgr.py`
+- **core**: re-design Agent Graph to support multi-task calls
 
-### Changed
-- Merged `playwright_state.py` into `playwright_mgr.py`
-- `playwright_mgr.py` maintains a `PlaywrightManager` class now
-- Agent Graph is re-designed to support multi-task calls
+### Breaking Changes
+- remove `ask_info.py`, `finish_task.py`, and `playwright_state.py`
 
-### Removed
-- Removed `ask_info.py`
-- Removed `finish_task.py`
-- Removed `playwright_state.py`
+## v0.3.0 (2025-11-23)
 
-## [0.3.0] - 2025-11-23
+### Feat
+- brand new GUI with PySide6
+- add multi-pages control of Agent
 
-### Added
-- Brand new GUI with PySide6
-- Multi-pages control of Agent
+### Refactor
+- **core**: extract core functions into `hallw/core`
 
-### Changed
-- Core functions refactored and extracted into hallw/core
-- Better error handling
+### Fix
+- improve error handling
 
-## [0.2.0] - 2025-11-19
+## v0.2.0 (2025-11-19)
 
-### Added
-- Support stream output of LLM.
-- Use Rich to build a friendly terminal user interface (TUI).
-- Complete log system.
+### Feat
+- support stream output of LLM
+- use Rich to build a friendly terminal user interface (TUI)
+- add complete log system
 
-### Changed
-- Improved file operations logic (path resolution and format handling).
-- Switched to **uv** for package and environment management (replaced Conda/pip workflow).
+### Refactor
+- **core**: improve file operations logic
+- **chore**: switch to **uv** for package management (replaced Conda/pip)
 
-### Removed
-- Removed `requirements.txt` in favor of `uv.lock`.
+### Breaking Changes
+- remove `requirements.txt` in favor of `uv.lock`
 
-## [0.1.0] - 2025-11-19
+## v0.1.0 (2025-11-19)
 
-### Added
-- Initial release of HALLW.
-- Core agent functionality with LangGraph.
-- Playwright browser automation tools:
-  - `browser_goto`: Navigate to URLs.
-  - `browser_click`: Click elements by ARIA role.
-  - `browser_fill`: Fill form inputs.
-  - `browser_search`: Google search with CAPTCHA detection.
-  - `browser_get_content`: Extract page content.
-  - `browser_get_structure`: Get page structure.
-- File operation tools:
-  - `file_read`: Read multiple file formats (txt, md, json, yaml, csv, html, pdf).
-  - `file_save`: Save content to text files.
-  - `file_append`: Append content to files.
-  - `get_local_file_list`: List files with glob patterns.
-- Utility tools:
-  - `ask_for_more_info`: Interactive user queries.
-  - `finish_task`: Task completion signal.
-- Self-correcting mechanism with reflection.
-- Comprehensive configuration via environment variables.
-- Statistics tracking (tool calls, failures, token usage).
-
-[Unreleased]: https://github.com/hallwayskiing/hallw/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/hallwayskiing/hallw/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/hallwayskiing/hallw/releases/tag/v0.1.0
+### Feat
+- initial release of HALLW
+- **core**: core agent functionality with LangGraph
+- **tools**: browser automation tools (goto, click, fill, search, etc.)
+- **tools**: file operation tools (read, save, append, list)
+- **core**: self-correcting mechanism with reflection
+- **core**: statistics tracking (tool calls, failures, token usage)
