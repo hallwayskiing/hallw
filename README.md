@@ -7,9 +7,9 @@
 
 <div align='center'>
 
-https://github.com/user-attachments/assets/e1dcae67-f06e-4412-8a2c-3e4ac02e691e
+https://github.com/user-attachments/assets/a5af23c3-c471-4682-9064-33be84d64775
 
-<p><em>Demo for 'Summarize today's tech headlines and save as tech_news.md'</em></p>
+<p><em>Demo for 'How can I scientifically plan my week to be more productive?'</em></p>
 </div>
 
 **HALLW** (Heuristic Autonomous Logic Loop Worker) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
@@ -69,16 +69,24 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-**Edit `.env`** and set your LLM credentials:
+**Edit `.env`** and set your providers API keys:
 
 ```env
-MODEL_API_KEY=your-api-key-here
-MODEL_NAME=gemini-2.5-flash
+MODEL_NAME=
+OPENAI_API_KEY=
+GOOGLE_API_KEY=
+ANTHROPIC_API_KEY=
+OPENROUTER_API_KEY=
+DEEPSEEK_API_KEY=
+ZAI_API_KEY=
+MOONSHOT_API_KEY=
+XIAOMI_MIMO_API_KEY=
+
 ```
 
 Configure your Brave Search API key in the .env file.
 ```env
-BRAVE_SEARCH_API_KEY=your-brave-search-api-key-here
+BRAVE_SEARCH_API_KEY=
 ```
 
 ### 3. Run!
@@ -122,8 +130,15 @@ All settings are managed via `.env`.
 |----------|-------------|---------|
 | `MODEL_NAME` | The LLM model ID to use | `gemini-2.5-flash-lite` |
 | `MODEL_ENDPOINT` | Base URL for the API | `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `MODEL_API_KEY` | **Required** API Key | - |
 | `MODEL_TEMPERATURE` | Creativity (0.0 - 1.0) | `0.25` |
+| `OPENAI_API_KEY` | OpenAI API Key | - |
+| `GOOGLE_API_KEY` | Google API Key | - |
+| `ANTHROPIC_API_KEY` | Anthropic API Key | - |
+| `OPENROUTER_API_KEY` | OpenRouter API Key | - |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | - |
+| `ZAI_API_KEY` | Zai API Key | - |
+| `MOONSHOT_API_KEY` | Moonshot API Key | - |
+| `XIAOMI_MIMO_API_KEY` | Xiaomi Mimo API Key | - |
 
 ### Exec & Search Settings
 
