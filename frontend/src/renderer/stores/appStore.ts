@@ -237,8 +237,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     startTask: (task) => {
         const { _socket } = get();
         if (!_socket) return;
+        set({
+            isChatting: true,
+            isProcessing: true,
+            // Force Clear State
+            messages: [],
+            streamingContent: '',
+            streamingReasoning: '',
+            pendingConfirmation: null,
+            pendingInput: null,
+            toolStates: [],
+            stages: [],
+            currentStageIndex: -1,
+            completedStages: [],
+            errorStageIndex: -1,
+            _streamingContentRef: '',
+        });
         _socket.emit('start_task', { task });
-        set({ isChatting: true, isProcessing: true });
     },
 
     stopTask: () => {
@@ -252,7 +267,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         const { _socket } = get();
         if (!_socket) return;
         _socket.emit('reset_session');
-        set({ isChatting: false });
+        set({
+            isChatting: false,
+            isProcessing: false,
+            // Force Clear State
+            messages: [],
+            streamingContent: '',
+            streamingReasoning: '',
+            pendingConfirmation: null,
+            pendingInput: null,
+            toolStates: [],
+            stages: [],
+            currentStageIndex: -1,
+            completedStages: [],
+            errorStageIndex: -1,
+            _streamingContentRef: '',
+        });
     },
 
     handleConfirmationDecision: (status) => {
@@ -354,6 +384,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     _onTaskCancelled: () => {
         set(state => {
+            if (!state.isChatting) return {}; // Ignore if user already left
+
             const content = state._streamingContentRef;
             const newMessages = [...state.messages];
             const reasoning = state.streamingReasoning;
