@@ -168,8 +168,11 @@ async def reset_session(sid):
 
     await browser_close()
 
-    if active_task:
-        await active_task.cancel()
+    if active_task and active_task.is_running:
+        try:
+            await active_task.cancel()
+        except Exception:
+            pass
 
     if current_session:
         if current_session.input_tokens > 0 and current_session.output_tokens > 0:

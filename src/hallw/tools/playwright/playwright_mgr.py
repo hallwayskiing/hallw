@@ -146,13 +146,12 @@ class PlaywrightManager:
 
     async def close(self) -> None:
         """Close current context/pages."""
+        if self.context is None:
+            return
+
         if config.keep_browser_open:
             logger.info("KEEP_PAGE_OPEN is enabled; leaving page open.")
             self.reset()
-            return
-
-        if self.context is None:
-            logger.info("Browser is not launched.")
             return
 
         # Close all pages

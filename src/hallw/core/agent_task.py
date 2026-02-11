@@ -83,4 +83,9 @@ class AgentTask:
             await self.dispatcher.dispatch(
                 {"event": "on_fatal_error", "run_id": self.task_id, "name": error_type, "data": {"error": str(e)}}
             )
-            return None
+            # Try to get final state even if error
+            try:
+                final_state = workflow.get_state(self.invocation_config)
+                return cast(AgentState, final_state.values)
+            except Exception:
+                return None
