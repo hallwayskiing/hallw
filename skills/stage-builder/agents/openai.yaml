@@ -1,4 +1,0 @@
-interface:
-  display_name: "Stage Builder Skill"
-  short_description: "Guide for calling build_stages tool correctly"
-  default_prompt: "Create a skill that explains how to use build_stages with examples."
