@@ -276,8 +276,8 @@ function ReasoningAccordion({ content, isStreaming }: { content: string, isStrea
             </button>
 
             {isOpen && (
-                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-muted-foreground animate-in slide-in-from-top-1 max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
-                    <div className="prose prose-sm prose-invert dark:prose-invert max-w-none break-words opacity-80">
+                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
+                    <div className="prose prose-sm dark:prose-invert max-w-none break-words opacity-90">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {content + (isStreaming ? ' ▋' : '')}
                         </ReactMarkdown>

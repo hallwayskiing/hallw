@@ -456,16 +456,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     _onRequestConfirmation: (data) => {
         set(state => {
             const content = state._streamingContentRef;
+            const reasoning = state.streamingReasoning;
             const newMessages = [...state.messages];
-            if (content) {
+            if (content || reasoning) {
                 const last = state.messages[state.messages.length - 1];
-                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
-                    newMessages.push({ type: 'text', role: 'assistant', content });
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content && last.reasoning === reasoning)) {
+                    newMessages.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content,
+                        reasoning
+                    });
                 }
             }
             return {
                 messages: newMessages,
                 streamingContent: '',
+                streamingReasoning: '',
                 _streamingContentRef: '',
                 pendingConfirmation: data
             };
@@ -475,16 +482,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     _onRequestUserInput: (data) => {
         set(state => {
             const content = state._streamingContentRef;
+            const reasoning = state.streamingReasoning;
             const newMessages = [...state.messages];
-            if (content) {
+            if (content || reasoning) {
                 const last = state.messages[state.messages.length - 1];
-                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content)) {
-                    newMessages.push({ type: 'text', role: 'assistant', content });
+                if (!(last?.type === 'text' && last.role === 'assistant' && last.content === content && last.reasoning === reasoning)) {
+                    newMessages.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content,
+                        reasoning
+                    });
                 }
             }
             return {
                 messages: newMessages,
                 streamingContent: '',
+                streamingReasoning: '',
                 _streamingContentRef: '',
                 pendingInput: data
             };
