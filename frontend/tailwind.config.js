@@ -63,10 +63,29 @@ module.exports = {
                     from: { height: "var(--radix-accordion-content-height)" },
                     to: { height: "0" },
                 },
+                "shimmer": {
+                    "from": {
+                        "backgroundPosition": "0 0"
+                    },
+                    "to": {
+                        "backgroundPosition": "-200% 0"
+                    }
+                },
+                "shimmer-slide": {
+                    "from": {
+                        "transform": "translateX(-100%)"
+                    },
+                    "to": {
+                        "transform": "translateX(100%)"
+                    }
+                }
             },
             animation: {
                 "accordion-down": "accordion-down 0.2s ease-out",
                 "accordion-up": "accordion-up 0.2s ease-out",
+                "shimmer": "shimmer 2s linear infinite",
+                "shimmer-once": "shimmer 2s linear 1 forwards",
+                "shimmer-slide": "shimmer-slide 0.75s ease-in-out 1 forwards",
             },
         },
     },

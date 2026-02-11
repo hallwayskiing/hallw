@@ -153,7 +153,7 @@ function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleP
 
                 {content && (
                     <div className={cn(
-                        "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm",
+                        "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm text-left",
                         "bg-muted/50 text-foreground border border-border/50"
                     )}>
                         <div className={cn(
@@ -161,7 +161,7 @@ function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleP
                             isStreaming && "leading-relaxed text-foreground/90"
                         )}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {content}
+                                {content.replace(/\n/g, '  \n')}
                             </ReactMarkdown>
                         </div>
                     </div>

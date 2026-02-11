@@ -1,5 +1,5 @@
 import { Send, Settings, Square, ArrowLeft } from 'lucide-react';
-import { useState, FormEvent, KeyboardEvent } from 'react';
+import { useState, FormEvent, KeyboardEvent, useRef, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { cn } from '../lib/utils';
 
@@ -15,12 +15,34 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
     const stopTask = useAppStore(s => s.stopTask);
 
     const [input, setInput] = useState('');
+    const [height, setHeight] = useState(42);
+    const [isFocused, setIsFocused] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const adjustHeight = () => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            const newHeight = Math.min(textarea.scrollHeight, 128);
+            setHeight(Math.max(newHeight, 42));
+            textarea.style.height = '100%';
+        }
+    };
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+        adjustHeight();
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
         startTask(input);
         setInput('');
+        setHeight(42);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = '100%';
+        }
     };
 
     const handleStop = () => {
@@ -41,23 +63,37 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
                 {/* Back / Settings Button */}
                 <button
                     onClick={isChatting ? onBack : onSettingsClick}
-                    className="flex items-center justify-center px-3 rounded-xl hover:bg-muted text-muted-foreground transition-colors border border-transparent"
+                    className="flex items-center justify-center px-3 rounded-xl text-muted-foreground hover:text-foreground transition-colors border border-transparent"
                 >
                     {isChatting ? <ArrowLeft className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
                 </button>
 
-                {/* Input Form */}
-                <form onSubmit={handleSubmit} className="flex-1 relative bg-muted/30 rounded-2xl border border-border focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Tell me what to do..."
-                        className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none resize-none max-h-32 min-h-[40px] py-2.5 leading-5 px-4 text-sm text-foreground placeholder:text-muted-foreground/50 scrollbar-hide"
-                        rows={1}
-                    />
-
-                </form>
+                {/* Input Form Container */}
+                <div className="flex-1 relative h-[42px] z-20">
+                    <form
+                        onSubmit={handleSubmit}
+                        className={cn(
+                            "absolute bottom-0 left-0 right-0 bg-muted/30 rounded-2xl border border-border focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all duration-200 ease-in-out overflow-hidden shadow-sm",
+                            isFocused || input.length > 0 ? "bg-background shadow-lg" : ""
+                        )}
+                        style={{ height: `${height}px` }}
+                    >
+                        <textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={handleInput}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => setIsFocused(false)}
+                            placeholder="Tell me what to do..."
+                            className={cn(
+                                "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none resize-none py-2.5 leading-5 px-4 text-sm text-foreground placeholder:text-muted-foreground/50",
+                                height >= 128 ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
+                            )}
+                            rows={1}
+                        />
+                    </form>
+                </div>
 
                 {/* Action Button (Send/Stop) */}
                 <button
@@ -65,13 +101,22 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
                     onClick={isProcessing ? handleStop : (e) => handleSubmit(e as unknown as FormEvent)}
                     disabled={!isProcessing && !input.trim()}
                     className={cn(
-                        "flex items-center justify-center px-4 rounded-2xl transition-all shadow-lg",
+                        "flex items-center justify-center px-3 rounded-xl transition-all duration-200 relative overflow-hidden",
                         isProcessing
-                            ? "bg-destructive text-destructive-foreground"
-                            : (input.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")
+                            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            : (input.trim()
+                                ? "bg-[hsl(199,65%,50%)] text-white shadow-sm hover:bg-[hsl(199,65%,45%)]"
+                                : "bg-transparent text-muted-foreground")
                     )}
                 >
-                    {isProcessing ? <Square className="w-5 h-5 fill-current" /> : <Send className="w-5 h-5" />}
+                    {/* Shimmer Overlay */}
+                    {!isProcessing && input.trim() && (
+                        <div className="absolute inset-[-100%] rotate-[25deg] pointer-events-none">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer-slide" />
+                        </div>
+                    )}
+
+                    {isProcessing ? <Square className="w-5 h-5 fill-current relative z-10" /> : <Send className="w-5 h-5 relative z-10" />}
                 </button>
             </div>
         </div>
