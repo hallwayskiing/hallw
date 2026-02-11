@@ -93,13 +93,21 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     **DO NOT** generate duplicate responses for every stage.
     </stages>
 
+    <exec>
+    - Provide direct command to execute. Don't mention backend.
+    - For file operations, use **read_file** and **write_file** to get better availability.
+    - In PowerShell, don't use `cmd` grammar like `cd` or `dir`. It causes mistakes.
+    - Current backend is {"PowerShell" if platform.system()=="Windows" else "sh"}.
+    - When listing recursively, always exclude junk files like .git, .venv, node_modules, .DS_Store, etc.
+    </exec>
+
     <available_tools>
     {generateToolsDesc(tools_dict)}
     </available_tools>
 
     <available_skills>
     {generateSkillsDesc()}
-    If you need to use any skill, find and read the full content of the SKILL.md file.
+    Whenever a skill is potentially useful, you **MUST** find and read the full content of the SKILL.md file.
     </available_skills>
 
     <user_profile>

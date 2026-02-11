@@ -1,7 +1,10 @@
 import asyncio
 import locale
+import os
 import platform
+import shlex
 import uuid
+from typing import List, Optional
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -10,77 +13,28 @@ from hallw.tools import build_tool_response
 from hallw.utils import config as app_config
 
 CONFIRM_TIMEOUT = 60
-
-
-def _decode_output(raw: bytes) -> str:
-    """Decode subprocess output safely using system-preferred encoding."""
-    if raw is None:
-        return ""
-    encoding = locale.getpreferredencoding(False) or "utf-8"
-    return raw.decode(encoding, errors="replace").strip()
-
-
-def _select_backend(command: str) -> tuple[list[str], str]:
-    """Choose the shell backend based on the host OS."""
-    system_name = platform.system().lower()
-    if system_name.startswith("win"):
-        return ["powershell", "-Command", command], "PowerShell"
-    return ["sh", "-c", command], "sh"
-
-
-async def _run_system(command: str) -> str:
-    """Execute the command with the appropriate shell and capture output."""
-    cmd_args, backend_name = _select_backend(command)
-    try:
-        process = await asyncio.create_subprocess_exec(
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-    except Exception as exc:
-        return build_tool_response(False, f"Failed to start {backend_name}: {exc}")
-
-    stdout, stderr = await process.communicate()
-    stdout_text = _decode_output(stdout)
-    stderr_text = _decode_output(stderr)
-
-    if process.returncode == 0:
-        message = stdout_text or "Command completed without output."
-        return build_tool_response(True, message)
-
-    error_msg = stderr_text or stdout_text or f"{backend_name} exited with code {process.returncode}."
-    return build_tool_response(False, error_msg)
-
-
-def _is_command_blacklisted(command: str, blacklist: list[str]) -> bool:
-    """Check if command contains any blacklisted keywords."""
-    command_lower = command.lower()
-    for keyword in blacklist:
-        if keyword.lower() in command_lower:
-            return True
-    return False
+EXEC_COMMAND_TIMEOUT = 30
+MAX_OUTPUT_ROWS = 500
 
 
 @tool
 async def exec(command: str, config: RunnableConfig) -> str:
-    """Execute a system command. Use `sh` on Linux or `powershell` on Windows.
+    """Execute a system command. Use **PowerShell** in Windows and **sh** in Linux.
 
     Args:
-        command (str): The command to execute.
+        command: The direct command to execute.
 
     Returns:
-        str: The output of the command.
+        str: The result of the command execution or error message.
     """
-    # Get renderer from config's configurable
-    renderer = config.get("configurable", {}).get("renderer")
-    if renderer is None:
-        return build_tool_response(False, "Internal error: renderer not available.")
-
-    # Check auto-allow settings
-    auto_allow = getattr(app_config, "auto_allow_exec", False)
-    blacklist = getattr(app_config, "auto_allow_blacklist", [])
+    auto_allow = app_config.auto_allow_exec
+    blacklist = app_config.auto_allow_blacklist
 
     if not auto_allow or _is_command_blacklisted(command, blacklist):
+        renderer = config.get("configurable", {}).get("renderer")
+        if renderer is None:
+            return build_tool_response(False, "Renderer not found.")
+
         request_id = str(uuid.uuid4())
         status = await renderer.on_request_confirmation(
             request_id,
@@ -94,3 +48,171 @@ async def exec(command: str, config: RunnableConfig) -> str:
             return build_tool_response(False, "System command execution rejected by user.")
 
     return await _run_system(command)
+
+
+async def _run_system(command: str) -> str:
+    cmd_args, backend_name = _select_backend(command)
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *cmd_args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except Exception as exc:
+        return build_tool_response(False, f"Failed to start {backend_name}: {exc}")
+
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=EXEC_COMMAND_TIMEOUT)
+    except asyncio.TimeoutError:
+        await _cleanup_process(process, 3)
+        return build_tool_response(False, f"Command execution timed out after {EXEC_COMMAND_TIMEOUT} seconds.")
+    except Exception as exc:
+        await _cleanup_process(process, 1)
+        return build_tool_response(False, f"Execution failed: {exc}")
+
+    stdout_text = _decode_output(stdout)
+    stderr_text = _decode_output(stderr)
+
+    return build_tool_response(
+        process.returncode == 0,
+        "Command executed.",
+        {
+            "stdout": stdout_text,
+            "stderr": stderr_text,
+            "returncode": process.returncode,
+        },
+    )
+
+
+def _select_backend(command: str) -> tuple[list[str], str]:
+    system_name = platform.system().lower()
+    if system_name.startswith("win"):
+        return [
+            "powershell",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            (
+                "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "
+                "if (Test-Path Alias:R) { Remove-Item Alias:R -Force }; "
+                f"& {{ . {{ {command}  | Out-String -Width 4096 }}; if ($LASTEXITCODE) {{ exit $LASTEXITCODE }} }}"
+            ),
+        ], "PowerShell"
+    return ["sh", "-c", command], "sh"
+
+
+async def _cleanup_process(process, timeout=1):
+    if process.returncode is not None:
+        return
+    try:
+        process.terminate()
+        try:
+            await asyncio.wait_for(process.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+    except Exception:
+        pass
+
+
+def _decode_output(raw: bytes) -> str:
+    if not raw:
+        return ""
+
+    text = None
+    for enc in ["utf-8", locale.getpreferredencoding(False), "gbk"]:
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+
+    if text is None:
+        text = raw.decode("utf-8", errors="replace")
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    lines = [line.rstrip() for line in text.split("\n")]
+
+    compact = []
+    prev_blank = False
+    for line in lines:
+        blank = not line.strip()
+        if blank and prev_blank:
+            continue
+        compact.append(line)
+        prev_blank = blank
+
+    # ---- LIMIT OUTPUT ----
+    if len(compact) > MAX_OUTPUT_ROWS:
+        truncated = len(compact) - MAX_OUTPUT_ROWS
+        head = MAX_OUTPUT_ROWS // 2
+        tail = MAX_OUTPUT_ROWS - head
+        compact = compact[:head] + [f"... ({truncated} lines truncated) ..."] + compact[-tail:]
+
+    return "\n".join(compact).strip()
+
+
+def _extract_commands(command: str) -> List[str]:
+    separators = {"&&", "||", "|", ";"}
+
+    posix = not platform.system().lower().startswith("win")
+
+    lexer = shlex.shlex(command, posix=posix)
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+
+    tokens = list(lexer)
+
+    cmds: list[str] = []
+    current: list[str] = []
+
+    for tok in tokens:
+        if tok in separators:
+            if current:
+                cmds.append(" ".join(current))
+                current = []
+        else:
+            current.append(tok)
+
+    if current:
+        cmds.append(" ".join(current))
+
+    return cmds
+
+
+def _get_command_name(command: str) -> Optional[str]:
+    if any(x in command for x in ("&&", ";", "|", "\n", "\r")):
+        return None
+
+    try:
+        if platform.system().lower().startswith("win"):
+            parts = shlex.split(command, posix=False)
+        else:
+            parts = shlex.split(command, posix=True)
+    except ValueError:
+        return None
+
+    if not parts:
+        return None
+
+    cmd = parts[0]
+    cmd = os.path.basename(cmd)
+    cmd = os.path.splitext(cmd)[0]
+    cmd = cmd.split(".")[0]
+
+    return cmd.lower()
+
+
+def _is_command_blacklisted(command: str, blacklist: List[str]) -> bool:
+    _blacklist = {b.lower() for b in blacklist}
+
+    for cmd in _extract_commands(command):
+        name = _get_command_name(cmd)
+        if name in _blacklist:
+            return True
+
+    return False

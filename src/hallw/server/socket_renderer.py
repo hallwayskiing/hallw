@@ -4,7 +4,7 @@ from typing import Any, Optional
 import socketio
 
 from hallw.core import AgentRenderer
-from hallw.utils import logger
+from hallw.utils import config, logger
 
 
 class SocketAgentRenderer(AgentRenderer):
@@ -45,7 +45,9 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_llm_end(self):
         if self._current_response:
-            logger.info(f"AI: {self._current_response.strip()[:100]}...")
+            max_len = config.logging_max_chars
+            self._current_response = self._current_response.replace("\n", " ").strip()
+            logger.info(f"AI: {self._current_response[:max_len]}...")
         self._fire("llm_finished")
 
     def on_tool_start(self, run_id: str, name: str, args: Any):

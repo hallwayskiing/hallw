@@ -6,7 +6,7 @@ from hallw.tools import build_tool_response
 
 
 @tool
-async def write(file_path: str, content: str, mode: str = "w") -> str:
+async def write_file(file_path: str, content: str, mode: str = "w") -> str:
     """Write content to a file. Creates parent directories if they don't exist.
 
     Args:

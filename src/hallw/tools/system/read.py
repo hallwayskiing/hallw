@@ -6,10 +6,11 @@ from langchain_core.tools import tool
 from hallw.tools import build_tool_response
 
 READ_LINES_LIMIT = 1000
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 @tool
-def read(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
+def read_file(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
     """Read the content of a file.
 
     Args:
@@ -29,6 +30,9 @@ def read(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
     if not os.path.isfile(file_path):
         return build_tool_response(False, f"Path is not a file: {file_path}")
 
+    if os.path.getsize(file_path) > MAX_FILE_SIZE:
+        return build_tool_response(False, f"File is too large: {file_path}")
+
     # Validate start_line
     if start_line < 0:
         start_line = 0
@@ -40,7 +44,7 @@ def read(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
         )
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
             it = islice(f, start_line, None if end_line == -1 else end_line)
             lines = []
             for i, line in enumerate(it, start=start_line):
