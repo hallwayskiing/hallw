@@ -10,7 +10,7 @@ const ALL_PROVIDERS = [
     { key: 'anthropic_api_key', label: 'Anthropic', placeholder: 'sk-ant-...' },
     { key: 'openrouter_api_key', label: 'OpenRouter', placeholder: 'sk-or-...' },
     { key: 'deepseek_api_key', label: 'DeepSeek', placeholder: 'sk-...' },
-    { key: 'zai_api_key', label: 'ZAI', placeholder: 'Enter ZAI API key' },
+    { key: 'zai_api_key', label: 'ZAI', placeholder: '...' },
     { key: 'moonshot_api_key', label: 'Moonshot', placeholder: 'sk-...' },
     { key: 'xiaomi_mimo_api_key', label: 'Xiaomi Mimo', placeholder: 'sk-...' },
 ];
@@ -79,13 +79,13 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-    { id: 'model', label: 'Model', icon: <Sparkles className="w-4 h-4" />, color: 'text-amber-300', gradient: 'from-amber-500/15 to-orange-500/5' },
-    { id: 'api-keys', label: 'API Keys', icon: <Key className="w-4 h-4" />, color: 'text-cyan-300', gradient: 'from-cyan-500/15 to-teal-500/5' },
-    { id: 'langsmith', label: 'LangSmith', icon: <FileText className="w-4 h-4" />, color: 'text-emerald-300', gradient: 'from-emerald-500/15 to-teal-500/5' },
-    { id: 'logging', label: 'Logging', icon: <Terminal className="w-4 h-4" />, color: 'text-sky-300', gradient: 'from-sky-500/15 to-cyan-500/5' },
-    { id: 'exec-search', label: 'Exec & Search', icon: <Search className="w-4 h-4" />, color: 'text-violet-300', gradient: 'from-violet-500/15 to-purple-500/5' },
-    { id: 'browser', label: 'Browser', icon: <Globe className="w-4 h-4" />, color: 'text-rose-300', gradient: 'from-rose-500/15 to-pink-500/5' },
-    { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" />, color: 'text-indigo-300', gradient: 'from-indigo-500/15 to-purple-500/5' },
+    { id: 'model', label: 'Model', icon: <Sparkles className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'api-keys', label: 'API Keys', icon: <Key className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'langsmith', label: 'LangSmith', icon: <FileText className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'logging', label: 'Logging', icon: <Terminal className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'exec-search', label: 'Exec & Search', icon: <Search className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'browser', label: 'Browser', icon: <Globe className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
+    { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" />, color: 'text-foreground', gradient: 'from-zinc-500/10 to-zinc-500/5' },
 ];
 
 const NUMBER_FIELDS = [
@@ -218,7 +218,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                             <div className="space-y-6 max-w-2xl">
                                 {activeTab === 'model' && (
                                     <>
-                                        <SectionCard title="LLM Configuration" icon={<Sparkles className="w-4 h-4" />} color="text-amber-300" gradient="from-amber-500/8 to-orange-500/3">
+                                        <SectionCard title="LLM Configuration" icon={<Sparkles className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <InputGroup label="Model Name" desc="e.g. gemini/gemini-2.5-flash">
                                                 <Combobox
                                                     value={config.model_name || ''}
@@ -232,7 +232,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             </InputGroup>
                                         </SectionCard>
 
-                                        <SectionCard title="Generation Parameters" icon={<Sparkles className="w-4 h-4" />} color="text-orange-300" gradient="from-orange-500/8 to-amber-500/3">
+                                        <SectionCard title="Generation Parameters" icon={<Sparkles className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <InputGroup label="Temperature" desc="0.0 - 2.0">
                                                     <Input name="model_temperature" type="number" step="0.1" min="0" max="2" value={config.model_temperature ?? 1} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_temperature', e.target.value)} />
@@ -262,7 +262,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                 )}
 
                                 {activeTab === 'api-keys' && (
-                                    <SectionCard title="Provider API Keys" icon={<Key className="w-4 h-4" />} color="text-cyan-300" gradient="from-cyan-500/8 to-teal-500/3">
+                                    <SectionCard title="Provider API Keys" icon={<Key className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                         <div className="space-y-4">
                                             {ALL_PROVIDERS.map(provider => (
                                                 <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API Key`}>
@@ -280,14 +280,14 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                 )}
 
                                 {activeTab === 'langsmith' && (
-                                    <SectionCard title="Tracing & Observability" icon={<FileText className="w-4 h-4" />} color="text-emerald-300" gradient="from-emerald-500/8 to-teal-500/3">
+                                    <SectionCard title="Tracing & Observability" icon={<FileText className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                         <ToggleGroup
                                             id="langsmith_tracing"
                                             label="Enable LangSmith Tracing"
                                             desc="Send traces to LangSmith for debugging"
                                             checked={config.langsmith_tracing || false}
                                             onChange={(checked) => handleChange('langsmith_tracing', checked)}
-                                            color="bg-gradient-to-r from-emerald-400 to-teal-400"
+                                            color="bg-teal-600"
                                         />
                                         <div className="border-t border-border/30 pt-4 mt-4 space-y-4">
                                             <InputGroup label="Project Name" desc="LangSmith project identifier">
@@ -304,10 +304,10 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                 )}
 
                                 {activeTab === 'logging' && (
-                                    <SectionCard title="System Logging" icon={<Terminal className="w-4 h-4" />} color="text-sky-300" gradient="from-sky-500/8 to-cyan-500/3">
+                                    <SectionCard title="System Logging" icon={<Terminal className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                         <InputGroup label="Log Level" desc="Verbosity of logging output">
                                             <select
-                                                className="w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400/50 transition-all"
+                                                className="w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400/30 focus:border-zinc-400/50 transition-all"
                                                 value={config.logging_level || 'INFO'}
                                                 onChange={(e) => handleChange('logging_level', e.target.value)}
                                             >
@@ -329,14 +329,14 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
                                 {activeTab === 'exec-search' && (
                                     <>
-                                        <SectionCard title="Execution Settings" icon={<Terminal className="w-4 h-4" />} color="text-violet-300" gradient="from-violet-500/8 to-purple-500/3">
+                                        <SectionCard title="Execution Settings" icon={<Terminal className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <ToggleGroup
                                                 id="auto_allow_exec"
                                                 label="Auto-allow Execute Command"
                                                 desc="Skip confirmation for system commands"
                                                 checked={config.auto_allow_exec || false}
                                                 onChange={(checked) => handleChange('auto_allow_exec', checked)}
-                                                color="bg-gradient-to-r from-violet-400 to-purple-400"
+                                                color="bg-teal-600"
                                             />
                                             {config.auto_allow_exec && (
                                                 <div className="border-t border-border/30 pt-4 mt-4">
@@ -351,10 +351,10 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             )}
                                         </SectionCard>
 
-                                        <SectionCard title="Search Settings" icon={<Search className="w-4 h-4" />} color="text-purple-300" gradient="from-purple-500/8 to-violet-500/3">
+                                        <SectionCard title="Search Settings" icon={<Search className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <InputGroup label="Search Engine" desc="Select your preferred search provider">
                                                 <select
-                                                    className="w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400/50 transition-all"
+                                                    className="w-full bg-input/30 border border-input/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400/30 focus:border-zinc-400/50 transition-all"
                                                     value={config.search_engine || 'brave'}
                                                     onChange={(e) => handleChange('search_engine', e.target.value)}
                                                 >
@@ -381,14 +381,14 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
                                 {activeTab === 'browser' && (
                                     <>
-                                        <SectionCard title="Browser Options" icon={<Globe className="w-4 h-4" />} color="text-rose-300" gradient="from-rose-500/8 to-pink-500/3">
+                                        <SectionCard title="Browser Options" icon={<Globe className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <ToggleGroup
                                                 id="prefer_local_chrome"
                                                 label="Prefer Local Chrome"
                                                 desc="Use local Chrome instead of Playwright Chromium"
                                                 checked={config.prefer_local_chrome ?? true}
                                                 onChange={(checked) => handleChange('prefer_local_chrome', checked)}
-                                                color="bg-gradient-to-r from-rose-400 to-pink-400"
+                                                color="bg-teal-600"
                                             />
                                             <ToggleGroup
                                                 id="keep_browser_open"
@@ -396,11 +396,11 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                                 desc="Keep browser running after task completion"
                                                 checked={config.keep_browser_open ?? true}
                                                 onChange={(checked) => handleChange('keep_browser_open', checked)}
-                                                color="bg-gradient-to-r from-rose-400 to-pink-400"
+                                                color="bg-teal-600"
                                             />
                                         </SectionCard>
 
-                                        <SectionCard title="Chrome Settings" icon={<Monitor className="w-4 h-4" />} color="text-pink-300" gradient="from-pink-500/8 to-rose-500/3">
+                                        <SectionCard title="Chrome Settings" icon={<Monitor className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <InputGroup label="Chrome User Data Dir" desc="Path to Chrome profile">
                                                 <Input name="chrome_user_data_dir" value={config.chrome_user_data_dir || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('chrome_user_data_dir', e.target.value)} placeholder=".chrome_user_data/" />
                                             </InputGroup>
@@ -409,7 +409,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                             </InputGroup>
                                         </SectionCard>
 
-                                        <SectionCard title="Timeouts (ms)" icon={<Clock className="w-4 h-4" />} color="text-amber-300" gradient="from-amber-500/8 to-yellow-500/3">
+                                        <SectionCard title="Timeouts (ms)" icon={<Clock className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                             <div className="grid grid-cols-3 gap-4">
                                                 <InputGroup label="Page Load">
                                                     <Input name="pw_goto_timeout" type="number" value={config.pw_goto_timeout ?? 10000} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('pw_goto_timeout', e.target.value)} />
@@ -426,7 +426,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                 )}
 
                                 {activeTab === 'appearance' && (
-                                    <SectionCard title="Theme" icon={<Palette className="w-4 h-4" />} color="text-indigo-300" gradient="from-indigo-500/8 to-purple-500/3">
+                                    <SectionCard title="Theme" icon={<Palette className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
                                         <div className="flex items-center justify-between py-3">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-sm font-medium text-foreground">Dark Mode</span>
@@ -481,16 +481,9 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                             disabled={isSaving || isLoading}
                             className={cn(
                                 "flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed",
-                                "bg-gradient-to-r", currentTab.gradient.replace('/20', '').replace('/10', ''),
+                                "bg-zinc-800 hover:bg-zinc-700",
                                 "hover:opacity-90"
                             )}
-                            style={{
-                                background: activeTab === 'model' ? 'linear-gradient(to right, #fbbf24, #f97316)' :
-                                    activeTab === 'langsmith' ? 'linear-gradient(to right, #34d399, #2dd4bf)' :
-                                        activeTab === 'logging' ? 'linear-gradient(to right, #38bdf8, #22d3ee)' :
-                                            activeTab === 'exec-search' ? 'linear-gradient(to right, #a78bfa, #c084fc)' :
-                                                'linear-gradient(to right, #fb7185, #f472b6)'
-                            }}
                         >
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             Save Changes
@@ -681,7 +674,7 @@ function StringListEditor({ label, desc, items, onChange, placeholder }: {
                 <button
                     type="button"
                     onClick={handleAdd}
-                    className="px-4 py-2 text-sm font-medium bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 rounded-xl transition-colors"
+                    className="px-4 py-2 text-sm font-medium bg-zinc-500/20 text-foreground hover:bg-zinc-500/30 rounded-xl transition-colors"
                 >
                     Add
                 </button>
@@ -693,13 +686,13 @@ function StringListEditor({ label, desc, items, onChange, placeholder }: {
                     {items.map((item, index) => (
                         <span
                             key={index}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/15 text-violet-300 rounded-lg text-sm group"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-500/15 text-foreground rounded-lg text-sm group"
                         >
                             {item}
                             <button
                                 type="button"
                                 onClick={() => handleRemove(index)}
-                                className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-violet-500/30 transition-colors"
+                                className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-zinc-500/30 transition-colors"
                             >
                                 ×
                             </button>

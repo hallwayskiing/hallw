@@ -328,7 +328,12 @@ export function WelcomeScreen({ onQuickStart }: WelcomeScreenProps) {
                                 theme === 'dark' ? "text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]" : "text-amber-600"
                             )} />
                         </div>
-                        <span className="text-[12px] text-muted-foreground/40 uppercase tracking-[0.2em]">
+                        <span className={cn(
+                            "text-[12px] uppercase tracking-[0.2em] transition-colors duration-300",
+                            theme === 'dark'
+                                ? "font-light text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                                : "font-medium text-amber-600"
+                        )}>
                             Quick Start
                         </span>
                     </div>
