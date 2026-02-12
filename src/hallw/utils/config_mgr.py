@@ -8,13 +8,14 @@ class Settings(BaseSettings):
     # =================================================
     # 1. Model Settings
     # =================================================
-    model_name: str = "gemini-2.5-flash"
-    model_endpoint: str = ""
+    model_name: str = "gemini/gemini-2.5-flash"
+    openai_api_base: str = ""
+    anthropic_api_base: str = ""
     model_temperature: float = 1
-    model_max_output_tokens: int = 10240
+    model_max_output_tokens: int = 2560
     model_reasoning_effort: str = "low"  # low, medium, high
     model_reflection_threshold: int = 3
-    model_max_recursion: int = 200
+    model_max_recursion: int = 99
     model_recent_used: List[str] = []
 
     # =================================================

@@ -129,7 +129,8 @@ All settings are managed via `.env`.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `MODEL_NAME` | The LLM model ID to use | `gemini-2.5-flash-lite` |
-| `MODEL_ENDPOINT` | Base URL for the API | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `OPENAI_API_BASE` | Base URL for the OpenAI compatible API | - |
+| `ANTHROPIC_API_BASE` | Base URL for the Anthropic compatible API | - |
 | `MODEL_TEMPERATURE` | Creativity (0.0 - 1.0) | `0.25` |
 | `OPENAI_API_KEY` | OpenAI API Key | - |
 | `GOOGLE_API_KEY` | Google API Key | - |

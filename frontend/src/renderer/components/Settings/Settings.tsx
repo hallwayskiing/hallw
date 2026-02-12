@@ -24,7 +24,8 @@ interface Config {
     [key: string]: any;
     // Model
     model_name?: string;
-    model_endpoint?: string;
+    openai_api_base?: string;
+    anthropic_api_base?: string;
     model_temperature?: number;
     model_max_output_tokens?: number;
     model_reflection_threshold?: number;
@@ -227,8 +228,11 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                                                     placeholder="gemini/gemini-2.5-flash"
                                                 />
                                             </InputGroup>
-                                            <InputGroup label="Custom Endpoint" desc="Base URL for the custom model API">
-                                                <Input name="model_endpoint" value={config.model_endpoint || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('model_endpoint', e.target.value)} placeholder="https://api.openai.com/v1" />
+                                            <InputGroup label="OpenAI-Compatible Endpoint" desc="Endpoint for the custom OpenAI provider">
+                                                <Input name="openai_api_base" value={config.openai_api_base || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('openai_api_base', e.target.value)} placeholder="https://api.openai.com/v1" />
+                                            </InputGroup>
+                                            <InputGroup label="Anthropic-Compatible Endpoint" desc="Endpoint for the custom Anthropic provider">
+                                                <Input name="anthropic_api_base" value={config.anthropic_api_base || ''} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('anthropic_api_base', e.target.value)} placeholder="https://api.anthropic.com" />
                                             </InputGroup>
                                         </SectionCard>
 

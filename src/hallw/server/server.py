@@ -55,7 +55,6 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
     # LLM Configuration
     llm = ChatLiteLLM(
         model=config.model_name,
-        api_base=config.model_endpoint,
         temperature=config.model_temperature,
         max_tokens=config.model_max_output_tokens,
         streaming=True,
