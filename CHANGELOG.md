@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.11.0 (2026-02-12)
+
+### Feat
+
+- **core**: support multiple stages completion at once
+- **ui**: add LaTex support
+- **config**: support custom OpenAI and Anthropic providers
+- **skills**: add jubensha skill
+- **ui**: support tool exection result preview
+- **core**: support history conversation recover & rearrange project structure
+- **core**: save chat history even when fatal error occurs
+- **skills**: add powershell-expert, rscript-expert and remove stage-builder
+- **tools**: improve availability of system tools
+- **ui**: better support multi-line input and refine input area ui
+
+### Fix
+
+- **ui**: refine ui rendering logic
+- **ui**: improve rendering stability
+- **ui**: reset states before chatting
+- **ui**: improve reasoning content rendering logic
+
 ## v0.10.0 (2026-02-10)
 
 ### Feat
