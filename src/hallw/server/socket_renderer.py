@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Any, Optional
 
 import socketio
@@ -55,9 +56,17 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_tool_end(self, run_id: str, name: str, output: Any, is_success: bool, log_msg: str):
         logger.info(log_msg)
+
+        result_str = str(output)
+        if isinstance(output, (dict, list)):
+            try:
+                result_str = json.dumps(output, ensure_ascii=False)
+            except Exception:
+                result_str = str(output)
+
         self._fire(
             "tool_state_update",
-            {"run_id": run_id, "status": "success" if is_success else "error", "result": str(output)},
+            {"run_id": run_id, "status": "success" if is_success else "error", "result": result_str},
         )
 
     def on_tool_error(self, run_id: str, name: str, error: str):

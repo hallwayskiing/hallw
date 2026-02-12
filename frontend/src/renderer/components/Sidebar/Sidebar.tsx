@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Activity, CheckCircle2, Clock, Loader2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import { useAppStore, ToolState } from '../../stores/appStore';
 import { cn } from '../../lib/utils';
+import { ToolPreview } from './ToolPreview';
 
 // ============================================================================
 // Types
@@ -17,6 +18,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [selectedTool, setSelectedTool] = useState<ToolState | null>(null);
     const toolStates = useAppStore(s => s.toolStates);
     const toolPlan = useAppStore(s => s.stages);
     const currentStageIndex = useAppStore(s => s.currentStageIndex);
@@ -52,7 +54,20 @@ export function Sidebar({ className }: SidebarProps) {
             />
 
             {/* Execution Section */}
-            <ExecutionPanel toolStates={toolStates} isExpanded={isExpanded} />
+            <ExecutionPanel
+                toolStates={toolStates}
+                isExpanded={isExpanded}
+                onToolClick={setSelectedTool}
+            />
+
+            {/* Tool Preview Modal */}
+            {selectedTool && (
+                <ToolPreview
+                    toolState={selectedTool}
+                    isOpen={!!selectedTool}
+                    onClose={() => setSelectedTool(null)}
+                />
+            )}
         </div>
     );
 }
@@ -148,11 +163,12 @@ function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }
 interface ExecutionPanelProps {
     toolStates: ToolState[];
     isExpanded: boolean;
+    onToolClick: (tool: ToolState) => void;
 }
 
 const HIDDEN_TOOLS = ['build_stages', 'end_current_stage'];
 
-function ExecutionPanel({ toolStates, isExpanded }: ExecutionPanelProps) {
+function ExecutionPanel({ toolStates, isExpanded, onToolClick }: ExecutionPanelProps) {
     // Filter out internal tools
     const visibleTools = toolStates.filter(t => !HIDDEN_TOOLS.includes(t.tool_name));
 
@@ -174,7 +190,12 @@ function ExecutionPanel({ toolStates, isExpanded }: ExecutionPanelProps) {
                 ) : (
                     // Show newest first
                     [...visibleTools].reverse().map(state => (
-                        <ToolItem key={state.run_id} state={state} isExpanded={isExpanded} />
+                        <ToolItem
+                            key={state.run_id}
+                            state={state}
+                            isExpanded={isExpanded}
+                            onClick={() => onToolClick(state)}
+                        />
                     ))
                 )}
             </div>
@@ -185,9 +206,10 @@ function ExecutionPanel({ toolStates, isExpanded }: ExecutionPanelProps) {
 interface ToolItemProps {
     state: ToolState;
     isExpanded: boolean;
+    onClick: () => void;
 }
 
-function ToolItem({ state, isExpanded }: ToolItemProps) {
+function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
     const { tool_name, status, args } = state;
 
     const statusColor = {
@@ -218,9 +240,15 @@ function ToolItem({ state, isExpanded }: ToolItemProps) {
     }
 
     return (
-        <div className={cn("group relative pl-4 border-l-2 transition-colors", borderColor)}>
+        <div
+            onClick={onClick}
+            className={cn(
+                "group relative pl-4 border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm py-1 pr-2",
+                borderColor
+            )}
+        >
             <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-sm text-foreground">{tool_name}</span>
+                <span className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">{tool_name}</span>
                 {StatusIcon}
             </div>
             <p className="text-xs text-muted-foreground truncate" title={formatArgs(args)}>

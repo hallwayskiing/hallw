@@ -70,7 +70,7 @@ class AgentEventDispatcher:
 
     def _handle_tool_error(self, renderer, event):
         err = event.get("data", {}).get("error")
-        renderer.on_tool_error(event.get("run_id"), event.get("name"), str(err)[:200])
+        renderer.on_tool_error(event.get("run_id"), event.get("name"), str(err))
 
     def _format_tool_log(self, name: str, parsed: ToolResult) -> str:
         sign = "✅" if parsed.get("success") else "❌"

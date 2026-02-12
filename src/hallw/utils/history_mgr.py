@@ -157,7 +157,7 @@ def serialize_messages(messages: List[Any]) -> tuple[List[Dict[str, Any]], List[
 
             restored_tool_states.append(
                 {
-                    "run_id": msg.tool_call_id,
+                    "run_id": msg.id,
                     "tool_name": msg.name,
                     "status": "success" if parsed["success"] else "error",
                     "args": json.dumps(local_tool_map.get(msg.tool_call_id, {}), ensure_ascii=False)
