@@ -1,5 +1,6 @@
 import { useAppStore } from './stores/appStore';
 import { useEffect } from 'react';
+import 'katex/dist/katex.min.css';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { ChatArea } from './components/ChatArea/ChatArea';
 import { InputArea } from './components/InputArea/InputArea';

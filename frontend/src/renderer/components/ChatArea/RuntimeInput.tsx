@@ -1,5 +1,9 @@
 import { MessageSquare, Send, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { useAppStore } from '../../stores/appStore';
 
 export type RuntimeInputStatus = 'pending' | 'submitted' | 'rejected' | 'timeout';
@@ -136,8 +140,15 @@ export function RuntimeInput({ requestId, message, timeout, initialStatus, initi
 
             <div className="space-y-2">
                 <p className="text-sm text-foreground/80">The agent is asking for your input:</p>
-                <div className="bg-background/50 rounded-lg p-3 border border-border/50 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-                    {message}
+                <div className="bg-background/50 rounded-lg p-3 border border-border/50 text-sm overflow-x-auto">
+                    <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                        >
+                            {message}
+                        </ReactMarkdown>
+                    </div>
                 </div>
             </div>
 
