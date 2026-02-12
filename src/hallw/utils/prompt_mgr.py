@@ -91,6 +91,7 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     or end the task if it is completed. Otherwise you will get stuck in the current stage.
     - If you completed multiple stages at once, just call the `end_current_stage` tool multiple times,
     **DO NOT** generate duplicate responses for every stage.
+    - During stages, you can only receive from user by `request_user_input` tool.
     </stages>
 
     <exec>

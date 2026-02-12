@@ -1,7 +1,7 @@
 from typing import Dict, cast
 
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
@@ -33,6 +33,14 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         )
         planner = model.bind_tools([build_stages], tool_choice="required")
         response = await planner.ainvoke(state["messages"] + [builder_msg], config=config)
+
+        if not response.tool_calls:
+            return {
+                "messages": [
+                    response,
+                    SystemMessage(content="Please call the `build_stages` tool first."),
+                ],
+            }
 
         tool_call = response.tool_calls[0]
         result = await build_stages.ainvoke(tool_call["args"], config=config)
@@ -130,7 +138,7 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         Please reflect on the failures and adjust your plan.
         Use your reasoning.
         """
-        hint = HumanMessage(content=reflection_prompt)
+        hint = SystemMessage(content=reflection_prompt)
         response = await model.ainvoke(state["messages"] + [hint], config=config)
         return {
             "messages": [hint, response],
@@ -138,6 +146,11 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         }
 
     # --- Routing Logic ---
+
+    def route_build(state: AgentState):
+        if state.get("total_stages", 0) > 0:
+            return "model"
+        return "build"
 
     def route_model(state: AgentState):
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
@@ -194,7 +207,7 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
     builder.add_node("reflection", reflection_node)
 
     builder.add_edge(START, "build")
-    builder.add_edge("build", "model")
+    builder.add_conditional_edges("build", route_build, {"model": "model", "build": "build"})
     builder.add_conditional_edges(
         "model", route_model, {"tools": "tools", "model": "model", "reflection": "reflection"}
     )

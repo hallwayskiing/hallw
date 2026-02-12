@@ -27,22 +27,87 @@ export function ChatArea() {
     const handleConfirmationDecision = useAppStore(s => s.handleConfirmationDecision);
     const handleInputDecision = useAppStore(s => s.handleInputDecision);
 
+    // Preprocess messages to group scattered reasoning
+    const processedMessages = (() => {
+        const result: Message[] = [];
+        let reasoningBuffer: string[] = [];
+
+        // Pass 1: Collect and merge forward
+        for (const msg of messages) {
+            const isReasoningOnly = msg.type === 'text' && !msg.content?.trim() && !!msg.reasoning;
+            const isContentMsg = msg.type === 'text' && !!msg.content?.trim();
+
+            if (isReasoningOnly) {
+                if (msg.reasoning) reasoningBuffer.push(msg.reasoning);
+            } else if (isContentMsg) {
+                // Determine effective reasoning for this message
+                const combinedReasoning = [...reasoningBuffer, msg.reasoning].filter(Boolean).join('\n\n');
+
+                // Create new message object with merged reasoning
+                const newMsg = { ...msg, reasoning: combinedReasoning || undefined };
+
+                result.push(newMsg);
+                reasoningBuffer = []; // Clear buffer
+            } else {
+                // Non-text message (e.g. tool call, error, status)
+                if (reasoningBuffer.length > 0) {
+                    result.push({
+                        type: 'text',
+                        role: 'assistant',
+                        content: '',
+                        reasoning: reasoningBuffer.join('\n\n')
+                    });
+                    reasoningBuffer = [];
+                }
+
+                result.push(msg);
+            }
+        }
+
+        // Pass 2: Handle leftover reasoning (merge backward or create new)
+        if (reasoningBuffer.length > 0) {
+            let merged = false;
+            // Try to find the last content message in result to attach to
+            for (let i = result.length - 1; i >= 0; i--) {
+                const msg = result[i];
+                if (msg.type === 'text' && !!msg.content?.trim() && msg.role === 'assistant') {
+                    const combinedReasoning = [msg.reasoning, ...reasoningBuffer].filter(Boolean).join('\n\n');
+                    result[i] = { ...msg, reasoning: combinedReasoning || undefined };
+                    merged = true;
+                    break;
+                }
+            }
+
+            // If no content message found at all, create a single consolidated reasoning message
+            if (!merged) {
+                result.push({
+                    type: 'text',
+                    role: 'assistant', // Default to assistant for reasoning
+                    content: '',
+                    reasoning: reasoningBuffer.join('\n\n')
+                });
+            }
+        }
+
+        return result;
+    })();
+
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, streamingContent, !!streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
+    }, [processedMessages, streamingContent, !!streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
 
     // Empty state
-    if (messages.length === 0 && !streamingContent && !isProcessing) {
+    if (processedMessages.length === 0 && !streamingContent && !isProcessing) {
         return null;
     }
 
     return (
         <div className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth">
             {/* Rendered Messages */}
-            {messages.map((msg, idx) => (
+            {processedMessages.map((msg, idx) => (
                 <div key={idx} className="space-y-4">
                     {renderMessage(msg)}
                 </div>
