@@ -47,6 +47,14 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         parsed = parse_tool_response(result)
         stages = parsed.get("data", {}).get("stage_names", [])
 
+        if not stages:
+            return {
+                "messages": [
+                    response,
+                    SystemMessage(content="Please build solid stages first."),
+                ],
+            }
+
         dispatch_custom_event("stages_built", {"stages": stages}, config=config)
 
         node_output = {

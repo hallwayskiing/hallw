@@ -1,4 +1,4 @@
-import { X, CheckCircle2, XCircle, Code, Copy, Check } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
 import { ToolState } from '../../stores/appStore';
@@ -20,6 +20,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
     let resultMessage = toolState.result;
     let resultData = null;
     let isSuccess = toolState.status === 'success';
+    let isRunning = toolState.status === 'running';
 
     try {
         const parsed = JSON.parse(toolState.result);
@@ -53,9 +54,11 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                     <div className="flex items-center gap-3">
                         <div className={cn(
                             "p-2 rounded-full",
-                            isSuccess ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                            isRunning ? "bg-blue-500/10 text-blue-500" :
+                                isSuccess ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
                         )}>
-                            {isSuccess ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                            {isRunning ? <Loader2 className="w-5 h-5 animate-spin" /> :
+                                isSuccess ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                         </div>
                         <div>
                             <h3 className="font-semibold text-lg">{toolState.tool_name}</h3>

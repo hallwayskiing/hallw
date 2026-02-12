@@ -1,6 +1,8 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect, useRef, useState } from 'react';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useAppStore, Message } from '../../stores/appStore';
 import { cn } from '../../lib/utils';
 import { Bot, User, AlertTriangle, ChevronDown, ChevronRight, Brain } from 'lucide-react';
@@ -12,6 +14,91 @@ import { RuntimeInput } from './RuntimeInput';
 // ============================================================================
 
 type MessageRole = 'user' | 'assistant' | 'system';
+
+// ============================================================================
+// Hooks
+// ============================================================================
+
+/**
+ * Hook to handle smooth typing effect.
+ * Takes the raw stream string and returns a progressively displayed string.
+ */
+function useSmoothTyping(targetText: string, isStreaming: boolean, speed: number = 2) {
+    const [displayedText, setDisplayedText] = useState('');
+
+    useEffect(() => {
+        if (!isStreaming) {
+            setDisplayedText(targetText);
+            return;
+        }
+
+        let animationFrameId: number;
+
+        const animate = () => {
+            setDisplayedText((current) => {
+                if (current.length >= targetText.length) {
+                    return targetText;
+                }
+                // Calculate how much to append.
+                // If we are far behind, speed up slightly to catch up.
+                const diff = targetText.length - current.length;
+                const chunk = Math.min(diff, Math.max(1, Math.floor(diff / 10)) + speed);
+
+                return targetText.slice(0, current.length + chunk);
+            });
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [targetText, isStreaming, speed]);
+
+    return displayedText;
+}
+
+/**
+ * Hook to handle Gemini-like sticky scrolling.
+ * Stays at bottom only if user hasn't scrolled up.
+ */
+function useAutoScroll(dependencies: any[]) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
+
+    const handleScroll = useCallback(() => {
+        const div = scrollRef.current;
+        if (!div) return;
+
+        // threshold to consider "at bottom" (e.g., 50px)
+        const isAtBottom = div.scrollHeight - div.scrollTop - div.clientHeight <= 50;
+
+        // If user is at bottom, reset the flag. If they scroll up, set the flag.
+        if (isAtBottom) {
+            setUserHasScrolledUp(false);
+        } else {
+            setUserHasScrolledUp(true);
+        }
+    }, []);
+
+    // Effect to scroll to bottom when dependencies change, ONLY if user hasn't scrolled up
+    useLayoutEffect(() => {
+        const div = scrollRef.current;
+        if (div && !userHasScrolledUp) {
+            div.scrollTo({ top: div.scrollHeight, behavior: 'instant' }); // 'instant' is better for streaming than 'smooth' to prevent lag
+        }
+    }, [dependencies, userHasScrolledUp]);
+
+    // Force scroll to bottom when a specific flag is passed (e.g. new message start)
+    const scrollToBottom = useCallback(() => {
+        const div = scrollRef.current;
+        if (div) {
+            div.scrollTo({ top: div.scrollHeight, behavior: 'smooth' });
+            setUserHasScrolledUp(false);
+        }
+    }, []);
+
+    return { scrollRef, handleScroll, scrollToBottom };
+}
 
 // ============================================================================
 // Main Component
@@ -27,29 +114,22 @@ export function ChatArea() {
     const handleConfirmationDecision = useAppStore(s => s.handleConfirmationDecision);
     const handleInputDecision = useAppStore(s => s.handleInputDecision);
 
-    // Preprocess messages to group scattered reasoning
+    // Grouping Logic (Preserved from original)
     const processedMessages = (() => {
         const result: Message[] = [];
         let reasoningBuffer: string[] = [];
 
-        // Pass 1: Collect and merge forward
         for (const msg of messages) {
             const isReasoningOnly = msg.type === 'text' && !msg.content?.trim() && !!msg.reasoning;
-            const isContentMsg = msg.type === 'text' && !!msg.content?.trim();
+            const isAssistantContentMsg = msg.type === 'text' && msg.role === 'assistant' && !!msg.content?.trim();
 
             if (isReasoningOnly) {
                 if (msg.reasoning) reasoningBuffer.push(msg.reasoning);
-            } else if (isContentMsg) {
-                // Determine effective reasoning for this message
+            } else if (isAssistantContentMsg) {
                 const combinedReasoning = [...reasoningBuffer, msg.reasoning].filter(Boolean).join('\n\n');
-
-                // Create new message object with merged reasoning
-                const newMsg = { ...msg, reasoning: combinedReasoning || undefined };
-
-                result.push(newMsg);
-                reasoningBuffer = []; // Clear buffer
+                result.push({ ...msg, reasoning: combinedReasoning || undefined });
+                reasoningBuffer = [];
             } else {
-                // Non-text message (e.g. tool call, error, status)
                 if (reasoningBuffer.length > 0) {
                     result.push({
                         type: 'text',
@@ -59,53 +139,47 @@ export function ChatArea() {
                     });
                     reasoningBuffer = [];
                 }
-
                 result.push(msg);
             }
         }
-
-        // Pass 2: Handle leftover reasoning (merge backward or create new)
         if (reasoningBuffer.length > 0) {
             let merged = false;
-            // Try to find the last content message in result to attach to
             for (let i = result.length - 1; i >= 0; i--) {
                 const msg = result[i];
-                if (msg.type === 'text' && !!msg.content?.trim() && msg.role === 'assistant') {
-                    const combinedReasoning = [msg.reasoning, ...reasoningBuffer].filter(Boolean).join('\n\n');
-                    result[i] = { ...msg, reasoning: combinedReasoning || undefined };
+                if (msg.type === 'text' && msg.role === 'assistant' && !!msg.content?.trim()) {
+                    result[i] = { ...msg, reasoning: [msg.reasoning, ...reasoningBuffer].filter(Boolean).join('\n\n') || undefined };
                     merged = true;
                     break;
                 }
             }
-
-            // If no content message found at all, create a single consolidated reasoning message
             if (!merged) {
-                result.push({
-                    type: 'text',
-                    role: 'assistant', // Default to assistant for reasoning
-                    content: '',
-                    reasoning: reasoningBuffer.join('\n\n')
-                });
+                result.push({ type: 'text', role: 'assistant', content: '', reasoning: reasoningBuffer.join('\n\n') });
             }
         }
-
         return result;
     })();
 
-    const bottomRef = useRef<HTMLDivElement>(null);
+    // Use Custom Scroll Hook
+    // We pass streamingContent to trigger the "sticky" check
+    const { scrollRef, handleScroll, scrollToBottom } = useAutoScroll([processedMessages.length, streamingContent, streamingReasoning]);
 
-    // Auto-scroll to bottom
+    // When a NEW processing state begins, force scroll to bottom once
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [processedMessages, streamingContent, !!streamingReasoning, isProcessing, pendingConfirmation, pendingInput]);
+        if (isProcessing && !streamingContent && !streamingReasoning) {
+            scrollToBottom();
+        }
+    }, [isProcessing, scrollToBottom]);
 
-    // Empty state
     if (processedMessages.length === 0 && !streamingContent && !isProcessing) {
         return null;
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth">
+        <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth"
+        >
             {/* Rendered Messages */}
             {processedMessages.map((msg, idx) => (
                 <div key={idx} className="space-y-4">
@@ -113,69 +187,60 @@ export function ChatArea() {
                 </div>
             ))}
 
-            {/* Streaming Response */}
+            {/* Streaming Response (Special Component for Smoothness) */}
             {(streamingContent || streamingReasoning) && (
-                <MessageBubble
+                <StreamingMessageBubble
                     role="assistant"
-                    content={streamingContent ? streamingContent + ' ▌' : ''}
+                    content={streamingContent}
                     reasoning={streamingReasoning}
-                    isStreaming
                 />
             )}
 
             {/* Pending Confirmation Card */}
             {pendingConfirmation && (
-                <Confirmation
-                    key={pendingConfirmation.request_id}
-                    requestId={pendingConfirmation.request_id}
-                    message={pendingConfirmation.message}
-                    timeout={pendingConfirmation.timeout}
-                    onDecision={handleConfirmationDecision}
-                />
+                <div className="animate-in slide-in-from-bottom-2 duration-300">
+                    <Confirmation
+                        key={pendingConfirmation.request_id}
+                        requestId={pendingConfirmation.request_id}
+                        message={pendingConfirmation.message}
+                        timeout={pendingConfirmation.timeout}
+                        onDecision={handleConfirmationDecision}
+                    />
+                </div>
             )}
 
             {/* Pending Runtime Input Card */}
             {pendingInput && (
-                <RuntimeInput
-                    key={pendingInput.request_id}
-                    requestId={pendingInput.request_id}
-                    message={pendingInput.message}
-                    timeout={pendingInput.timeout}
-                    onDecision={handleInputDecision}
-                />
+                <div className="animate-in slide-in-from-bottom-2 duration-300">
+                    <RuntimeInput
+                        key={pendingInput.request_id}
+                        requestId={pendingInput.request_id}
+                        message={pendingInput.message}
+                        timeout={pendingInput.timeout}
+                        onDecision={handleInputDecision}
+                    />
+                </div>
             )}
 
             {/* Thinking Indicator */}
             {isProcessing && !streamingContent && !streamingReasoning && <ThinkingIndicator />}
 
-            <div ref={bottomRef} className="h-4" />
+            {/* Extra padding at bottom to give space */}
+            <div className="h-4 w-full shrink-0" />
         </div>
     );
 }
 
 // ============================================================================
-// Message Rendering
+// Message Components
 // ============================================================================
 
 function renderMessage(msg: Message) {
     switch (msg.type) {
         case 'confirmation':
-            return (
-                <Confirmation
-                    requestId={msg.requestId}
-                    message={msg.command}
-                    initialStatus={msg.status}
-                />
-            );
+            return <Confirmation requestId={msg.requestId} message={msg.command} initialStatus={msg.status} />;
         case 'user_input':
-            return (
-                <RuntimeInput
-                    requestId={msg.requestId}
-                    message={msg.prompt}
-                    initialStatus={msg.status}
-                    initialValue={msg.result}
-                />
-            );
+            return <RuntimeInput requestId={msg.requestId} message={msg.prompt} initialStatus={msg.status} initialValue={msg.result} />;
         case 'status':
             return <StatusIndicator variant={msg.variant} />;
         case 'error':
@@ -186,49 +251,23 @@ function renderMessage(msg: Message) {
     }
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-interface MessageBubbleProps {
-    role: MessageRole;
-    content: string;
-    reasoning?: string;
-    isStreaming?: boolean;
-}
-
-function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleProps) {
+/**
+ * Standard Bubble for completed messages (No typing effect)
+ */
+function MessageBubble({ role, content, reasoning }: { role: MessageRole; content: string; reasoning?: string }) {
     const isUser = role === 'user';
-
     return (
-        <div className={cn(
-            "flex gap-4 max-w-3xl mx-auto w-full animate-in slide-in-from-bottom-2 duration-300",
-            isUser && "flex-row-reverse"
-        )}>
+        <div className={cn("flex gap-4 max-w-3xl mx-auto w-full", isUser && "flex-row-reverse")}>
             <Avatar role={role} />
             <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
-                <div className="font-semibold text-sm text-foreground/80">
-                    {isUser ? 'You' : 'HALLW'}
-                </div>
-
-                {/* Reasoning Accordion */}
-                {reasoning && (
-                    <ReasoningAccordion content={reasoning} isStreaming={isStreaming} />
-                )}
-
+                <div className="font-semibold text-sm text-foreground/80">{isUser ? 'You' : 'HALLW'}</div>
+                {reasoning && <ReasoningAccordion content={reasoning} />}
                 {content && (
                     <div className={cn(
                         "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm text-left",
                         "bg-muted/50 text-foreground border border-border/50"
                     )}>
-                        <div className={cn(
-                            "prose prose-sm dark:prose-invert max-w-none break-words",
-                            isStreaming && "leading-relaxed text-foreground/90"
-                        )}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {content.replace(/\n/g, '  \n')}
-                            </ReactMarkdown>
-                        </div>
+                        <MarkdownContent content={content} />
                     </div>
                 )}
             </div>
@@ -236,15 +275,60 @@ function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleP
     );
 }
 
+/**
+ * Special Bubble for Streaming - Handles Smooth Typing
+ */
+function StreamingMessageBubble({ role, content, reasoning }: { role: MessageRole; content: string; reasoning?: string }) {
+    // Apply smooth typing to the content
+    const smoothContent = useSmoothTyping(content, true);
+    // Note: We don't smooth-type reasoning usually as it's collapsible, but you can if desired.
+
+    return (
+        <div className="flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in duration-300">
+            <Avatar role={role} />
+            <div className="flex-1 space-y-2 min-w-0 text-left">
+                <div className="font-semibold text-sm text-foreground/80">HALLW</div>
+
+                {reasoning && <ReasoningAccordion content={reasoning} isStreaming />}
+
+                <div className={cn(
+                    "inline-block rounded-lg px-4 py-2 max-w-[85%] text-sm shadow-sm text-left",
+                    "bg-muted/50 text-foreground border border-border/50 min-h-[40px]"
+                )}>
+                    <MarkdownContent content={smoothContent} isStreaming />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MarkdownContent({ content, isStreaming }: { content: string, isStreaming?: boolean }) {
+    return (
+        <div className={cn(
+            "prose prose-sm dark:prose-invert max-w-none break-words",
+            isStreaming && "leading-relaxed text-foreground/90"
+        )}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+            >
+                {/* Append cursor if streaming */}
+                {content.replace(/\n/g, '  \n') + (isStreaming ? ' ●' : '')}
+            </ReactMarkdown>
+        </div>
+    );
+}
+
+// ============================================================================
+// UI Helper Components
+// ============================================================================
+
 function Avatar({ role }: { role: MessageRole }) {
     const isUser = role === 'user';
-
     return (
         <div className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border shadow-sm",
-            isUser
-                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
-                : "bg-teal-500/10 border-teal-500/20 text-teal-400"
+            isUser ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-teal-500/10 border-teal-500/20 text-teal-400"
         )}>
             {isUser ? <User className="w-4 h-4" /> : <Bot className="w-5 h-5" />}
         </div>
@@ -254,13 +338,11 @@ function Avatar({ role }: { role: MessageRole }) {
 function ErrorCard({ content }: { content: string }) {
     return (
         <div className="max-w-3xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex gap-3 items-start">
-                <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="bg-destructive/10 border border-destructive/80 rounded-lg p-4 flex gap-3 items-start">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                 <div className="space-y-1 overflow-hidden min-w-0">
-                    <h3 className="font-medium text-destructive text-sm">System Error</h3>
-                    <div className="text-sm text-destructive/90 font-mono whitespace-pre-wrap break-words">
-                        {content}
-                    </div>
+                    <h3 className="font-bold text-red-600 dark:text-red-400 text-sm">System Error</h3>
+                    <div className="text-sm text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-words">{content}</div>
                 </div>
             </div>
         </div>
@@ -283,10 +365,7 @@ function StatusIndicator({ variant }: { variant: 'completed' | 'cancelled' }) {
     const isCompleted = variant === 'completed';
     return (
         <div className="max-w-3xl mx-auto w-full text-center py-2">
-            <span className={cn(
-                "text-xs",
-                isCompleted ? "text-muted-foreground" : "text-destructive/70"
-            )}>
+            <span className={cn("text-xs", isCompleted ? "text-muted-foreground" : "text-destructive/70")}>
                 {isCompleted ? '— Task completed —' : '— Task cancelled —'}
             </span>
         </div>
@@ -298,17 +377,12 @@ function ReasoningAccordion({ content, isStreaming }: { content: string, isStrea
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            // Scroll to the bottom of this accordion when opened or content updates
+        if (isOpen && isStreaming) {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
     }, [isOpen, content, isStreaming]);
 
-    // Extract last non-empty line specific for reasoning updates
-    const lastLine = content
-        .split('\n')
-        .filter(line => line.trim() !== '')
-        .pop() || '';
+    const lastLine = content.split('\n').filter(line => line.trim() !== '').pop() || '';
 
     return (
         <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
@@ -319,34 +393,19 @@ function ReasoningAccordion({ content, isStreaming }: { content: string, isStrea
                     !isOpen && isStreaming && "bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
                 )}
             >
-                {isOpen ?
-                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200" /> :
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200" />
-                }
-                <Brain className={cn(
-                    "w-4 h-4 text-purple-400 shrink-0",
-                    isStreaming && "animate-pulse"
-                )} />
+                {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                <Brain className={cn("w-4 h-4 text-purple-400 shrink-0", isStreaming && "animate-pulse")} />
                 <div className="flex-1 min-w-0">
                     {!isOpen && isStreaming && lastLine ? (
-                        <span className="text-xs text-muted-foreground/80 truncate block font-mono">
-                            {lastLine.slice(0, 100)}
-                        </span>
+                        <span className="text-xs text-muted-foreground/80 truncate block font-mono">{lastLine.slice(0, 100)}</span>
                     ) : (
-                        <span className="text-xs font-medium text-muted-foreground">
-                            {isStreaming ? "Thinking..." : "Thought Process"}
-                        </span>
+                        <span className="text-xs font-medium text-muted-foreground">{isStreaming ? "Thinking..." : "Thought Process"}</span>
                     )}
                 </div>
             </button>
-
             {isOpen && (
-                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
-                    <div className="prose prose-sm dark:prose-invert max-w-none break-words opacity-90">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {content + (isStreaming ? ' ▋' : '')}
-                        </ReactMarkdown>
-                    </div>
+                <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto custom-scrollbar">
+                    <MarkdownContent content={content} />
                     <div ref={bottomRef} className="h-0 w-0" />
                 </div>
             )}
