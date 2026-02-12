@@ -1,7 +1,7 @@
 import { X, Save, Loader2, Settings2, Sparkles, FileText, Terminal, Globe, Search, Monitor, Clock, ChevronRight, Key, Moon, Sun, Palette, ChevronDown } from 'lucide-react';
 import { useState, useEffect, ReactNode, ChangeEvent } from 'react';
-import { useAppStore } from '../stores/appStore';
-import { cn } from '../lib/utils';
+import { useAppStore } from '../../stores/appStore';
+import { cn } from '../../lib/utils';
 
 // Provider definitions for API Keys tab
 const ALL_PROVIDERS = [

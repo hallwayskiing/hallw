@@ -1,8 +1,8 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useEffect, useRef, useState } from 'react';
-import { useAppStore, Message } from '../stores/appStore';
-import { cn } from '../lib/utils';
+import { useAppStore, Message } from '../../stores/appStore';
+import { cn } from '../../lib/utils';
 import { Bot, User, AlertTriangle, ChevronDown, ChevronRight, Brain } from 'lucide-react';
 import { Confirmation } from './Confirmation';
 import { RuntimeInput } from './RuntimeInput';

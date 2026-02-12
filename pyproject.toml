@@ -36,6 +36,8 @@ dependencies = [
     "python-socketio>=5.11.0",
     "uvicorn>=0.27.0",
     "trafilatura>=2.0.0",
+    "langgraph-checkpoint-sqlite>=3.0.3",
+    "aiosqlite>=0.22.1",
 ]
 
 [project.urls]

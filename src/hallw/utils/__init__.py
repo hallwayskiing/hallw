@@ -8,4 +8,5 @@ __all__ = [
     "init_logger",
     "generateSystemPrompt",
     "save_config_to_env",
+    "history_mgr",
 ]

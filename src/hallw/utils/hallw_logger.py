@@ -24,13 +24,27 @@ def init_logger(task_id: str) -> None:
     day_log_dir.mkdir(parents=True, exist_ok=True)
 
     short_id = str(task_id)[:8]
-    log_file_path = day_log_dir / f"{timestamp}_{short_id}.log"
+
+    # Try to find existing log file for this task_id in today's folder
+    # Pattern: *_{short_id}.log
+    existing_files = list(day_log_dir.glob(f"*_{short_id}.log"))
+
+    if existing_files:
+        # Sort by creation time (although likely only one) and pick the latest
+        # actually picking the first match is probably fine if we assume 1 log per task per day
+        log_file_path = sorted(existing_files)[-1]
+        mode = "a"
+        is_appending = True
+    else:
+        log_file_path = day_log_dir / f"{timestamp}_{short_id}.log"
+        mode = "w"
+        is_appending = False
 
     formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S")
 
     handlers = []
 
-    file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+    file_handler = logging.FileHandler(log_file_path, mode=mode, encoding="utf-8")
     file_handler.setFormatter(formatter)
     handlers.append(file_handler)
 
@@ -43,4 +57,7 @@ def init_logger(task_id: str) -> None:
     logging.getLogger("httpx").disabled = True
     logging.getLogger("langchain_core.callbacks.manager").disabled = True
 
-    logger.info(f"Task ID: {task_id}")
+    if is_appending:
+        logger.info(f"{'='*20} RESUMING SESSION {'='*20}")
+    else:
+        logger.info(f"Task ID: {task_id}")

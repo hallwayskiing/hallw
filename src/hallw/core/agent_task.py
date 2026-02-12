@@ -68,7 +68,7 @@ class AgentTask:
                 await self.dispatcher.dispatch(event)
 
             # Get the final state after stream processing is complete
-            final_state = workflow.get_state(self.invocation_config)
+            final_state = await workflow.aget_state(self.invocation_config)
             return cast(AgentState, final_state.values)
 
         except asyncio.CancelledError:
@@ -85,7 +85,7 @@ class AgentTask:
             )
             # Try to get final state even if error
             try:
-                final_state = workflow.get_state(self.invocation_config)
+                final_state = await workflow.aget_state(self.invocation_config)
                 return cast(AgentState, final_state.values)
             except Exception:
                 return None

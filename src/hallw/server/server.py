@@ -6,14 +6,14 @@ import socketio
 import uvicorn
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_litellm import ChatLiteLLM
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from pydantic import SecretStr
 
 from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
-from hallw.utils import config, generateSystemPrompt, init_logger, logger, save_config_to_env
+from hallw.utils import config, generateSystemPrompt, history_mgr, init_logger, logger, save_config_to_env
 
 # --- Global State ---
 tools_dict = load_tools()
@@ -21,13 +21,12 @@ active_task: Optional[AgentTask] = None
 
 
 class Session:
-    def __init__(self, sid: str):
-        self.task_id = str(uuid.uuid4())
+    def __init__(self, sid: str, task_id: Optional[str] = None):
+        self.task_id = task_id if task_id else str(uuid.uuid4())
         self.renderer = SocketAgentRenderer(sio, sid)
         self.history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
         self.input_tokens = 0
         self.output_tokens = 0
-        init_logger(self.task_id)
 
 
 current_session: Optional[Session] = None
@@ -36,10 +35,8 @@ sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
 
 
-def create_agent_task(user_task: str, sid: str) -> AgentTask:
+def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSaver) -> AgentTask:
     global current_session
-
-    checkpointer = MemorySaver()
 
     if not current_session:
         current_session = Session(sid)
@@ -50,20 +47,7 @@ def create_agent_task(user_task: str, sid: str) -> AgentTask:
     messages = current_session.history.copy()
 
     # Append the new user request
-    builder_msg = SystemMessage(
-        content="""
-            Now build the stages for the user request.
-            <rules>
-            CRITICAL INSTRUCTIONS:
-            1. You MUST call the `build_stages` tool exactly once.
-            2. The `stages` list you provide must be clear, actionable, and in the correct order.
-            3. Do NOT call any other tools. Only call `build_stages`.
-            4. If the user request is simple, create only one stage to finish it quickly.
-            </rules>
-        """
-    )
     user_msg = HumanMessage(content=f"User: {user_task}")
-    messages.append(builder_msg)
     messages.append(user_msg)
     current_session.history.append(user_msg)
     logger.info(f"User: {user_task}")
@@ -126,7 +110,12 @@ async def start_task(sid, data):
         return
 
     # Instantiate the new task
-    agent_task = create_agent_task(task_text, sid)
+    cp = await history_mgr.get_checkpointer()
+    agent_task = create_agent_task(task_text, sid, cp)
+
+    # Initialize logger for this task execution
+    init_logger(current_session.task_id)
+
     active_task = agent_task
 
     # Immediately echo the user's message back to the UI
@@ -214,6 +203,77 @@ async def update_config(sid, data):
     except Exception as e:
         logger.error(f"Failed to update config: {e}")
         await sio.emit("config_updated", {"success": False, "error": str(e)}, room=sid)
+
+
+@sio.event
+async def get_history(sid):
+    """Returns a list of all saved conversation threads."""
+    try:
+        threads = await history_mgr.get_all_threads()
+        await sio.emit("history_list", threads, room=sid)
+    except Exception as e:
+        logger.error(f"Failed to fetch history: {e}")
+        await sio.emit("error", {"message": f"Failed to fetch history: {e}"}, room=sid)
+
+
+@sio.event
+async def load_history(sid, data):
+    """Loads a specific conversation thread."""
+    global current_session, active_task
+    thread_id = data.get("thread_id")
+    if not thread_id:
+        return
+
+    try:
+        # 1. Stop current task if running
+        if active_task and active_task.is_running:
+            await active_task.cancel()
+
+        # 2. Load thread via manager
+        thread_data = await history_mgr.load_thread(thread_id)
+
+        if not thread_data:
+            await sio.emit("error", {"message": "Thread not found"}, room=sid)
+            return
+
+        # 3. Re-hydrate session
+        current_session = Session(sid, task_id=thread_id)
+        current_session.history = thread_data["messages"]
+
+        # Restore stats
+        stats = thread_data["stats"]
+        current_session.input_tokens = stats.get("input_tokens", 0)
+        current_session.output_tokens = stats.get("output_tokens", 0)
+
+        # 4. Emit loaded data
+        await sio.emit(
+            "history_loaded",
+            {
+                "messages": thread_data["serialized_msgs"],
+                "thread_id": thread_id,
+                "toolStates": thread_data["tool_states"],
+            },
+            room=sid,
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to load history: {e}")
+        await sio.emit("error", {"message": f"Failed to load history: {e}"}, room=sid)
+
+
+@sio.event
+async def delete_history(sid, data):
+    """Deletes a conversation thread."""
+    thread_id = data.get("thread_id")
+    if not thread_id:
+        return
+
+    try:
+        await history_mgr.delete_thread(thread_id)
+        await sio.emit("history_deleted", {"thread_id": thread_id}, room=sid)
+    except Exception as e:
+        logger.error(f"Failed to delete history: {e}")
+        await sio.emit("error", {"message": str(e)}, room=sid)
 
 
 @sio.event

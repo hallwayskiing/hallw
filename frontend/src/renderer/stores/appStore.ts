@@ -67,6 +67,13 @@ export interface ToolState {
     result: string;
 }
 
+export interface HistoryItem {
+    id: string;
+    title?: string;
+    created_at?: string;
+    metadata?: Record<string, any>;
+}
+
 // ============================================================================
 // Store Interface
 // ============================================================================
@@ -92,6 +99,12 @@ interface AppState {
     currentStageIndex: number;
     completedStages: number[];
     errorStageIndex: number;
+
+
+    // History State
+    history: HistoryItem[];
+    isHistoryOpen: boolean;
+    currentHistoryId: string | null;
 
     // Internal
     _socket: Socket | null;
@@ -129,6 +142,15 @@ interface AppActions {
     _onStagesBuilt: (data: string[] | { stages?: string[] }) => void;
     _onStageStarted: (data: { stage_index: number }) => void;
     _onStageCompleted: (data: { stage_index: number }) => void;
+
+    // History Actions/Events
+    toggleHistory: () => void;
+    fetchHistory: () => void;
+    loadHistory: (id: string) => void;
+    deleteHistory: (id: string) => void;
+    _onHistoryList: (list: HistoryItem[]) => void;
+    _onHistoryLoaded: (data: { messages: any[], thread_id: string, toolStates?: ToolState[] }) => void;
+    _onHistoryDeleted: (data: { thread_id: string }) => void;
 }
 
 // ============================================================================
@@ -152,6 +174,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     currentStageIndex: -1,
     completedStages: [],
     errorStageIndex: -1,
+    history: [],
+    isHistoryOpen: false,
+    currentHistoryId: null,
     _socket: null,
     _streamingContentRef: '',
 
@@ -208,6 +233,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         socket.on('stages_built', actions._onStagesBuilt);
         socket.on('stage_started', actions._onStageStarted);
         socket.on('stage_completed', actions._onStageCompleted);
+        socket.on('history_list', actions._onHistoryList);
+        socket.on('history_loaded', actions._onHistoryLoaded);
+        socket.on('history_deleted', actions._onHistoryDeleted);
 
         set({ _socket: socket });
 
@@ -228,6 +256,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             socket.off('stages_built', actions._onStagesBuilt);
             socket.off('stage_started', actions._onStageStarted);
             socket.off('stage_completed', actions._onStageCompleted);
+            socket.off('history_list', actions._onHistoryList);
+            socket.off('history_loaded', actions._onHistoryLoaded);
+            socket.off('history_deleted', actions._onHistoryDeleted);
             socket.close();
             set({ _socket: null, isConnected: false });
         };
@@ -240,13 +271,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({
             isChatting: true,
             isProcessing: true,
-            // Force Clear State
-            messages: [],
             streamingContent: '',
             streamingReasoning: '',
             pendingConfirmation: null,
             pendingInput: null,
-            toolStates: [],
             stages: [],
             currentStageIndex: -1,
             completedStages: [],
@@ -564,6 +592,80 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     _onStageCompleted: (data) => {
         set(state => ({
             completedStages: [...new Set([...state.completedStages, data.stage_index])]
+        }));
+    },
+
+    // History Implementation
+    toggleHistory: () => {
+        set(state => {
+            const newState = !state.isHistoryOpen;
+            if (newState) {
+                get().fetchHistory();
+            }
+            return { isHistoryOpen: newState };
+        });
+    },
+
+    fetchHistory: () => {
+        const { _socket } = get();
+        if (!_socket) return;
+        _socket.emit('get_history');
+    },
+
+    loadHistory: (id) => {
+        const { _socket } = get();
+        if (!_socket) return;
+        // set({ isProcessing: true }); // Optional: show loading state
+        _socket.emit('load_history', { thread_id: id });
+    },
+
+    deleteHistory: (id) => {
+        // Optimistic update
+        set(state => ({
+            history: state.history.filter(h => h.id !== id),
+            currentHistoryId: state.currentHistoryId === id ? null : state.currentHistoryId
+        }));
+
+        const { _socket } = get();
+        if (!_socket) return;
+        _socket.emit('delete_history', { thread_id: id });
+    },
+
+    _onHistoryList: (list) => {
+        set({ history: list });
+    },
+
+    _onHistoryLoaded: (data) => {
+        // Need to cast the raw messages to our Message type if strictly typed,
+        // but for now we assume the backend sends compatible structure.
+        // Backend sends: {role: 'user'|'assistant'|'system', type: 'text', content, reasoning}
+        // Our store expects Message[] which includes type='text' etc.
+        // We should map them to ensure type safety if needed, but backend output looks compatible.
+
+        // We also need to set chat active
+        set({
+            messages: data.messages as Message[],
+            currentHistoryId: data.thread_id,
+            isChatting: true,
+            isProcessing: false,
+            // Keep isHistoryOpen as true, we only toggle it manually
+            // Clear other transient states
+            streamingContent: '',
+            streamingReasoning: '',
+            _streamingContentRef: '',
+            toolStates: data.toolStates || [], // Restore tool states
+            stages: [],
+            currentStageIndex: -1,
+            completedStages: [],
+            errorStageIndex: -1
+        });
+    },
+
+    _onHistoryDeleted: (data) => {
+        set(state => ({
+            history: state.history.filter(h => h.id !== data.thread_id),
+            // If current loaded history is deleted, maybe reset?
+            currentHistoryId: state.currentHistoryId === data.thread_id ? null : state.currentHistoryId
         }));
     }
 }));

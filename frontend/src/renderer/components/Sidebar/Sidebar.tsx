@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Activity, CheckCircle2, Clock, Loader2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
-import { useAppStore, ToolState } from '../stores/appStore';
-import { cn } from '../lib/utils';
+import { useAppStore, ToolState } from '../../stores/appStore';
+import { cn } from '../../lib/utils';
 
 // ============================================================================
 // Types
@@ -150,7 +150,12 @@ interface ExecutionPanelProps {
     isExpanded: boolean;
 }
 
+const HIDDEN_TOOLS = ['build_stages', 'end_current_stage'];
+
 function ExecutionPanel({ toolStates, isExpanded }: ExecutionPanelProps) {
+    // Filter out internal tools
+    const visibleTools = toolStates.filter(t => !HIDDEN_TOOLS.includes(t.tool_name));
+
     return (
         <div className={cn(
             "flex-1 overflow-y-auto bg-background/50 transition-all duration-300",
@@ -164,11 +169,11 @@ function ExecutionPanel({ toolStates, isExpanded }: ExecutionPanelProps) {
                 {isExpanded && <span>Execution</span>}
             </h2>
             <div className="space-y-3">
-                {toolStates.length === 0 ? (
+                {visibleTools.length === 0 ? (
                     isExpanded && <p className="text-sm text-muted-foreground italic">Ready to execute.</p>
                 ) : (
                     // Show newest first
-                    [...toolStates].reverse().map(state => (
+                    [...visibleTools].reverse().map(state => (
                         <ToolItem key={state.run_id} state={state} isExpanded={isExpanded} />
                     ))
                 )}

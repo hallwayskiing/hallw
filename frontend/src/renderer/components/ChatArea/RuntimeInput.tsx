@@ -1,6 +1,6 @@
 import { MessageSquare, Send, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useAppStore } from '../stores/appStore';
+import { useAppStore } from '../../stores/appStore';
 
 export type RuntimeInputStatus = 'pending' | 'submitted' | 'rejected' | 'timeout';
 

@@ -19,8 +19,20 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
     # --- Nodes ---
 
     async def build_node(state: AgentState, config: RunnableConfig):
+        builder_msg = SystemMessage(
+            content="""
+            Now build the stages for the user request.
+            <rules>
+            CRITICAL INSTRUCTIONS:
+            1. You MUST call the `build_stages` tool exactly once.
+            2. The `stages` list you provide must be clear, actionable, and in the correct order.
+            3. Do NOT call any other tools. Only call `build_stages`.
+            4. If the user request is simple, create only one stage to finish it quickly.
+            </rules>
+        """
+        )
         planner = model.bind_tools([build_stages], tool_choice="required")
-        response = await planner.ainvoke(state["messages"], config=config)
+        response = await planner.ainvoke(state["messages"] + [builder_msg], config=config)
 
         tool_call = response.tool_calls[0]
         result = await build_stages.ainvoke(tool_call["args"], config=config)

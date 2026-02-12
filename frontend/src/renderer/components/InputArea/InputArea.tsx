@@ -1,7 +1,7 @@
-import { Send, Settings, Square, ArrowLeft } from 'lucide-react';
+import { Send, Settings, Square, ArrowLeft, Clock, Zap } from 'lucide-react';
 import { useState, FormEvent, KeyboardEvent, useRef, useEffect } from 'react';
-import { useAppStore } from '../stores/appStore';
-import { cn } from '../lib/utils';
+import { useAppStore } from '../../stores/appStore';
+import { cn } from '../../lib/utils';
 
 interface InputAreaProps {
     onSettingsClick: () => void;
@@ -13,6 +13,8 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
     const isProcessing = useAppStore(s => s.isProcessing);
     const startTask = useAppStore(s => s.startTask);
     const stopTask = useAppStore(s => s.stopTask);
+    const toggleHistory = useAppStore(s => s.toggleHistory);
+    const isHistoryOpen = useAppStore(s => s.isHistoryOpen);
 
     const [input, setInput] = useState('');
     const [height, setHeight] = useState(42);
@@ -64,8 +66,20 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
                 <button
                     onClick={isChatting ? onBack : onSettingsClick}
                     className="flex items-center justify-center px-3 rounded-xl text-muted-foreground hover:text-foreground transition-colors border border-transparent"
+                    title={isChatting ? "Back to Home" : "Settings"}
                 >
                     {isChatting ? <ArrowLeft className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
+                </button>
+
+                {/* History/QuickStart Toggle */}
+                <button
+                    onClick={() => toggleHistory()}
+                    className={cn(
+                        "flex items-center justify-center px-3 rounded-xl transition-all duration-200 border border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                    title={isHistoryOpen ? "Back to Quick Start" : "View History"}
+                >
+                    {isHistoryOpen ? <Zap className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                 </button>
 
                 {/* Input Form Container */}
