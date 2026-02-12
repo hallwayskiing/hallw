@@ -84,8 +84,8 @@ class SocketAgentRenderer(AgentRenderer):
     def on_stage_started(self, data: dict):
         self._fire("stage_started", data)
 
-    def on_stage_completed(self, data: dict):
-        self._fire("stage_completed", data)
+    def on_stages_completed(self, data: dict):
+        self._fire("stages_completed", data)
 
     # User Input / Confirmation
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:

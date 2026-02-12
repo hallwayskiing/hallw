@@ -141,7 +141,7 @@ interface AppActions {
     _onToolStateUpdate: (state: ToolState) => void;
     _onStagesBuilt: (data: string[] | { stages?: string[] }) => void;
     _onStageStarted: (data: { stage_index: number }) => void;
-    _onStageCompleted: (data: { stage_index: number }) => void;
+    _onStagesCompleted: (data: { stage_indices: number[] }) => void;
 
     // History Actions/Events
     toggleHistory: () => void;
@@ -232,7 +232,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         socket.on('tool_state_update', actions._onToolStateUpdate);
         socket.on('stages_built', actions._onStagesBuilt);
         socket.on('stage_started', actions._onStageStarted);
-        socket.on('stage_completed', actions._onStageCompleted);
+        socket.on('stages_completed', actions._onStagesCompleted);
         socket.on('history_list', actions._onHistoryList);
         socket.on('history_loaded', actions._onHistoryLoaded);
         socket.on('history_deleted', actions._onHistoryDeleted);
@@ -255,7 +255,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
             socket.off('tool_state_update', actions._onToolStateUpdate);
             socket.off('stages_built', actions._onStagesBuilt);
             socket.off('stage_started', actions._onStageStarted);
-            socket.off('stage_completed', actions._onStageCompleted);
+            socket.off('stages_completed', actions._onStagesCompleted);
             socket.off('history_list', actions._onHistoryList);
             socket.off('history_loaded', actions._onHistoryLoaded);
             socket.off('history_deleted', actions._onHistoryDeleted);
@@ -589,9 +589,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         set({ currentStageIndex: data.stage_index });
     },
 
-    _onStageCompleted: (data) => {
+    _onStagesCompleted: (data: { stage_indices: number[] }) => {
         set(state => ({
-            completedStages: [...new Set([...state.completedStages, data.stage_index])]
+            completedStages: [...new Set([...state.completedStages, ...data.stage_indices])]
         }));
     },
 

@@ -1,4 +1,4 @@
-from typing import Dict, cast
+from typing import Dict
 
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
@@ -68,7 +68,15 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             "current_stage": 0,
             "stats": _extract_usage(response, tool_calls=1),
         }
-        _dispatch_stage_event("stage_started", 0, cast(AgentState, node_output), config)
+        dispatch_custom_event(
+            "stage_started",
+            {
+                "stage_index": 0,
+                "total_stages": len(stages),
+                "stage_name": stages[0],
+            },
+            config=config,
+        )
         return node_output
 
     async def model_node(state: AgentState, config: RunnableConfig):
@@ -119,13 +127,34 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             try:
                 output = await tool.ainvoke(args, config=config)
                 if name == "end_current_stage":
-                    _dispatch_stage_event("stage_completed", curr_idx, state, config)
-                    curr_idx += 1
-                    if curr_idx >= state["total_stages"]:
+                    stage_count = args.get("stage_count", 1)
+                    start_idx = curr_idx
+                    total = state["total_stages"]
+
+                    if stage_count == -1:
+                        end_idx = total
+                    else:
+                        end_idx = min(start_idx + stage_count, total)
+
+                    # Dispatch batch completion event
+                    completed_indices = list(range(start_idx, end_idx))
+                    if completed_indices:
+                        dispatch_custom_event("stages_completed", {"stage_indices": completed_indices}, config=config)
+
+                    curr_idx = end_idx
+                    if curr_idx >= total:
                         is_done = True
                     else:
-                        _dispatch_stage_event("stage_started", curr_idx, state, config)
-                        stage_info = f"Stage {curr_idx+1}/{state['total_stages']}: {state['stage_names'][curr_idx]}"
+                        dispatch_custom_event(
+                            "stage_started",
+                            {
+                                "stage_index": curr_idx,
+                                "total_stages": total,
+                                "stage_name": state["stage_names"][curr_idx],
+                            },
+                            config=config,
+                        )
+                        stage_info = f"Stage {curr_idx+1}/{total}: {state['stage_names'][curr_idx]}"
                         new_messages.append(SystemMessage(content=stage_info))
             except Exception as e:
                 output = build_tool_response(success=False, message=f"Tool error: {e}")
@@ -194,17 +223,6 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             "failures": 0,
             "failures_since_last_reflection": 0,
         }
-
-    def _dispatch_stage_event(kind: str, idx: int, state: AgentState, config: RunnableConfig):
-        dispatch_custom_event(
-            kind,
-            {
-                "stage_index": idx,
-                "total_stages": state.get("total_stages", 0),
-                "stage_name": state["stage_names"][idx] if idx < len(state["stage_names"]) else "Done",
-            },
-            config=config,
-        )
 
     # --- Build Graph ---
 

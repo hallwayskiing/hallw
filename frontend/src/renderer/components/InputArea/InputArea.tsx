@@ -99,9 +99,11 @@ export function InputArea({ onSettingsClick, onBack }: InputAreaProps) {
                             onKeyDown={handleKeyDown}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
-                            placeholder="Tell me what to do..."
+                            disabled={isProcessing}
+                            placeholder={isProcessing ? "Running..." : "Tell me what to do..."}
                             className={cn(
                                 "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none resize-none py-2.5 leading-5 px-4 text-sm text-foreground placeholder:text-muted-foreground/50",
+                                "disabled:opacity-50 disabled:cursor-not-allowed",
                                 height >= 128 ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
                             )}
                             rows={1}

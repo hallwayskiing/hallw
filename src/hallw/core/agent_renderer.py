@@ -55,8 +55,8 @@ class AgentRenderer(ABC):
         """Called when a new task stage starts."""
 
     @abstractmethod
-    def on_stage_completed(self, data: dict) -> None:
-        """Called when a task stage completes."""
+    def on_stages_completed(self, data: dict) -> None:
+        """Called when task stages complete."""
 
     @abstractmethod
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
