@@ -98,7 +98,9 @@ def _select_backend(command: str) -> tuple[list[str], str]:
             (
                 "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "
                 "if (Test-Path Alias:R) { Remove-Item Alias:R -Force }; "
-                f"& {{ . {{ {command}  | Out-String -Width 4096 }}; if ($LASTEXITCODE) {{ exit $LASTEXITCODE }} }}"
+                f"$__out = $({command}); "
+                "if ($__out -ne $null) { $__out | Out-String -Width 4096 }; "
+                "if ($LASTEXITCODE) { exit $LASTEXITCODE }"
             ),
         ], "PowerShell"
     return ["sh", "-c", command], "sh"
