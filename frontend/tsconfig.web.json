@@ -20,18 +20,21 @@
         "strict": true,
         "paths": {
             "@renderer/*": [
-                "./src/renderer/src/*"
+                "./src/renderer/*"
+            ],
+            "@features/*": [
+                "./src/renderer/features/*"
+            ],
+            "@store/*": [
+                "./src/renderer/store/*"
+            ],
+            "@lib/*": [
+                "./src/renderer/lib/*"
             ]
         }
     },
     "include": [
-        "src/renderer/src",
-        "src/renderer/contexts",
-        "src/renderer/stores",
-        "src/renderer/lib",
-        "src/renderer/App.tsx",
-        "src/preload/env.d.ts",
-        "src/renderer/main.tsx",
-        "src/renderer/components"
+        "src/renderer",
+        "src/preload/env.d.ts"
     ]
 }

@@ -1,61 +1,47 @@
-import { useAppStore } from './stores/appStore';
-import { useEffect } from 'react';
+import { useAppStore } from '@store/store';
+import { useAppInitialization } from './hooks/useAppInitialization';
 import 'katex/dist/katex.min.css';
-import { Sidebar } from './components/Sidebar/Sidebar';
-import { ChatArea } from './components/ChatArea/ChatArea';
-import { InputArea } from './components/InputArea/InputArea';
-import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen';
-import { Settings } from './components/Settings/Settings';
+
+// Import Feature Modules
+import { Sidebar } from '@features/sidebar';
+import { ChatArea } from '@features/chat';
+import { BottomBar } from '@features/bottom';
+import { Welcome } from '@features/welcome';
+import { Settings } from '@features/settings';
 
 export default function App() {
-  const initSocket = useAppStore(s => s.initSocket);
-  const theme = useAppStore(s => s.theme);
+  useAppInitialization();
 
-  // Initialize socket on mount
-  useEffect(() => {
-    return initSocket();
-  }, [initSocket]);
-
-  // Apply theme on mount and when theme changes
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  // Select only needed state to minimize re-renders
-  const isChatting = useAppStore(s => s.isChatting);
-  const isSettingsOpen = useAppStore(s => s.isSettingsOpen);
-  const setIsSettingsOpen = useAppStore(s => s.setIsSettingsOpen);
-  const startTask = useAppStore(s => s.startTask);
-  const resetSession = useAppStore(s => s.resetSession);
+  const { isChatting, isSettingsOpen } = useAppStore();
 
   return (
+    // Root container: global font, background, overflow control
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20">
 
-      {/* Main Content Area (Center) */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            <div className="max-w-[1200px] mx-auto w-full h-full flex flex-col relative">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 relative">
 
-              {/* Background Pattern */}
-              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px] pointer-events-none" />
+        {/* Content Container: scroll and max-width */}
+        <section className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <div className="max-w-[1200px] mx-auto w-full h-full flex flex-col">
 
-              {isChatting ? <ChatArea /> : <WelcomeScreen onQuickStart={startTask} />}
-            </div>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px] pointer-events-none" />
+
+            {/* Core View Switching */}
+            {isChatting ? <ChatArea /> : <Welcome />}
           </div>
-        </div>
+        </section>
 
-        <InputArea
-          onSettingsClick={() => setIsSettingsOpen(true)}
-          onBack={resetSession}
-        />
-      </div>
+        {/* Input Area: Fixed at bottom */}
+        <BottomBar />
+      </main>
 
-      {/* Sidebar (Right) - Only show when chatting */}
-      {isChatting && <Sidebar className="flex-shrink-0" />}
+      {/* Sidebar: App controls visibility, Logic internal */}
+      {isChatting && <Sidebar className="flex-shrink-0 border-l border-white/5" />}
 
-      {/* Modals */}
-      <Settings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {/* Global Modals */}
+      <Settings isOpen={isSettingsOpen} />
     </div>
   );
 }
