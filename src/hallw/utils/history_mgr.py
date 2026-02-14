@@ -91,8 +91,7 @@ async def delete_thread(thread_id: str) -> None:
     """Deletes a thread and all associated checkpoints."""
     await get_checkpointer()  # Ensure conn is active
     await conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
-    await conn.execute("DELETE FROM checkpoint_blobs WHERE thread_id = ?", (thread_id,))
-    await conn.execute("DELETE FROM checkpoint_writes WHERE thread_id = ?", (thread_id,))
+    await conn.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
     await conn.commit()
 
 
