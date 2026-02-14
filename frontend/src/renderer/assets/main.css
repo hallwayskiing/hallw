@@ -2,6 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Syntax Highlighting (GitHub Dark Dimmed) ===== */
+.hljs {
+  color: #adbac7;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #768390;
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #f47067;
+}
+.hljs-string,
+.hljs-addition {
+  color: #96d0ff;
+}
+.hljs-number,
+.hljs-literal {
+  color: #6cb6ff;
+}
+.hljs-built_in,
+.hljs-type {
+  color: #dcbdfb;
+}
+.hljs-function .hljs-title,
+.hljs-title.function_ {
+  color: #dcbdfb;
+}
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable {
+  color: #f69d50;
+}
+.hljs-symbol,
+.hljs-bullet {
+  color: #6cb6ff;
+}
+.hljs-section,
+.hljs-title {
+  color: #6cb6ff;
+  font-weight: 600;
+}
+.hljs-meta {
+  color: #768390;
+}
+.hljs-deletion {
+  color: #f47067;
+  background: rgba(244, 112, 103, 0.1);
+}
+.hljs-addition {
+  background: rgba(150, 208, 255, 0.1);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* ===== Markdown content polishing ===== */
+.md-content .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+.md-content ::selection {
+  background: rgba(99, 179, 237, 0.25);
+}
+
+.md-code-block pre code {
+  font-variant-ligatures: none;
+  tab-size: 4;
+}
+
+.md-code-block::-webkit-scrollbar {
+  height: 6px;
+}
+
+.md-code-block::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
