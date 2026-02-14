@@ -16,6 +16,7 @@ export interface SidebarSlice {
     _onStagesBuilt: (data: string[] | { stages?: string[] }) => void;
     _onStageStarted: (data: { stage_index: number }) => void;
     _onStagesCompleted: (data: { stage_indices: number[] }) => void;
+    _onStagesEdited: (data: { stages: string[]; current_index: number }) => void;
 
     // Lifecycle handlers
     _onSidebarTaskStarted: () => void;
@@ -66,9 +67,18 @@ export const createSidebarSlice: StateCreator<AppState, [], [], SidebarSlice> = 
         }));
     },
 
+    _onStagesEdited: (data) => {
+        set((state: SidebarSlice) => ({
+            stages: data.stages,
+            currentStageIndex: data.current_index,
+            // Keep only completed indices that are still within bounds
+            completedStages: state.completedStages.filter(i => i < data.current_index),
+            errorStageIndex: -1,
+        }));
+    },
+
     _onSidebarTaskStarted: () => {
         set({
-            toolStates: [],
             stages: [],
             currentStageIndex: -1,
             completedStages: [],

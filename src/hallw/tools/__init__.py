@@ -92,4 +92,5 @@ __all__ = [
     "dummy_for_missed_tool",
     "ToolResult",
     "build_stages",
+    "edit_stages",
 ]

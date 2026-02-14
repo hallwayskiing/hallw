@@ -1,11 +1,13 @@
-from typing import Dict
+from typing import Dict, List
 
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from hallw.tools import build_stages, build_tool_response, dummy_for_missed_tool, parse_tool_response
+from hallw.tools.edit_stages import edit_stages
+from hallw.tools.end_stage import end_current_stage
 from hallw.utils import config as hallw_config
 
 from .agent_state import AgentState
@@ -34,128 +36,74 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         planner = model.bind_tools([build_stages], tool_choice="required")
         response = await planner.ainvoke(state["messages"] + [builder_msg], config=config)
 
-        if not response.tool_calls:
-            return {
-                "messages": [
-                    response,
-                    SystemMessage(content="Please call the `build_stages` tool first."),
-                ],
-            }
-
-        tool_call = response.tool_calls[0]
-        result = await build_stages.ainvoke(tool_call["args"], config=config)
-        parsed = parse_tool_response(result)
-        stages = parsed.get("data", {}).get("stage_names", [])
-
-        if not stages:
-            return {
-                "messages": [
-                    response,
-                    SystemMessage(content="Please build solid stages first."),
-                ],
-            }
-
-        dispatch_custom_event("stages_built", {"stages": stages}, config=config)
-
-        node_output = {
-            "messages": [
-                response,
-                ToolMessage(content=result, tool_call_id=tool_call["id"], name="build_stages"),
-                SystemMessage(content=f"Stage 1/{len(stages)} started: {stages[0]}"),
-            ],
-            "stage_names": stages,
-            "total_stages": len(stages),
-            "current_stage": 0,
-            "stats": _extract_usage(response, tool_calls=1),
+        return {
+            "messages": [response],
+            "stats": _extract_usage(response),
         }
-        dispatch_custom_event(
-            "stage_started",
-            {
-                "stage_index": 0,
-                "total_stages": len(stages),
-                "stage_name": stages[0],
-            },
-            config=config,
-        )
-        return node_output
 
     async def model_node(state: AgentState, config: RunnableConfig):
         messages = state["messages"]
-        if isinstance(messages[-1], AIMessage) and not messages[-1].tool_calls:
-            messages = messages + [SystemMessage(content="Stages not completed. Please continue your task.")]
-
         response = await model.ainvoke(messages, config=config)
 
-        reasoning = (
-            getattr(response, "reasoning_content", None) or response.additional_kwargs.get("reasoning_content") or ""
-        )
-        is_empty = not (response.content.strip() or response.tool_calls or reasoning)
-        stats = _extract_usage(response)
+        return {
+            "messages": [response],
+            "stats": _extract_usage(response),
+        }
 
-        if is_empty:
-            stats["failures"] = 1
-            stats["failures_since_last_reflection"] = 1
-            # Add a prompt to the model to retry
-            messages = [
-                response,
-                SystemMessage(content="Your last response was empty. Please provide a valid response."),
-            ]
-        else:
-            messages = [response]
+    async def proceed_node(state: AgentState, config: RunnableConfig):
+        """
+        Called when model responded without tool calls.
+        Forces the agent to either advance stages or edit them.
+        Only end_current_stage and edit_stages are available here.
+        """
+        proceed_tools = [end_current_stage, edit_stages]
+
+        hint = SystemMessage(
+            content=(
+                "Stages not completed. You must now either:\n"
+                "1. Call `end_current_stage` to advance to the next stage (or finish the task).\n"
+                "2. Call `edit_stages` to replace all remaining stages with a new plan.\n"
+                "You MUST call one of these tools."
+            )
+        )
+        bounded = model.bind_tools(proceed_tools, tool_choice="required")
+        response = await bounded.ainvoke(state["messages"] + [hint], config=config)
 
         return {
-            "messages": messages,
-            "stats": stats,
+            "messages": [response],
+            "stats": _extract_usage(response),
         }
 
     async def tools_node(state: AgentState, config: RunnableConfig):
         ai_msg = state["messages"][-1]
-        new_messages = []
+        new_messages: List[BaseMessage] = []
         stats_inc = {"tool_call_counts": 0, "failures": 0, "failures_since_last_reflection": 0}
         curr_idx = state["current_stage"]
+        stage_names = list(state["stage_names"])
+        total = state["total_stages"]
         is_done = False
 
         for call in ai_msg.tool_calls:
             name, args, call_id = call["name"], call["args"], call["id"]
-            if name not in tools_dict:
+            if name in tools_dict:
+                tool = tools_dict[name]
+            elif name == "build_stages":
+                tool = build_stages
+            else:
                 tool = dummy_for_missed_tool
                 tool.name = name
                 args = {"name": name}
-            else:
-                tool = tools_dict[name]
 
             try:
                 output = await tool.ainvoke(args, config=config)
-                if name == "end_current_stage":
-                    stage_count = args.get("stage_count", 1)
-                    start_idx = curr_idx
-                    total = state["total_stages"]
 
-                    if stage_count == -1:
-                        end_idx = total
-                    else:
-                        end_idx = min(start_idx + stage_count, total)
+                if name == "build_stages":
+                    stage_names, total, curr_idx = _handle_build_stages(output, new_messages, config)
+                elif name == "end_current_stage":
+                    curr_idx, is_done = _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config)
+                elif name == "edit_stages":
+                    stage_names, total = _handle_edit_stages(output, curr_idx, stage_names, new_messages, config)
 
-                    # Dispatch batch completion event
-                    completed_indices = list(range(start_idx, end_idx))
-                    if completed_indices:
-                        dispatch_custom_event("stages_completed", {"stage_indices": completed_indices}, config=config)
-
-                    curr_idx = end_idx
-                    if curr_idx >= total:
-                        is_done = True
-                    else:
-                        dispatch_custom_event(
-                            "stage_started",
-                            {
-                                "stage_index": curr_idx,
-                                "total_stages": total,
-                                "stage_name": state["stage_names"][curr_idx],
-                            },
-                            config=config,
-                        )
-                        stage_info = f"Stage {curr_idx+1}/{total}: {state['stage_names'][curr_idx]}"
-                        new_messages.append(SystemMessage(content=stage_info))
             except Exception as e:
                 output = build_tool_response(success=False, message=f"Tool error: {e}")
 
@@ -166,7 +114,14 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             stats_inc["tool_call_counts"] += 1
             new_messages.append(ToolMessage(content=output, tool_call_id=call_id, name=name))
 
-        return {"messages": new_messages, "current_stage": curr_idx, "task_completed": is_done, "stats": stats_inc}
+        return {
+            "messages": new_messages,
+            "current_stage": curr_idx,
+            "stage_names": stage_names,
+            "total_stages": total,
+            "task_completed": is_done,
+            "stats": stats_inc,
+        }
 
     async def reflection_node(state: AgentState, config: RunnableConfig):
         fail_count = state["stats"]["failures_since_last_reflection"]
@@ -185,23 +140,34 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
     # --- Routing Logic ---
 
     def route_build(state: AgentState):
-        if state.get("total_stages", 0) > 0:
-            return "model"
+        if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
+            return "tools"
+        # Retry
         return "build"
 
     def route_model(state: AgentState):
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
             return "tools"
-
         fails = state["stats"].get("failures_since_last_reflection", 0)
         if fails > 0 and fails % hallw_config.model_reflection_threshold == 0:
             return "reflection"
+        # Route to proceed node if no tool calls
+        return "proceed"
 
-        return "model"
+    def route_proceed(state: AgentState):
+        if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
+            return "tools"
+        # Retry
+        return "proceed"
 
     def route_tools(state: AgentState):
+        # If task is completed, return END
         if state.get("task_completed"):
             return END
+        # If build output is empty, retry
+        if state.get("total_stages") == 0:
+            return "build"
+        # If reflection threshold is reached, return reflection
         fails = state["stats"].get("failures_since_last_reflection", 0)
         if fails > 0 and fails % hallw_config.model_reflection_threshold == 0:
             return "reflection"
@@ -212,32 +178,109 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             return "tools"
         return "model"
 
-    # --- Internal Helpers ---
-
-    def _extract_usage(response: AIMessage, tool_calls: int = 0) -> Dict:
-        meta = getattr(response, "usage_metadata", {}) or {}
-        return {
-            "input_tokens": meta.get("input_tokens", 0),
-            "output_tokens": meta.get("output_tokens", 0),
-            "tool_call_counts": tool_calls or len(response.tool_calls),
-            "failures": 0,
-            "failures_since_last_reflection": 0,
-        }
-
     # --- Build Graph ---
 
     builder = StateGraph(AgentState)
     builder.add_node("build", build_node)
     builder.add_node("model", model_node)
+    builder.add_node("proceed", proceed_node)
     builder.add_node("tools", tools_node)
     builder.add_node("reflection", reflection_node)
 
     builder.add_edge(START, "build")
-    builder.add_conditional_edges("build", route_build, {"model": "model", "build": "build"})
+    builder.add_conditional_edges("build", route_build, {"model": "model", "build": "build", "tools": "tools"})
     builder.add_conditional_edges(
-        "model", route_model, {"tools": "tools", "model": "model", "reflection": "reflection"}
+        "model", route_model, {"tools": "tools", "proceed": "proceed", "reflection": "reflection"}
     )
-    builder.add_conditional_edges("tools", route_tools, {"model": "model", "reflection": "reflection", END: END})
+    builder.add_conditional_edges("proceed", route_proceed, {"tools": "tools", "proceed": "proceed"})
+    builder.add_conditional_edges(
+        "tools", route_tools, {"model": "model", "reflection": "reflection", "build": "build", END: END}
+    )
     builder.add_conditional_edges("reflection", route_reflection, {"model": "model", "tools": "tools"})
 
     return builder.compile(checkpointer=checkpointer)
+
+
+# --- Helper Functions ---
+
+
+def _handle_build_stages(output, new_messages, config):
+    """Handle build_stages tool result. Returns (stage_names, total, curr_idx)."""
+    parsed = parse_tool_response(output)
+    stages = parsed.get("data", {}).get("stage_names", [])
+    if not stages:
+        new_messages.append(SystemMessage(content="Please build solid stages first."))
+        return [], 0, 0
+
+    total = len(stages)
+    curr_idx = 0
+
+    dispatch_custom_event("stages_built", {"stages": stages}, config=config)
+    dispatch_custom_event(
+        "stage_started",
+        {
+            "stage_index": 0,
+            "total_stages": total,
+            "stage_name": stages[0],
+        },
+        config=config,
+    )
+    new_messages.append(SystemMessage(content=f"Stage 1/{total} started: {stages[0]}"))
+    return stages, total, curr_idx
+
+
+def _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config):
+    """Handle end_current_stage tool result. Returns (curr_idx, is_done)."""
+    stage_count = args.get("stage_count", 1)
+
+    if stage_count == 0:
+        return curr_idx, False
+
+    start_idx = curr_idx
+    end_idx = total if stage_count == -1 else min(start_idx + stage_count, total)
+
+    completed_indices = list(range(start_idx, end_idx))
+    if completed_indices:
+        dispatch_custom_event("stages_completed", {"stage_indices": completed_indices}, config=config)
+
+    curr_idx = end_idx
+    if curr_idx >= total:
+        return curr_idx, True
+
+    dispatch_custom_event(
+        "stage_started",
+        {"stage_index": curr_idx, "total_stages": total, "stage_name": stage_names[curr_idx]},
+        config=config,
+    )
+    new_messages.append(SystemMessage(content=f"Stage {curr_idx+1}/{total}: {stage_names[curr_idx]}"))
+    return curr_idx, False
+
+
+def _handle_edit_stages(output, curr_idx, stage_names, new_messages, config):
+    """Handle edit_stages tool result. Returns (stage_names, total)."""
+    parsed_edit = parse_tool_response(output)
+    new_stages = parsed_edit.get("data", {}).get("new_stages", [])
+    if not new_stages:
+        return stage_names, len(stage_names)
+
+    stage_names = stage_names[:curr_idx] + new_stages
+    total = len(stage_names)
+
+    dispatch_custom_event(
+        "stages_edited",
+        {"stages": stage_names, "current_index": curr_idx},
+        config=config,
+    )
+    new_messages.append(SystemMessage(content=f"Stages updated. Stage {curr_idx+1}/{total}: {stage_names[curr_idx]}"))
+    return stage_names, total
+
+
+def _extract_usage(response: AIMessage, tool_calls: int = 0) -> Dict:
+    meta = getattr(response, "usage_metadata", {}) or {}
+    return {
+        "input_tokens": meta.get("input_tokens", 0),
+        "output_tokens": meta.get("output_tokens", 0),
+        "tool_call_counts": tool_calls or len(response.tool_calls),
+        "failures": 0,
+        "failures_since_last_reflection": 0,
+    }

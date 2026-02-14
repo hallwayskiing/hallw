@@ -81,6 +81,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
         socket.on('stages_built', actions._onStagesBuilt);
         socket.on('stage_started', actions._onStageStarted);
         socket.on('stages_completed', actions._onStagesCompleted);
+        socket.on('stages_edited', actions._onStagesEdited);
 
         // Welcome events (Wait, check WelcomeSlice)
         socket.on('history_list', actions._onHistoryList);
@@ -113,6 +114,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
             socket.off('stages_built', actions._onStagesBuilt);
             socket.off('stage_started', actions._onStageStarted);
             socket.off('stages_completed', actions._onStagesCompleted);
+            socket.off('stages_edited', actions._onStagesEdited);
             socket.off('history_list', actions._onHistoryList);
             socket.off('history_loaded');
             socket.off('history_deleted', actions._onHistoryDeleted);

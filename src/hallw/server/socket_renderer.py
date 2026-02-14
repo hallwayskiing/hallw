@@ -87,6 +87,9 @@ class SocketAgentRenderer(AgentRenderer):
     def on_stages_completed(self, data: dict):
         self._fire("stages_completed", data)
 
+    def on_stages_edited(self, data: dict):
+        self._fire("stages_edited", data)
+
     # User Input / Confirmation
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
         loop = asyncio.get_running_loop()

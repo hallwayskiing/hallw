@@ -90,6 +90,7 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     - At the end of each stage, you **MUST** call the `end_current_stage` tool to proceed to the next stage,
     or end the task if it is completed. Otherwise you will get stuck in the current stage.
     - If you completed multiple stages at once, pass the number of completed stages to `end_current_stage` tool.
+    - If your plan needs adjustment mid-task, call `edit_stages` to replace all remaining stages with a new plan.
     - During stages, you can only receive from user by `request_user_input` tool.
     </stages>
 

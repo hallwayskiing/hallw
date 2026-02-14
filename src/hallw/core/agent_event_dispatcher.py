@@ -36,6 +36,7 @@ class AgentEventDispatcher:
         self.register("on_custom_event", name="stages_completed")(
             lambda r, ev: r.on_stages_completed(ev.get("data", {}))
         )
+        self.register("on_custom_event", name="stages_edited")(lambda r, ev: r.on_stages_edited(ev.get("data", {})))
 
     def register(self, event_kind: str, name: Optional[str] = None):
         def decorator(func: Callable):
