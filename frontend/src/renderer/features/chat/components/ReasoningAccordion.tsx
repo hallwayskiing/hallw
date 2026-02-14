@@ -20,7 +20,7 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string, 
     }, [content]);
 
     return (
-        <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
+        <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[90%]">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
