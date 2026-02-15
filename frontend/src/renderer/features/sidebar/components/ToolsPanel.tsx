@@ -3,16 +3,8 @@ import { cn } from '@lib/utils';
 import { ToolsPanelProps, ToolItemProps } from '../types';
 import { useAppStore } from '@store/store';
 
-function formatArgs(args: string): string {
-    try {
-        return args.replace(/[{}']/g, '');
-    } catch {
-        return args;
-    }
-}
-
 function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
-    const { tool_name, status, args } = state;
+    const { tool_name, status } = state;
 
     const statusColor = {
         running: 'bg-blue-500',
@@ -47,12 +39,9 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
             )}
         >
             <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">{tool_name}</span>
+                <span className="font-medium text-[14px] text-foreground group-hover:text-primary transition-colors">{tool_name}</span>
                 {StatusIcon}
             </div>
-            <p className="text-xs text-muted-foreground truncate">
-                {status === 'running' ? 'Running...' : formatArgs(args)}
-            </p>
         </div>
     );
 }

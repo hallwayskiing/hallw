@@ -1,49 +1,22 @@
 import { X, CheckCircle2, XCircle, Copy, Check, Loader2 } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '@lib/utils';
-import { ToolState } from '../types';
-
-interface ToolPreviewProps {
-    toolState: ToolState;
-    isOpen: boolean;
-    onClose: () => void;
-}
+import { ToolPreviewProps } from '../types';
+import { useToolPreview } from '../hooks/useToolPreview';
 
 export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
-    const [activeTab, setActiveTab] = useState<'result' | 'args'>('result');
-    const [copied, setCopied] = useState(false);
+    const {
+        activeTab,
+        setActiveTab,
+        copied,
+        copyToClipboard,
+        isRunning,
+        resultMessage,
+        resultData,
+        isSuccess,
+        parsedArgs
+    } = useToolPreview(toolState);
 
     if (!isOpen) return null;
-
-    // Parse result JSON safely
-    let parsedResult: any = null;
-    let resultMessage = toolState.result;
-    let resultData = null;
-    let isSuccess = toolState.status === 'success';
-    let isRunning = toolState.status === 'running';
-
-    try {
-        const parsed = JSON.parse(toolState.result);
-        if (parsed && typeof parsed === 'object') {
-            parsedResult = parsed;
-            // If it follows the standard {success, message, data} format
-            if ('message' in parsed) resultMessage = parsed.message;
-            if ('data' in parsed) resultData = parsed.data;
-            if ('success' in parsed) isSuccess = parsed.success;
-        }
-    } catch (e) {
-        // Not JSON, treat as raw string
-    }
-
-    const copyToClipboard = async (text: string) => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    const contentToDisplay = activeTab === 'result'
-        ? (resultData ? JSON.stringify(resultData, null, 2) : resultMessage)
-        : toolState.args;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in-0">
@@ -106,9 +79,9 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                             {/* Message Section */}
                             <div className="space-y-1">
                                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</span>
-                                <p className="text-sm p-3 bg-muted/30 rounded-md border border-border/50">
-                                    {resultMessage}
-                                </p>
+                                <div className="text-sm p-3 bg-muted/30 rounded-md border border-border/50 min-h-[40px]">
+                                    {resultMessage || <span className="text-muted-foreground italic">No message recorded.</span>}
+                                </div>
                             </div>
 
                             {/* Data Section */}
@@ -144,9 +117,20 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                                     {copied ? "Copied" : "Copy"}
                                 </button>
                             </div>
-                            <pre className="flex-1 text-xs font-mono p-4 bg-muted/50 rounded-md border border-border overflow-auto whitespace-pre-wrap break-all">
-                                {tryFormatJson(toolState.args)}
-                            </pre>
+                            <div className="flex-1 overflow-auto p-2 space-y-2">
+                                {parsedArgs?.map(([key, value]) => (
+                                    <div key={key} className="flex items-start gap-3 w-full group">
+                                        <div className="w-[15%] text-[13px] font-bold text-muted-foreground uppercase tracking-tight font-mono truncate text-right shrink-0 pt-2">
+                                            {key}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="w-full bg-muted/40 border border-border/60 rounded px-3 py-2 text-[13px] font-mono text-foreground overflow-x-auto whitespace-pre no-scrollbar min-h-[38px] flex items-center">
+                                                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -163,13 +147,4 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
             </div>
         </div>
     );
-}
-
-function tryFormatJson(str: string): string {
-    try {
-        const parsed = JSON.parse(str);
-        return JSON.stringify(parsed, null, 2);
-    } catch {
-        return str;
-    }
 }

@@ -40,3 +40,9 @@ export interface StagesPanelProps {
     errorStageIndex: number | null;
     isExpanded: boolean;
 }
+
+export interface ToolPreviewProps {
+    toolState: ToolState;
+    isOpen: boolean;
+    onClose: () => void;
+}
