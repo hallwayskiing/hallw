@@ -98,7 +98,7 @@ def get_system_prompt() -> str:
     - Provide direct command to execute. Don't mention backend.
     - For file operations, use **read_file** and **write_file** to get better availability.
     - In PowerShell, don't use `cmd` grammar like `cd` or `dir`. It causes mistakes.
-    - Current backend is {"PowerShell" if platform.system()=="Windows" else "sh"}.
+    - Current backend is {"PowerShell" if platform.system() == "Windows" else "sh"}.
     - When listing recursively, always exclude junk files like .git, .venv, node_modules, .DS_Store, etc.
     </exec>
 
