@@ -78,7 +78,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
   return (
     <div
       className={cn(
-        "absolute inset-x-0 top-1 bottom-0 flex flex-col gap-3 transition-opacity transition-transform duration-500 ease-in-out overflow-y-auto custom-scrollbar pr-1 px-1 pt-1",
+        "absolute inset-x-0 top-1 bottom-0 flex flex-col gap-3 transition-opacity duration-500 ease-in-out overflow-y-auto custom-scrollbar pr-1 px-1 pt-1",
         isVisible ? "opacity-100 scale-100 translate-x-0" : "opacity-0 scale-95 pointer-events-none translate-x-8"
       )}
     >
