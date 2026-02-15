@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.12.0 (2026-02-14)
+
+### Feat
+
+- **ui**: improve tool preview
+- **core**: introduce `edit_stages` tool to enable agent to flexibly edit remaining stages
+- **ui**: improve Markdown rendering by custom css
+
+### Fix
+
+- **ui**: fix <em> rendering
+- **ui**: improve ui visual effect
+- **server**: fix history delete function
+- **tools**: improve tools availability
+
+### Refactor
+
+- **ui**: restructure and decouple frontend components under feature-based style
+
 ## v0.11.0 (2026-02-12)
 
 ### Feat
