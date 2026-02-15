@@ -4,10 +4,10 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from langchain_core.tools import BaseTool
+from hallw.tools import load_tools
 
 
-def generateSkillsDesc() -> str:
+def get_skills_desc() -> str:
     """
     Scans SKILL.md files from multiple directories and extracts path + YAML frontmatter.
     Directories: skills/, ~/.agents, ~/.codex, ~/anthropic
@@ -15,7 +15,7 @@ def generateSkillsDesc() -> str:
     # Define search directories
     home = Path.home()
     search_dirs = [
-        Path("skills"),  # Relative to cwd
+        Path(".agents/skills"),
         home / ".agents",
         home / ".codex",
         home / "anthropic",
@@ -42,11 +42,12 @@ def generateSkillsDesc() -> str:
     return "\n\n".join(skills) if skills else "No skills found."
 
 
-def generateToolsDesc(tools_dict: dict[str, BaseTool]) -> str:
+def get_tools_desc() -> str:
     """
     Dynamically generates a formatted description string listing all available tools
     and their docstrings based on the tools_dic dictionary.
     """
+    tools_dict = load_tools()
     descs = []
     for tool_name, tool_obj in tools_dict.items():
         if hasattr(tool_obj, "args") and tool_obj.args:
@@ -57,7 +58,7 @@ def generateToolsDesc(tools_dict: dict[str, BaseTool]) -> str:
     return "\n".join(descs)
 
 
-def generateUserProfile() -> str:
+def get_user_profile() -> str:
     """
     Generates the user profile for the automation agent based on the USER.md file.
     """
@@ -68,7 +69,7 @@ def generateUserProfile() -> str:
         return f.read()
 
 
-def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
+def get_system_prompt() -> str:
     """
     Generates the system prompt for the automation agent based on the task and grid size.
 
@@ -83,12 +84,11 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     Your main ability is enabled by `exec` tool, which can execute any command in the terminal.
     You are running in a {platform.system()} environment.
     Today is {datetime.now().strftime("%Y-%m-%d")}.
+    For project codebase details, refer to `AGENTS.md` or `README.md`.
     </identity>
 
     <stages>
     - At the beginning of the task, you **MUST** call the `build_stages` tool to analyze the task and create stages.
-    - At the end of each stage, you **MUST** call the `end_current_stage` tool to proceed to the next stage,
-    or end the task if it is completed. Otherwise you will get stuck in the current stage.
     - If you completed multiple stages at once, pass the number of completed stages to `end_current_stage` tool.
     - If your plan needs adjustment mid-task, call `edit_stages` to replace all remaining stages with a new plan.
     - During stages, you can only receive from user by `request_user_input` tool.
@@ -103,17 +103,16 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     </exec>
 
     <available_tools>
-    {generateToolsDesc(tools_dict)}
+    {get_tools_desc()}
     </available_tools>
 
     <available_skills>
-    {generateSkillsDesc()}
+    {get_skills_desc()}
     Whenever a skill is potentially useful, you **MUST** find and read the full content of the SKILL.md file.
     </available_skills>
 
     <user_profile>
-    **User Profile:**
-    {generateUserProfile()}
+    {get_user_profile()}
     You need to use this profile to complete tasks that are related to user's personal information.
     If any information is missing, ask the user to provide it.
     If user provides important information, update it in USER.md.
@@ -130,13 +129,6 @@ def generateSystemPrompt(tools_dict: dict[str, BaseTool]) -> str:
     - Use markdown style for all your plain responses, for they will be shown in a markdown viewer.
     - Prefer markdown to save files and structure them gracefully for better readability.
     </formats>
-
-    <communication_style>
-    - You have **TWO** language settings: working language and response language.
-    - Your working language is English, you must think and plan in English.
-    - Your response language should match the user's input language.
-    </communication_style>
-
 
     **Now analyze the task, arrange your plan, and take actions.
     """

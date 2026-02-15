@@ -6,8 +6,6 @@ from typing import List
 
 from langchain_core.tools import BaseTool, tool
 
-from hallw.utils import logger
-
 from .tool_response import ToolResult, build_tool_response, parse_tool_response
 
 
@@ -19,8 +17,8 @@ def _import_package_modules(package_name: str):
     for finder, name, ispkg in pkgutil.walk_packages(package.__path__, prefix=package_name + "."):
         try:
             importlib.import_module(name)
-        except Exception as e:
-            logger.error(f"Failed to import {name}: {e}")
+        except Exception:
+            pass
 
 
 def load_tools() -> dict[str, BaseTool]:
@@ -37,17 +35,10 @@ def load_tools() -> dict[str, BaseTool]:
             for _, obj in inspect.getmembers(module):
                 if isinstance(obj, BaseTool):
                     if obj.name in tools_dict:
-                        logger.warning(
-                            "Duplicate tool name '%s' found in module '%s' "
-                            "(already registered from '%s'), overriding.",
-                            obj.name,
-                            module_name,
-                            tools_dict[obj.name].__module__,
-                        )
+                        pass
                     tools_dict[obj.name] = obj
-        except Exception as e:
-            logger.error(f"Failed to import {module_name}: {e}")
-            continue
+        except Exception:
+            pass
     return tools_dict
 
 

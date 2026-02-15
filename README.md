@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/a5af23c3-c471-4682-9064-33be84d64775
 
 -----
 
-## 🚀 Quick Start (For Users)
+## 🚀 Quick Start
 
 No coding knowledge required. Follow these steps to get started:
 
@@ -98,12 +98,12 @@ Both launchers automatically download uv, install dependencies, and start the El
 
 -----
 
-## 💻 Usage (For Developers)
+## 💻 Manual Installation
 
 ### Installation
 
 ```bash
-# Install via uv (including dev dependencies)
+# Install via uv
 uv sync
 
 # Install browser binaries (Optional)
@@ -112,7 +112,7 @@ playwright install chromium
 
 ### Running Tasks
 
-You can start the GUI window directly via `main.py`:
+You can start both the backend + frontend via `main.py`:
 
 ```bash
 python main.py
@@ -170,10 +170,15 @@ HALLW is built on a modular architecture designed for extensibility.
 ```text
 hallw/
 ├── logs/                   # Task logs
-├── frontend/               # Frontend codes
-├── src/                    # Source codes
+├── frontend/               # Frontend
+│   └── src/renderer/       # Main Electron Folder
+│           ├── features/   # Features
+│           ├── store/      # Zustand Store
+│           ├── App.tsx     # Main App
+│           └── main.tsx    # Main Entry Point
+├── src/                    # Backend
 │   └── hallw/              # Main Folder
-│       ├── core/           # Core codes
+│       ├── core/           # Core agent workflow
 │       ├── server/         # Server codes
 │       ├── tools/          # Tools codes
 │       │   ├── playwright/ # Browser Tools
@@ -184,10 +189,6 @@ hallw/
 ├── main.py                 # Application Entry Point
 ├── workspace/              # Workspace
 ├── .env                    # Environment variables
-├── .env.example            # Environment variables example
-├── start.bat               # One-click Launcher (Windows)
-├── start.sh                # One-click Launcher (Linux)
-├── uv.lock                 # Frozen Dependencies
 └── pyproject.toml          # Package Metadata
 ```
 
@@ -260,26 +261,13 @@ hallw/
 
 -----
 
-## 🛠️ Extending HALLW
+## 🛠️ Extending
 
 Adding new capabilities is easy thanks to the auto-discovery system.
 
 1.  Create a new python file in `src/hallw/tools/`.
 2.  Define a function decorated with `@tool`.
 3.  It will be automatically loaded next time you run the agent.
-
-<!-- end list -->
-
-```python
-# src/hallw/tools/my_custom_tool.py
-from langchain_core.tools import tool
-
-@tool
-def get_system_time() -> str:
-    """Returns the current system time."""
-    import datetime
-    return str(datetime.datetime.now())
-```
 
 -----
 

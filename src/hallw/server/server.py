@@ -13,7 +13,7 @@ from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
-from hallw.utils import config, generateSystemPrompt, history_mgr, init_logger, logger, save_config_to_env
+from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
 
 # --- Global State ---
 tools_dict = load_tools()
@@ -24,7 +24,7 @@ class Session:
     def __init__(self, sid: str, task_id: Optional[str] = None):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.renderer = SocketAgentRenderer(sio, sid)
-        self.history = [SystemMessage(content=generateSystemPrompt(tools_dict))]
+        self.history = [SystemMessage(content=get_system_prompt())]
         self.input_tokens = 0
         self.output_tokens = 0
 
