@@ -143,8 +143,8 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
   hr: () => <hr className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />,
 
   // Strong & emphasis
-  strong: ({ children }) => <strong className="font-semibold text-foreground/95">{children}</strong>,
-  em: ({ children }) => <em className="text-foreground/60 font-light not-italic">{children}</em>,
+  strong: ({ children }) => <strong className="font-semibold text-foreground/90">{children}</strong>,
+  em: ({ children }) => <em className="font-medium italic text-foreground/85">{children}</em>,
 
   // Images
   img: ({ src, alt }) => (
