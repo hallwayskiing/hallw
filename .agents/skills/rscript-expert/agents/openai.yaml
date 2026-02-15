@@ -1,4 +1,0 @@
-interface:
-  display_name: "RScript Expert"
-  short_description: "Expert guidance for R and medical charting"
-  default_prompt: "Use $rscript-expert to create an R script for clinical data visualization."

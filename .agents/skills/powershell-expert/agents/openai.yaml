@@ -1,4 +1,0 @@
-interface:
-  display_name: "PowerShell Expert"
-  short_description: "Advanced PowerShell automation and tricky workflows."
-  default_prompt: "How can I help you with complex PowerShell scripts today?"

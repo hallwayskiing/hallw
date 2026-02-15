@@ -65,8 +65,7 @@ exclude = [
     "__pycache__",
     "build",
     "dist",
-    "src/hallw/ui/pyside/styles.py",
-    "src/hallw/ui/pyside/templates.py",
+    ".agents",
 ]
 
 [tool.ruff.lint]
@@ -95,6 +94,7 @@ module = [
     "PIL.*",
     "PyPDF2.*",
     "markdown.*",
+    "yaml.*",
 ]
 ignore_missing_imports = true
 
