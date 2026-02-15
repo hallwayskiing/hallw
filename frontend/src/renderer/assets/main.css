@@ -183,7 +183,6 @@
 
 /* Floating animation for orbs */
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0px) scale(1);
@@ -227,7 +226,6 @@
 
 /* Wave animation */
 @keyframes wave {
-
   0%,
   100% {
     transform: translateY(0);
@@ -254,14 +252,17 @@
 
 /* Glow pulse */
 @keyframes glow {
-
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
+    box-shadow:
+      0 0 20px rgba(245, 158, 11, 0.3),
+      0 0 40px rgba(245, 158, 11, 0.1);
   }
 
   50% {
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.5), 0 0 60px rgba(245, 158, 11, 0.2);
+    box-shadow:
+      0 0 30px rgba(245, 158, 11, 0.5),
+      0 0 60px rgba(245, 158, 11, 0.2);
   }
 }
 
@@ -269,43 +270,57 @@
 @keyframes rainbow-pulse {
   0% {
     background-color: hsl(0, 45%, 55%);
-    box-shadow: 0 0 15px hsla(0, 45%, 55%, 0.8), 0 0 30px hsla(0, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 15px hsla(0, 45%, 55%, 0.8),
+      0 0 30px hsla(0, 45%, 55%, 0.3);
     transform: scale(1);
   }
 
   16% {
     background-color: hsl(60, 45%, 55%);
-    box-shadow: 0 0 20px hsla(60, 45%, 55%, 0.8), 0 0 40px hsla(60, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 20px hsla(60, 45%, 55%, 0.8),
+      0 0 40px hsla(60, 45%, 55%, 0.3);
     transform: scale(1.1);
   }
 
   33% {
     background-color: hsl(120, 45%, 55%);
-    box-shadow: 0 0 15px hsla(120, 45%, 55%, 0.8), 0 0 30px hsla(120, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 15px hsla(120, 45%, 55%, 0.8),
+      0 0 30px hsla(120, 45%, 55%, 0.3);
     transform: scale(1);
   }
 
   50% {
     background-color: hsl(180, 45%, 55%);
-    box-shadow: 0 0 20px hsla(180, 45%, 55%, 0.8), 0 0 40px hsla(180, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 20px hsla(180, 45%, 55%, 0.8),
+      0 0 40px hsla(180, 45%, 55%, 0.3);
     transform: scale(1.1);
   }
 
   66% {
     background-color: hsl(240, 45%, 55%);
-    box-shadow: 0 0 15px hsla(240, 45%, 55%, 0.8), 0 0 30px hsla(240, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 15px hsla(240, 45%, 55%, 0.8),
+      0 0 30px hsla(240, 45%, 55%, 0.3);
     transform: scale(1);
   }
 
   83% {
     background-color: hsl(300, 45%, 55%);
-    box-shadow: 0 0 20px hsla(300, 45%, 55%, 0.8), 0 0 40px hsla(300, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 20px hsla(300, 45%, 55%, 0.8),
+      0 0 40px hsla(300, 45%, 55%, 0.3);
     transform: scale(1.1);
   }
 
   100% {
     background-color: hsl(0, 45%, 55%);
-    box-shadow: 0 0 15px hsla(0, 45%, 55%, 0.8), 0 0 30px hsla(0, 45%, 55%, 0.3);
+    box-shadow:
+      0 0 15px hsla(0, 45%, 55%, 0.8),
+      0 0 30px hsla(0, 45%, 55%, 0.3);
     transform: scale(1);
   }
 }
@@ -324,7 +339,6 @@
     filter: hue-rotate(360deg);
   }
 }
-
 
 /* Gradient wave animation */
 @keyframes gradient-wave {

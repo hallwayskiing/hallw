@@ -1,41 +1,48 @@
-import { Key } from 'lucide-react';
-import { ChangeEvent } from 'react';
-import { Input } from '../ui/Input';
-import { SectionCard } from '../ui/SectionCard';
-import { InputGroup } from '../ui/InputGroup';
+import { ChangeEvent } from "react";
+
+import { Key } from "lucide-react";
+
+import { Input } from "../ui/Input";
+import { InputGroup } from "../ui/InputGroup";
+import { SectionCard } from "../ui/SectionCard";
 
 interface ApiKeysPageProps {
-    config: any;
-    handleChange: (key: string, value: any) => void;
+  config: any;
+  handleChange: (key: string, value: any) => void;
 }
 
 const ALL_PROVIDERS = [
-    { key: 'openai_api_key', label: 'OpenAI', placeholder: 'sk-...' },
-    { key: 'google_api_key', label: 'Google', placeholder: 'AIza...' },
-    { key: 'anthropic_api_key', label: 'Anthropic', placeholder: 'sk-ant-...' },
-    { key: 'openrouter_api_key', label: 'OpenRouter', placeholder: 'sk-or-...' },
-    { key: 'deepseek_api_key', label: 'DeepSeek', placeholder: 'sk-...' },
-    { key: 'zai_api_key', label: 'ZAI', placeholder: '...' },
-    { key: 'moonshot_api_key', label: 'Moonshot', placeholder: 'sk-...' },
-    { key: 'xiaomi_mimo_api_key', label: 'Xiaomi Mimo', placeholder: 'sk-...' },
+  { key: "openai_api_key", label: "OpenAI", placeholder: "sk-..." },
+  { key: "google_api_key", label: "Google", placeholder: "AIza..." },
+  { key: "anthropic_api_key", label: "Anthropic", placeholder: "sk-ant-..." },
+  { key: "openrouter_api_key", label: "OpenRouter", placeholder: "sk-or-..." },
+  { key: "deepseek_api_key", label: "DeepSeek", placeholder: "sk-..." },
+  { key: "zai_api_key", label: "ZAI", placeholder: "..." },
+  { key: "moonshot_api_key", label: "Moonshot", placeholder: "sk-..." },
+  { key: "xiaomi_mimo_api_key", label: "Xiaomi Mimo", placeholder: "sk-..." },
 ];
 
 export function KeysPage({ config, handleChange }: ApiKeysPageProps) {
-    return (
-        <SectionCard title="Provider API Keys" icon={<Key className="w-4 h-4" />} color="text-foreground" gradient="from-muted/20 to-muted/5">
-            <div className="space-y-4">
-                {ALL_PROVIDERS.map(provider => (
-                    <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API Key`}>
-                        <Input
-                            name={provider.key}
-                            type="password"
-                            value={config[provider.key] || ''}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(provider.key, e.target.value)}
-                            placeholder={provider.placeholder}
-                        />
-                    </InputGroup>
-                ))}
-            </div>
-        </SectionCard>
-    );
+  return (
+    <SectionCard
+      title="Provider API Keys"
+      icon={<Key className="w-4 h-4" />}
+      color="text-foreground"
+      gradient="from-muted/20 to-muted/5"
+    >
+      <div className="space-y-4">
+        {ALL_PROVIDERS.map((provider) => (
+          <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API Key`}>
+            <Input
+              name={provider.key}
+              type="password"
+              value={config[provider.key] || ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(provider.key, e.target.value)}
+              placeholder={provider.placeholder}
+            />
+          </InputGroup>
+        ))}
+      </div>
+    </SectionCard>
+  );
 }

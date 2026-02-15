@@ -1,39 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
 export function useSmoothTyping(targetText: string, isStreaming: boolean, speed: number = 1) {
-    const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState("");
 
-    useEffect(() => {
-        if (!isStreaming) {
-            setDisplayedText(targetText);
-            return;
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayedText(targetText);
+      return;
+    }
+
+    if (displayedText.length >= targetText.length) {
+      return;
+    }
+
+    let animationFrameId: number;
+
+    const animate = () => {
+      setDisplayedText((current) => {
+        if (current.length >= targetText.length) {
+          cancelAnimationFrame(animationFrameId);
+          return targetText;
         }
 
-        if (displayedText.length >= targetText.length) {
-            return;
-        }
+        const diff = targetText.length - current.length;
+        const step = Math.ceil(diff / 50) + speed;
 
-        let animationFrameId: number;
+        const nextText = targetText.slice(0, current.length + step);
+        return nextText;
+      });
+      animationFrameId = requestAnimationFrame(animate);
+    };
 
-        const animate = () => {
-            setDisplayedText((current) => {
-                if (current.length >= targetText.length) {
-                    cancelAnimationFrame(animationFrameId);
-                    return targetText;
-                }
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [targetText, isStreaming, speed]);
 
-                const diff = targetText.length - current.length;
-                const step = Math.ceil(diff / 50) + speed;
-
-                const nextText = targetText.slice(0, current.length + step);
-                return nextText;
-            });
-            animationFrameId = requestAnimationFrame(animate);
-        };
-
-        animationFrameId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [targetText, isStreaming, speed]);
-
-    return displayedText;
+  return displayedText;
 }
