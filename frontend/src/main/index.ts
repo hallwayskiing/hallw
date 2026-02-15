@@ -8,11 +8,11 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 960,
     height: 720,
-    icon: join(__dirname, "../../resources/logo.ico"),
+    icon: join(__dirname, "../../resources/hallw.png"),
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
+      preload: join(__dirname, "../preload/index.ts"),
       sandbox: false,
     },
   });
