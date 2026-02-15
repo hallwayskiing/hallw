@@ -52,7 +52,12 @@ class SocketAgentRenderer(AgentRenderer):
         self._fire("llm_finished")
 
     def on_tool_start(self, run_id: str, name: str, args: Any):
-        self._fire("tool_state_update", {"run_id": run_id, "tool_name": name, "status": "running", "args": str(args)})
+        args_str = str(args)
+        try:
+            args_str = json.dumps(args, ensure_ascii=False)
+        except Exception:
+            pass
+        self._fire("tool_state_update", {"run_id": run_id, "tool_name": name, "status": "running", "args": args_str})
 
     def on_tool_end(self, run_id: str, name: str, output: Any, is_success: bool, log_msg: str):
         logger.info(log_msg)

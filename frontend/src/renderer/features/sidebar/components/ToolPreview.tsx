@@ -93,7 +93,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
               </div>
 
               {/* Data Section */}
-              {resultData && (
+              {!!resultData && (
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data</span>
@@ -120,7 +120,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                   Input Arguments
                 </span>
                 <button
-                  onClick={() => copyToClipboard(toolState.args)}
+                  onClick={() => copyToClipboard(toolState.args || "")}
                   className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -128,18 +128,24 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                 </button>
               </div>
               <div className="flex-1 overflow-auto p-2 space-y-2">
-                {parsedArgs?.map(([key, value]) => (
-                  <div key={key} className="flex items-start gap-3 w-full group">
-                    <div className="w-[15%] text-[13px] font-bold text-muted-foreground uppercase tracking-tight font-mono truncate text-right shrink-0 pt-2">
-                      {key}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="w-full bg-muted/40 border border-border/60 rounded px-3 py-2 text-[13px] font-mono text-foreground overflow-x-auto whitespace-pre no-scrollbar min-h-[38px] flex items-center">
-                        {typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)}
+                {parsedArgs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md border border-border/50">
+                    No arguments recorded.
+                  </div>
+                ) : (
+                  parsedArgs.map(([key, value]: [string, any]) => (
+                    <div key={key} className="flex items-start gap-3 w-full group">
+                      <div className="w-[15%] text-[13px] font-bold text-muted-foreground uppercase tracking-tight font-mono truncate text-right shrink-0 pt-2">
+                        {key}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="w-full bg-muted/40 border border-border/60 rounded px-3 py-2 text-[13px] font-mono text-foreground overflow-x-auto whitespace-pre no-scrollbar min-h-[38px] flex items-center">
+                          {typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}

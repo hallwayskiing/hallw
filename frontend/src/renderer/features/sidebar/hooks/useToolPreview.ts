@@ -1,75 +1,81 @@
-import { useCallback, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useMemo, useState } from "react";
 
 import { ToolState } from "../types";
 
-export function useToolPreview(toolState: ToolState | null | undefined) {
+export type PreviewEntry = [string, unknown];
+
+// Helper: Parse JSON safely, handling markdown code blocks
+function safeParse(input: unknown): unknown {
+  if (typeof input !== "string") return input;
+
+  const trimmed = input.trim();
+  // Strip markdown code fences if present
+  const content = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1] || trimmed;
+
+  try {
+    return JSON.parse(content);
+  } catch {
+    return input;
+  }
+}
+
+// Helper: Convert parsed value to entries for display
+function toEntries(value: unknown): PreviewEntry[] {
+  if (value === null || value === undefined) return [];
+  if (Array.isArray(value)) return value.map((item, index) => [String(index), item]);
+  if (typeof value === "object") return Object.entries(value as Record<string, unknown>);
+  return [["value", value]];
+}
+
+export interface UseToolPreviewReturn {
+  activeTab: "result" | "args";
+  setActiveTab: Dispatch<SetStateAction<"result" | "args">>;
+  copied: boolean;
+  copyToClipboard: (text: string) => Promise<void>;
+  isRunning: boolean;
+  resultMessage: string;
+  resultData: unknown;
+  isSuccess: boolean;
+  parsedArgs: PreviewEntry[];
+}
+
+export function useToolPreview(toolState: ToolState | null): UseToolPreviewReturn {
   const [activeTab, setActiveTab] = useState<"result" | "args">("result");
   const [copied, setCopied] = useState(false);
 
-  const parsedResult = useMemo(() => {
+  const parsedResult = useMemo<{ resultMessage: string; resultData: unknown; isSuccess: boolean }>(() => {
     if (!toolState) return { resultMessage: "", resultData: null, isSuccess: false };
 
-    let resultMessage = toolState.result || "";
-    let resultData = null;
+    let resultMessage: string = toolState.result || "";
+    let resultData: unknown = null;
     let isSuccess = toolState.status === "success";
 
-    try {
-      if (toolState.result && typeof toolState.result === "string") {
-        // Try parsing JSON result
-        const parsed = JSON.parse(toolState.result);
-        if (parsed && typeof parsed === "object") {
-          if ("message" in parsed) resultMessage = parsed.message;
-          if ("data" in parsed) resultData = parsed.data;
-          if ("success" in parsed) isSuccess = parsed.success;
-        }
-      } else if (toolState.result && typeof toolState.result === "object") {
-        // If result is already an object
-        const res = toolState.result as any;
-        if ("message" in res) resultMessage = res.message;
-        if ("data" in res) resultData = res.data;
-        if ("success" in res) isSuccess = res.success;
+    const parsed = safeParse(toolState.result);
+
+    // If result is an object, try to extract standard fields (message, data, success)
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const obj = parsed as Record<string, unknown>;
+      // Check if it looks like a standard response wrapper
+      if ("message" in obj || "data" in obj || "success" in obj) {
+        if (obj.message) resultMessage = String(obj.message);
+        if (obj.data !== undefined) resultData = obj.data;
+        if (obj.success !== undefined) isSuccess = Boolean(obj.success);
+      } else {
+        // Otherwise treat the whole object as data
+        resultData = parsed;
       }
-    } catch (e) {
-      // Treat as raw it failed
+    } else if (parsed !== null && parsed !== undefined && parsed !== "") {
+      // If parsed is array or primitive (and not empty string), treat as data
+      resultData = parsed;
     }
 
     return { resultMessage, resultData, isSuccess };
   }, [toolState?.result, toolState?.status]);
 
-  const parsedArgs = useMemo(() => {
-    if (!toolState?.args) return null;
-
-    // If it's already an object, return it
-    if (typeof toolState.args === "object") {
-      return Object.entries(toolState.args);
-    }
-
-    if (typeof toolState.args !== "string") return null;
-
-    let str = toolState.args.trim();
-    if (!str) return null;
-
-    try {
-      // Standard JSON parse
-      const parsed = JSON.parse(str);
-      if (typeof parsed === "object" && parsed !== null) {
-        return Object.entries(parsed);
-      }
-    } catch (e) {
-      // Try handling Python style dicts (single quotes)
-      try {
-        // Replace single quotes with double quotes, but be careful with nested quotes
-        // This is a naive attempt, but often enough for simple tool args
-        const jsonFixed = str.replace(/'/g, '"');
-        const parsed = JSON.parse(jsonFixed);
-        if (typeof parsed === "object" && parsed !== null) {
-          return Object.entries(parsed);
-        }
-      } catch (e2) {
-        // Still failed
-      }
-    }
-    return null;
+  const parsedArgs = useMemo<PreviewEntry[]>(() => {
+    if (toolState?.args === null || toolState?.args === undefined) return [];
+    const parsed = safeParse(toolState.args);
+    return toEntries(parsed);
   }, [toolState?.args]);
 
   const copyToClipboard = useCallback(async (text: string) => {
@@ -83,15 +89,15 @@ export function useToolPreview(toolState: ToolState | null | undefined) {
     }
   }, []);
 
-  const isRunning = toolState?.status === "running";
-
   return {
     activeTab,
     setActiveTab,
     copied,
     copyToClipboard,
-    isRunning,
-    ...parsedResult,
+    isRunning: toolState?.status === "running",
+    resultMessage: parsedResult.resultMessage,
+    resultData: parsedResult.resultData,
+    isSuccess: parsedResult.isSuccess,
     parsedArgs,
   };
 }
