@@ -41,5 +41,5 @@ export function useAutoScroll(dependencies: any[]) {
     }
   }, []);
 
-  return { scrollRef, handleScroll, scrollToBottom };
+  return { scrollRef, handleScroll, scrollToBottom, showScrollButton: userHasScrolledUp };
 }

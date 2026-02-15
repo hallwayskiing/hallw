@@ -113,14 +113,22 @@ class SocketAgentRenderer(AgentRenderer):
             if not self._pending_confirmation["future"].done():
                 self._pending_confirmation["future"].set_result(status)
 
-    async def on_request_user_input(self, prompt: str, timeout: int) -> str:
+    async def on_request_user_decision(self, prompt: str, options: list[str] = None, timeout: int = 300) -> str:
         """Trigger the RuntimeInput modal in the UI and wait for result."""
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         request_id = f"input_{id(future)}"
         self._pending_confirmation = {"request_id": request_id, "future": future}
 
-        self._fire("request_user_input", {"request_id": request_id, "message": prompt, "timeout": timeout})
+        self._fire(
+            "request_user_decision",
+            {
+                "request_id": request_id,
+                "message": prompt,
+                "options": options,
+                "timeout": timeout,
+            },
+        )
 
         try:
             return await asyncio.wait_for(future, timeout)
@@ -130,7 +138,7 @@ class SocketAgentRenderer(AgentRenderer):
             if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
                 self._pending_confirmation = None
 
-    def on_resolve_user_input(self, request_id: str, status: str, value: str = None) -> None:
+    def on_resolve_user_decision(self, request_id: str, status: str, value: str = None) -> None:
         """Resolve a pending user input request from the frontend."""
         if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
             future = self._pending_confirmation["future"]

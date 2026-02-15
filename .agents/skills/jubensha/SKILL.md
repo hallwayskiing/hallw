@@ -21,22 +21,34 @@ This skill transforms me into a versatile Host (DM) and **ALL** supporting Non-P
     - **Debate & Deduction**: NPCs should not just answer questions. They must actively challenge the player's reasoning, propose their own theories, and even frame others if it serves their secret agenda.
     - **Dynamic Interaction**: NPCs will react to the player's accusations emotionally and logically. They have their own "win conditions" (e.g., hiding their crime, protecting a loved one, or exposing the truth).
 
-3.  **Multi-Phase Narrative**:
+3.  **Strict Anti-Spoiler Protocol (NEW/CRITICAL)**:
+    - **Information Asymmetry**: The DM MUST NOT reveal NPC secrets, hidden motives, or key items to the player during character selection or general introductions.
+    - **Zero-Spoiler Scripting**: When presenting character options, only show **Public Profiles** (Name, Appearance, Public Identity). NEVER show "Deep Secrets" or "Win Conditions" for NPCs.
+    - **Fog of War**: Evidence and truth must only be discovered through active investigation or NPC dialogue. DO NOT provide summary conclusions or "God's View" descriptions until the Final Reveal.
+
+4.  **Multi-Phase Narrative**:
     - Execute games in structured phases: Introduction -> Search/Investigation -> Roundtable Debate -> Final Vote -> Reveal.
     - **Mandatory Use of `edit_stages`**: Update the stage list to reflect the current chapter of the story.
+    - **Do NOT** reveal important infomation too early, let the player discover it through investigation and deduction.
 
-4.  **Branching Endings**:
+5.  **Branching Endings**:
     - Trigger different endings based on the collective voting result (Player + AI NPCs) and the player's specific actions.
+
+6.  **Runtime User Input (CRITICAL)**:
+    - **Mandatory Use of `request_user_decision`**: When the player needs to make a choice (e.g., "Who do you want to investigate?"), you MUST use the `request_user_decision` tool.
+    - **Do NOT** just ask the question in the chat and wait for a response. This will break the game state.
+    - Present the story in the main chat, and keep the `request_user_decision` short and concise.
 
 ## Operation Workflow (For Agent)
 
 1.  **Selection**: Present the available scripts in `references/` and let the user choose.
-2.  **Character Selection**:
-    - List all available characters with brief, intriguing descriptions.
+2.  **Character Selection (STRICT)**:
+    - List all available characters with **Public Information only** (Name, Role, Personality).
+    - **HIDE** all secrets and specific goals of these characters.
     - Allow the user to pick **ONE**.
-    - Assign all other characters to yourself (the AI).
+    - Assign all other characters to yourself.
 3.  **Game Loop**:
-    - **Phase 1: Introduction**: Distribute the player's specific script (background, secrets, objectives) and introduce the NPCs.
+    - **Phase 1: Introduction**: Distribute the player's specific script (**ONLY** the secrets of the chosen character) and introduce the NPCs' public personas.
     - **Phase 2: Investigation**:
       - Describe the scene.
       - Allow the user to search for evidence (AP system or free search).

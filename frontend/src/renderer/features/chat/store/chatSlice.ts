@@ -1,7 +1,7 @@
 import { AppState } from "@store/store";
 import { StateCreator } from "zustand";
 
-import { ConfirmationRequest, ConfirmationStatus, Message, RuntimeInputStatus, UserInputRequest } from "../types";
+import { ConfirmationRequest, ConfirmationStatus, DecisionRequest, DecisionStatus, Message } from "../types";
 
 export interface ChatSlice {
   messages: Message[];
@@ -9,7 +9,7 @@ export interface ChatSlice {
   streamingContent: string;
   streamingReasoning: string;
   pendingConfirmation: ConfirmationRequest | null;
-  pendingInput: UserInputRequest | null;
+  pendingDecision: DecisionRequest | null;
   _streamingContentRef: string;
 
   getProcessedMessages: (messages: Message[]) => Message[];
@@ -18,7 +18,7 @@ export interface ChatSlice {
   stopTask: () => void;
   resetSession: () => void;
   handleConfirmationDecision: (status: ConfirmationStatus) => void;
-  handleInputDecision: (status: RuntimeInputStatus, value?: string) => void;
+  handleDecision: (status: DecisionStatus, value?: string) => void;
 
   _onChatUserMessage: (msg: string) => void;
   _onChatNewReasoning: (reasoning: string) => void;
@@ -30,7 +30,7 @@ export interface ChatSlice {
   _onChatReset: () => void;
   _onChatHistoryLoaded: (data: { messages: Message[] }) => void;
   _onChatRequestConfirmation: (data: ConfirmationRequest) => void;
-  _onChatRequestUserInput: (data: UserInputRequest) => void;
+  _onChatRequestUserDecision: (data: DecisionRequest) => void;
 }
 
 export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, get) => ({
@@ -39,7 +39,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
   streamingContent: "",
   streamingReasoning: "",
   pendingConfirmation: null,
-  pendingInput: null,
+  pendingDecision: null,
   _streamingContentRef: "",
 
   getProcessedMessages: (messages: Message[]) => {
@@ -103,7 +103,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       streamingContent: "",
       streamingReasoning: "",
       pendingConfirmation: null,
-      pendingInput: null,
+      pendingDecision: null,
       _streamingContentRef: "",
     });
     _socket.emit("start_task", { task });
@@ -126,7 +126,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       streamingContent: "",
       streamingReasoning: "",
       pendingConfirmation: null,
-      pendingInput: null,
+      pendingDecision: null,
       _streamingContentRef: "",
     });
   },
@@ -157,13 +157,13 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     }));
   },
 
-  handleInputDecision: (status, value) => {
-    const { pendingInput, _socket } = get();
-    if (!pendingInput) return;
+  handleDecision: (status, value) => {
+    const { pendingDecision, _socket } = get();
+    if (!pendingDecision) return;
 
     if (_socket) {
-      _socket.emit("resolve_user_input", {
-        request_id: pendingInput.requestId,
+      _socket.emit("resolve_user_decision", {
+        request_id: pendingDecision.requestId,
         status,
         value: value || "",
       });
@@ -173,15 +173,16 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       messages: [
         ...state.messages,
         {
-          type: "user_input",
+          type: "decision",
           role: "system",
-          requestId: pendingInput.requestId,
-          prompt: pendingInput.message,
+          requestId: pendingDecision.requestId,
+          prompt: pendingDecision.message,
+          options: pendingDecision.options,
           result: value || "",
           status,
         },
       ],
-      pendingInput: null,
+      pendingDecision: null,
     }));
   },
 
@@ -193,7 +194,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       _streamingContentRef: "",
       isRunning: true,
       pendingConfirmation: null,
-      pendingInput: null,
+      pendingDecision: null,
     }));
   },
 
@@ -344,7 +345,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       _streamingContentRef: "",
       isRunning: false,
       pendingConfirmation: null,
-      pendingInput: null,
+      pendingDecision: null,
     });
   },
 
@@ -395,7 +396,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     });
   },
 
-  _onChatRequestUserInput: (data) => {
+  _onChatRequestUserDecision: (data) => {
     set((state: ChatSlice) => {
       const content = state._streamingContentRef;
       const reasoning = state.streamingReasoning;
@@ -423,9 +424,10 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
-        pendingInput: {
+        pendingDecision: {
           requestId: (data as any).request_id ?? data.requestId,
           message: data.message,
+          options: data.options,
           timeout: data.timeout,
         },
       };

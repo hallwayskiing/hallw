@@ -74,7 +74,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     });
 
     socket.on("request_confirmation", actions._onChatRequestConfirmation);
-    socket.on("request_user_input", actions._onChatRequestUserInput);
+    socket.on("request_user_decision", actions._onChatRequestUserDecision);
 
     // Sidebar events
     socket.on("tool_state_update", actions._onToolStateUpdate);
@@ -109,7 +109,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       socket.off("tool_error");
       socket.off("reset");
       socket.off("request_confirmation", actions._onChatRequestConfirmation);
-      socket.off("request_user_input", actions._onChatRequestUserInput);
+      socket.off("request_user_decision", actions._onChatRequestUserDecision);
       socket.off("tool_state_update", actions._onToolStateUpdate);
       socket.off("stages_built", actions._onStagesBuilt);
       socket.off("stage_started", actions._onStageStarted);

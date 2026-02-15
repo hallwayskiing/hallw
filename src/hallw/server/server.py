@@ -289,9 +289,9 @@ async def resolve_confirmation(sid, data):
 
 
 @sio.event
-async def resolve_user_input(sid, data):
+async def resolve_user_decision(sid, data):
     if current_session:
-        current_session.renderer.on_resolve_user_input(data["request_id"], data["status"], data["value"])
+        current_session.renderer.on_resolve_user_decision(data["request_id"], data["status"], data["value"])
 
 
 @sio.event

@@ -3,21 +3,22 @@ import { useState } from "react";
 import { MessageSquare, Send, X } from "lucide-react";
 
 import { useCountdown } from "../hooks/useCountdown";
-import { RuntimeInputRequest, RuntimeInputStatus } from "../types";
+import { DecisionRequest, DecisionStatus } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 
-export function RuntimeInput({
+export function Decision({
   requestId,
   message,
+  options,
   timeout,
   initialStatus,
   initialValue,
   onDecision,
-}: RuntimeInputRequest) {
-  const [status, setStatus] = useState<RuntimeInputStatus>(initialStatus || "pending");
+}: DecisionRequest) {
+  const [status, setStatus] = useState<DecisionStatus>(initialStatus || "pending");
   const [input, setInput] = useState(initialValue || "");
 
-  const handleDecision = (newStatus: RuntimeInputStatus, value: string) => {
+  const handleDecision = (newStatus: DecisionStatus, value: string) => {
     setStatus(newStatus);
     setInput(value);
     onDecision?.(newStatus, value);
@@ -59,38 +60,55 @@ export function RuntimeInput({
         );
       default:
         return (
-          <form
-            className="flex gap-2 pt-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (input.trim()) handleDecision("submitted", input);
-            }}
-          >
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your response..."
-              className="flex-1 bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={!input.trim()}
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+          <div className="space-y-4 pt-1">
+            {options && options.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {options.map((option, index) => (
+                  <button
+                    key={option}
+                    onClick={() => handleDecision("submitted", option)}
+                    className="w-full text-left px-4 py-3 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 group"
+                  >
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold group-hover:bg-blue-500/20 transition-colors">
+                      {index + 1}
+                    </span>
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (input.trim()) handleDecision("submitted", input);
+              }}
             >
-              <Send className="w-4 h-4" />
-              Send
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDecision("rejected", "")}
-              className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-medium px-4 py-2 rounded-lg transition-colors text-sm border border-border"
-            >
-              <X className="w-4 h-4" />
-              Reject
-            </button>
-          </form>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={options?.length ? "Or type your own response..." : "Type your response..."}
+                className="flex-1 bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="flex items-center justify-center gap-2 bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <Send className="w-4 h-4" />
+                Send
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDecision("rejected", "")}
+                className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-medium px-4 py-2 rounded-lg transition-colors text-sm border border-border"
+              >
+                <X className="w-4 h-4" />
+                Reject
+              </button>
+            </form>
+          </div>
         );
     }
   };

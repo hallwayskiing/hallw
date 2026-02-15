@@ -1,6 +1,6 @@
 export type MessageRole = "user" | "assistant" | "system";
 export type ConfirmationStatus = "pending" | "approved" | "rejected" | "timeout";
-export type RuntimeInputStatus = "pending" | "submitted" | "rejected" | "timeout";
+export type DecisionStatus = "pending" | "submitted" | "rejected" | "timeout";
 
 export interface BaseMessage {
   role: MessageRole;
@@ -15,6 +15,7 @@ export interface TextMessage extends BaseMessage {
 export interface ErrorMessage extends BaseMessage {
   type: "error";
   content: string;
+  reasoning?: string;
 }
 
 export interface ConfirmationMessage extends BaseMessage {
@@ -24,12 +25,13 @@ export interface ConfirmationMessage extends BaseMessage {
   status: ConfirmationStatus;
 }
 
-export interface UserInputMessage extends BaseMessage {
-  type: "user_input";
+export interface DecisionMessage extends BaseMessage {
+  type: "decision";
   requestId: string;
   prompt: string;
+  options?: string[];
   result: string;
-  status: RuntimeInputStatus;
+  status: DecisionStatus;
 }
 
 export interface StatusMessage extends BaseMessage {
@@ -37,7 +39,7 @@ export interface StatusMessage extends BaseMessage {
   variant: "completed" | "cancelled";
 }
 
-export type Message = TextMessage | ErrorMessage | ConfirmationMessage | UserInputMessage | StatusMessage;
+export type Message = TextMessage | ErrorMessage | ConfirmationMessage | DecisionMessage | StatusMessage;
 
 export interface ConfirmationRequest {
   requestId: string;
@@ -45,19 +47,14 @@ export interface ConfirmationRequest {
   timeout?: number;
 }
 
-export interface RuntimeInputRequest {
+export interface DecisionRequest {
   requestId: string;
   message: string;
+  options?: string[];
   timeout?: number;
-  initialStatus?: RuntimeInputStatus;
+  initialStatus?: DecisionStatus;
   initialValue?: string;
-  onDecision?: (status: RuntimeInputStatus, value: string) => void;
-}
-
-export interface UserInputRequest {
-  requestId: string;
-  message: string;
-  timeout?: number;
+  onDecision?: (status: DecisionStatus, value: string) => void;
 }
 
 export interface StatusIndicatorProps {
