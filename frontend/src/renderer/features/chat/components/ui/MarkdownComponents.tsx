@@ -96,7 +96,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Lists
   ul: ({ children }) => <ul className="my-3 ml-1 space-y-1.5 list-none">{children}</ul>,
-  ol: ({ children }) => <ol className="my-3 ml-1 space-y-1.5 list-none counter-reset-item">{children}</ol>,
+  ol: ({ children }) => <ol className="my-3 ml-1 space-y-1.5 list-none [counter-reset:list-item]">{children}</ol>,
   li: ({ children, ...props }: MarkdownLiProps) => {
     const isOrdered = props.ordered;
     return (
@@ -105,8 +105,8 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
           "relative pl-6 text-foreground/90 leading-7 mb-2 last:mb-0",
           "before:absolute before:left-0 before:top-[11px]",
           isOrdered
-            ? "before:content-[counter(list-item)'.'] before:text-black dark:before:text-white before:text-[11px] before:font-bold before:opacity-90 [counter-increment:list-item]"
-            : "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-black dark:before:bg-white before:opacity-85"
+            ? "before:content-[counter(list-item)'.'] before:text-foreground before:text-[11px] before:font-bold before:opacity-90 [counter-increment:list-item]"
+            : "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-foreground before:opacity-85"
         )}
       >
         {children}

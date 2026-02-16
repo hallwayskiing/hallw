@@ -36,7 +36,7 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
         div.scrollTo({ top: div.scrollHeight, behavior: "smooth" });
         setTimeout(() => {
           isSmoothScrolling.current = false;
-        }, 1000);
+        }, 1500);
       }, 0);
     }
   }, []);

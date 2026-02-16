@@ -82,7 +82,7 @@ export function QuickStartList({
   return (
     <div
       className={cn(
-        "absolute inset-x-0 top-1 bottom-0 grid grid-cols-1 gap-3 transition-opacity duration-500 ease-in-out px-1",
+        "absolute inset-x-0 top-1 bottom-0 grid grid-cols-1 gap-3 transition-all duration-500 ease-in-out px-1",
         !isVisible ? "opacity-0 scale-95 pointer-events-none -translate-x-8" : "opacity-100 scale-100 translate-x-0"
       )}
     >
