@@ -1,11 +1,11 @@
 import { useAppStore } from "@store/store";
 import { AlertTriangle, Check, X } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 import { useCountdown } from "../hooks/useCountdown";
 import type { ConfirmationProps, ConfirmationStatus } from "../types";
 
-export function Confirmation({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) {
+export const Confirmation = memo(({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) => {
   const { handleConfirmationDecision } = useAppStore();
   const [status, setStatus] = useState<ConfirmationStatus>(initialStatus || "pending");
 
@@ -93,4 +93,4 @@ export function Confirmation({ requestId, message, timeout, initialStatus, onDec
       {getStatusContent()}
     </div>
   );
-}
+});

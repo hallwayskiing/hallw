@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
+import { memo } from "react";
 
-export function ErrorCard({ content }: { content: string }) {
+export const ErrorCard = memo(({ content }: { content: string }) => {
   return (
     <div className="max-w-3xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="bg-destructive/10 border border-destructive/80 rounded-lg p-4 flex gap-3 items-start">
@@ -12,4 +13,4 @@ export function ErrorCard({ content }: { content: string }) {
       </div>
     </div>
   );
-}
+});

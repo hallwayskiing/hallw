@@ -1,5 +1,6 @@
 import { cn } from "@lib/utils";
 import { Bot, User } from "lucide-react";
+import { memo } from "react";
 
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import type { AvatarProps, MessageBubbleProps } from "../types";
@@ -22,7 +23,7 @@ export function Avatar({ msgRole: role }: AvatarProps) {
   );
 }
 
-export function MessageBubble({ msgRole, content, reasoning, isStreaming }: MessageBubbleProps) {
+export const MessageBubble = memo(({ msgRole, content, reasoning, isStreaming }: MessageBubbleProps) => {
   const isUser = msgRole === "user";
   const smoothContent = useSmoothTyping(content, isStreaming || false);
 
@@ -55,4 +56,4 @@ export function MessageBubble({ msgRole, content, reasoning, isStreaming }: Mess
       </div>
     </div>
   );
-}
+});

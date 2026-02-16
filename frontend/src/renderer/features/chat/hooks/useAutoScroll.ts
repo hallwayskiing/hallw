@@ -3,8 +3,11 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 export function useAutoScroll<T extends unknown[]>(dependencies: T) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
+  const isSmoothScrolling = useRef(false);
 
   const handleScroll = useCallback(() => {
+    if (isSmoothScrolling.current) return;
+
     const div = scrollRef.current;
     if (!div) return;
 
@@ -15,6 +18,8 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
   }, []);
 
   useLayoutEffect(() => {
+    if (isSmoothScrolling.current) return;
+
     const div = scrollRef.current;
     if (div && !userHasScrolledUp) {
       div.scrollTo({ top: div.scrollHeight, behavior: "instant" });
@@ -24,8 +29,15 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
   const scrollToBottom = useCallback(() => {
     const div = scrollRef.current;
     if (div) {
-      div.scrollTo({ top: div.scrollHeight, behavior: "smooth" });
+      isSmoothScrolling.current = true;
       setUserHasScrolledUp(false);
+
+      setTimeout(() => {
+        div.scrollTo({ top: div.scrollHeight, behavior: "smooth" });
+        setTimeout(() => {
+          isSmoothScrolling.current = false;
+        }, 1000);
+      }, 0);
     }
   }, []);
 

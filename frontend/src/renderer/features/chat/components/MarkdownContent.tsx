@@ -1,4 +1,5 @@
 import { cn } from "@lib/utils";
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
@@ -7,7 +8,7 @@ import remarkMath from "remark-math";
 
 import { mdComponents } from "./ui/MarkdownComponents";
 
-export function MarkdownContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
+export const MarkdownContent = memo(({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
   return (
     <div className={cn("md-content max-w-none wrap-break-word text-[14px]", isStreaming && "leading-relaxed")}>
       <ReactMarkdown
@@ -26,4 +27,4 @@ export function MarkdownContent({ content, isStreaming }: { content: string; isS
       )}
     </div>
   );
-}
+});

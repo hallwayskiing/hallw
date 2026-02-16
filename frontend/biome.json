@@ -5,7 +5,8 @@
     "rules": {
       "recommended": true,
       "correctness": {
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedImports": "warn"
       },
       "style": {
         "noNonNullAssertion": "warn"
@@ -20,6 +21,14 @@
     "lineEnding": "lf",
     "lineWidth": 120,
     "attributePosition": "auto"
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "javascript": {
     "formatter": {
