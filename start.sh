@@ -34,15 +34,25 @@ echo "[SETUP] Syncing environment with uv..."
 uv sync
 
 # ==========================================
-# 3. Install Frontend Dependencies
+# 3. Check and Install Bun
 # ==========================================
-echo "[SETUP] Installing frontend dependencies..."
+if ! command -v bun >/dev/null 2>&1; then
+    echo "[SETUP] 'bun' not found. Installing..."
+    curl -fsSL https://bun.sh/install | bash
+    export BUN_INSTALL="$HOME/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+fi
+
+# ==========================================
+# 4. Install Frontend Dependencies
+# ==========================================
+echo "[SETUP] Installing frontend dependencies with Bun..."
 pushd frontend > /dev/null
-npm install
+bun install
 popd > /dev/null
 
 # ==========================================
-# 4. Launch Application
+# 5. Launch Application
 # ==========================================
 if [[ ! -f ".env" ]]; then
     if [[ -f ".env.example" ]]; then

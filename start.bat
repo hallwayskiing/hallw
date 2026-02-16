@@ -27,11 +27,27 @@ uv sync
 if errorlevel 1 goto :fail
 
 :: ==========================================
-:: 3. Install Frontend Dependencies
+:: 3. Check and Install Bun (Frontend)
 :: ==========================================
-echo [SETUP] Installing frontend dependencies...
+echo [SETUP] Checking for Bun...
+where bun >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [SETUP] 'bun' not found. Installing via PowerShell...
+    powershell -Command "irm bun.sh/install.ps1 | iex"
+    if errorlevel 1 (
+        echo [ERROR] Failed to install Bun.
+        goto :fail
+    )
+    :: Add Bun to PATH for current session
+    set "PATH=%USERPROFILE%\.bun\bin;%PATH%"
+)
+
+:: ==========================================
+:: 4. Install Frontend Dependencies
+:: ==========================================
+echo [SETUP] Installing frontend dependencies with Bun...
 pushd frontend
-call npm install
+call bun install
 if errorlevel 1 (
     popd
     goto :fail
@@ -39,7 +55,7 @@ if errorlevel 1 (
 popd
 
 :: ==========================================
-:: 4. Launch Application
+:: 5. Launch Application
 :: ==========================================
 :: Check for .env configuration
 if not exist ".env" (
