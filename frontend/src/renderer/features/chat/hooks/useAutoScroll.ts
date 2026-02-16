@@ -1,10 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-/**
- * Hook to handle auto-scrolling in a container.
- * It stays at the bottom unless the user has manually scrolled up.
- */
-export function useAutoScroll(dependencies: any[]) {
+export function useAutoScroll<T extends unknown[]>(dependencies: T) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
 
@@ -12,27 +8,19 @@ export function useAutoScroll(dependencies: any[]) {
     const div = scrollRef.current;
     if (!div) return;
 
-    // threshold to consider "at bottom"
     const threshold = 80;
     const isAtBottom = div.scrollHeight - div.scrollTop - div.clientHeight <= threshold;
 
-    // If user is at bottom, reset the flag. If they scroll up, set the flag.
-    if (isAtBottom) {
-      setUserHasScrolledUp(false);
-    } else {
-      setUserHasScrolledUp(true);
-    }
+    setUserHasScrolledUp(!isAtBottom);
   }, []);
 
-  // Effect to scroll to bottom when dependencies change, ONLY if user hasn't scrolled up
   useLayoutEffect(() => {
     const div = scrollRef.current;
     if (div && !userHasScrolledUp) {
-      div.scrollTo({ top: div.scrollHeight, behavior: "instant" }); // 'instant' is better for streaming than 'smooth'
+      div.scrollTo({ top: div.scrollHeight, behavior: "instant" });
     }
-  }, [dependencies, userHasScrolledUp]);
+  }, [...dependencies, userHasScrolledUp]);
 
-  // Force scroll to bottom when requested
   const scrollToBottom = useCallback(() => {
     const div = scrollRef.current;
     if (div) {
@@ -41,5 +29,10 @@ export function useAutoScroll(dependencies: any[]) {
     }
   }, []);
 
-  return { scrollRef, handleScroll, scrollToBottom, showScrollButton: userHasScrolledUp };
+  return {
+    scrollRef,
+    handleScroll,
+    scrollToBottom,
+    showScrollButton: userHasScrolledUp,
+  };
 }

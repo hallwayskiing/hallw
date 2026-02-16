@@ -1,10 +1,6 @@
-import { Clock } from "lucide-react";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
-
 import { cn } from "@lib/utils";
-
-import { StagesPanelProps } from "../types";
-import { StageItemProps } from "../types";
+import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
+import type { StageItemProps, StagesPanelProps } from "../types";
 
 function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }: StageItemProps) {
   const StatusIcon = isCompleted ? (
@@ -59,7 +55,7 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
           ? isExpanded && <p className="text-sm text-muted-foreground italic">No active stages.</p>
           : stages.map((step, idx) => (
               <StageItem
-                key={idx}
+                key={step}
                 index={idx}
                 label={step}
                 isCurrent={idx === currentIndex}

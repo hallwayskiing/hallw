@@ -1,6 +1,6 @@
-import { Dispatch, SetStateAction, useCallback, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from "react";
 
-import { ToolState } from "../types";
+import type { ToolState } from "../types";
 
 export type PreviewEntry = [string, unknown];
 
@@ -70,7 +70,7 @@ export function useToolPreview(toolState: ToolState | null): UseToolPreviewRetur
     }
 
     return { resultMessage, resultData, isSuccess };
-  }, [toolState?.result, toolState?.status]);
+  }, [toolState?.result, toolState?.status, toolState]);
 
   const parsedArgs = useMemo<PreviewEntry[]>(() => {
     if (toolState?.args === null || toolState?.args === undefined) return [];

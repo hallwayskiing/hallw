@@ -46,7 +46,7 @@ def run_frontend() -> Optional[subprocess.Popen]:
     frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 
     try:
-        return subprocess.Popen(["npm", "run", "dev"], cwd=frontend_dir, shell=True)
+        return subprocess.Popen(["bun", "dev"], cwd=frontend_dir, shell=True)
     except Exception as e:
         logger.error(f"Failed to start frontend: {e}")
         return None

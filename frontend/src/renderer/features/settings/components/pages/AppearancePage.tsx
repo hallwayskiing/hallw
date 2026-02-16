@@ -1,16 +1,10 @@
+import { cn } from "@lib/utils";
 import { useAppStore } from "@store/store";
 import { Moon, Palette, Sun } from "lucide-react";
 
-import { cn } from "@lib/utils";
-
 import { SectionCard } from "../ui/SectionCard";
 
-interface AppearancePageProps {
-  config: any;
-  handleChange: (key: string, value: any) => void;
-}
-
-export function AppearancePage({ config, handleChange }: AppearancePageProps) {
+export function AppearancePage() {
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
 
@@ -27,12 +21,13 @@ export function AppearancePage({ config, handleChange }: AppearancePageProps) {
           <span className="text-xs text-muted-foreground">Toggle between light and dark theme</span>
         </div>
         <button
+          type="button"
           onClick={toggleTheme}
           className={cn(
             "relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
             theme === "dark"
-              ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
-              : "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300"
+              ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
+              : "bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-300"
           )}
         >
           {theme === "dark" ? (

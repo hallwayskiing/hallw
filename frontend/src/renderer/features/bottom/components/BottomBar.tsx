@@ -1,7 +1,6 @@
-import { FormEvent, useState } from "react";
-
 import { useAppStore } from "@store/store";
 import { ArrowLeft, Clock, Settings, Zap } from "lucide-react";
+import { type FormEvent, useState } from "react";
 
 import { ActionButton } from "./ActionButton";
 import { ChatInput } from "./ChatInput";
@@ -47,7 +46,7 @@ export function BottomBar() {
         />
 
         {/* Input Form Container */}
-        <div className="flex-1 relative min-h-[42px] z-20">
+        <div className="flex-1 relative min-h-10.5 z-20">
           <ChatInput
             value={input}
             onChange={setInput}
@@ -61,7 +60,7 @@ export function BottomBar() {
             isFocused={isFocused}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder={isChatting ? "Running..." : "Tell me what to do..."}
+            placeholder={isRunning ? "Running..." : "Tell me what to do..."}
           />
         </div>
 

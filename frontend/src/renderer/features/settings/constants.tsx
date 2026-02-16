@@ -1,6 +1,6 @@
 import { Gauge, Globe, Key, Logs, Palette, Search, Sparkles, Terminal } from "lucide-react";
 
-import { TabConfig } from "./types";
+import type { TabConfig } from "./types";
 
 export const TABS: TabConfig[] = [
   {

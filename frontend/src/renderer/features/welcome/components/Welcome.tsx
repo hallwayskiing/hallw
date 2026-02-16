@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
 import { RefreshCw } from "lucide-react";
-
-import { cn } from "@lib/utils";
+import { useEffect, useState } from "react";
 
 import { HeroSection } from "./HeroSection";
 import { HistoryList } from "./HistoryList";
@@ -14,7 +13,7 @@ import { WelcomeHeaders } from "./WelcomeHeaders";
 export function Welcome() {
   const { theme, startTask } = useAppStore();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(1);
 
   const refreshQuickStarts = () => {
     setRefreshKey((prev) => prev + 1);
@@ -53,6 +52,7 @@ export function Welcome() {
 
           {!isHistoryOpen && (
             <button
+              type="button"
               onClick={refreshQuickStarts}
               className="group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90"
               title="Shuffle prompts"
@@ -62,7 +62,7 @@ export function Welcome() {
           )}
         </div>
 
-        <div className="relative h-[192px] overflow-hidden pt-1">
+        <div className="relative h-48 overflow-hidden pt-1">
           <QuickStartList onQuickStart={startTask} isVisible={!isHistoryOpen} refreshKey={refreshKey} />
 
           <HistoryList isVisible={isHistoryOpen} />

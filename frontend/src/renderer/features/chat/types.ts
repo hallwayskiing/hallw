@@ -3,7 +3,8 @@ export type ConfirmationStatus = "pending" | "approved" | "rejected" | "timeout"
 export type DecisionStatus = "pending" | "submitted" | "rejected" | "timeout";
 
 export interface BaseMessage {
-  role: MessageRole;
+  msgRole: MessageRole;
+  id: string;
 }
 
 export interface TextMessage extends BaseMessage {
@@ -62,11 +63,11 @@ export interface StatusIndicatorProps {
 }
 
 export interface AvatarProps {
-  role: MessageRole;
+  msgRole: MessageRole;
 }
 
 export interface MessageBubbleProps {
-  role: MessageRole;
+  msgRole: MessageRole;
   content: string;
   reasoning?: string;
   isStreaming?: boolean;

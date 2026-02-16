@@ -1,34 +1,38 @@
+import type { AppState } from "@store/store";
+import { useAppStore } from "@store/store";
 import { useCallback, useEffect, useMemo } from "react";
 
-import { useAppStore } from "@store/store";
-
-function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T & { cancel: () => void } {
+function debounce<T extends (...args: never[]) => void>(fn: T, ms: number) {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const debounced = (...args: any[]) => {
+
+  const debounced = (...args: Parameters<T>) => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
+
   debounced.cancel = () => {
     if (timer) clearTimeout(timer);
   };
-  return debounced as T & { cancel: () => void };
+
+  return debounced;
 }
 
 export function useSettingsSocket(isOpen: boolean) {
-  const { config, isLoading, updateConfigLocal, _socket } = useAppStore();
+  const config = useAppStore((state) => state.config);
+  const isLoading = useAppStore((state) => state.isLoading);
+  const updateConfigLocal = useAppStore((state) => state.updateConfigLocal);
+  const _socket = useAppStore((state) => state._socket);
 
-  // Fetch config when settings opens
   useEffect(() => {
     if (isOpen && _socket) {
       _socket.emit("get_config");
     }
   }, [isOpen, _socket]);
 
-  // Debounced save — emits the latest config from the store
   const debouncedSave = useMemo(
     () =>
       debounce(() => {
-        const state = useAppStore.getState();
+        const state: AppState = useAppStore.getState();
         if (state._socket) {
           state.setSaveStatus("saving");
           state._socket.emit("update_config", state.config);
@@ -37,24 +41,18 @@ export function useSettingsSocket(isOpen: boolean) {
     []
   );
 
-  // Cancel pending save when settings closes or unmounts
   useEffect(() => {
     if (!isOpen) debouncedSave.cancel();
     return () => debouncedSave.cancel();
   }, [isOpen, debouncedSave]);
 
-  // Wrap handleChange: update local state then trigger debounced save
   const handleChange = useCallback(
-    (key: string, value: any) => {
+    (key: string, value: unknown) => {
       updateConfigLocal(key, value);
       debouncedSave();
     },
     [updateConfigLocal, debouncedSave]
   );
 
-  return {
-    config,
-    isLoading,
-    handleChange,
-  };
+  return { config, isLoading, handleChange };
 }

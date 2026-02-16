@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@lib/utils";
 
 import { Brain, ChevronDown, ChevronRight } from "lucide-react";
-
-import { cn } from "@lib/utils";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import { MarkdownContent } from "./MarkdownContent";
@@ -16,7 +15,7 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
     if (isOpen && isStreaming) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [isOpen, content, isStreaming]);
+  }, [isOpen, isStreaming]);
 
   const summary = useMemo(() => {
     return (
@@ -30,12 +29,13 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
   return (
     <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[90%]">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-all text-left group",
           !isOpen &&
             isStreaming &&
-            "bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
+            "bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
         )}
       >
         {isOpen ? (

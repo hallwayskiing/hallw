@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { cn } from "@lib/utils";
 
 import { ChevronDown } from "lucide-react";
-
-import { cn } from "@lib/utils";
+import { useEffect, useState } from "react";
 
 import { Input } from "./Input";
 
@@ -58,9 +57,9 @@ export function Combobox({
       {isOpen && uniqueOptions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-popover/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
           <div className="p-1 space-y-0.5">
-            {uniqueOptions.map((option, idx) => (
+            {uniqueOptions.map((option) => (
               <button
-                key={idx}
+                key={option}
                 type="button"
                 onClick={() => {
                   onChange(option);

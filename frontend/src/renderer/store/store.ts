@@ -1,12 +1,12 @@
 import { create } from "zustand";
 
-import { BottomSlice, createBottomSlice } from "../features/bottom/store/bottomSlice";
-import { ChatSlice, createChatSlice } from "../features/chat/store/chatSlice";
-import { SettingsSlice, createSettingsSlice } from "../features/settings/store/settingsSlice";
-import { SidebarSlice, createSidebarSlice } from "../features/sidebar/store/sidebarSlice";
-import { WelcomeSlice, createWelcomeSlice } from "../features/welcome/store/welcomeSlice";
-import { SocketSlice, createSocketSlice } from "./slices/socketSlice";
-import { UISlice, createUISlice } from "./slices/uiSlice";
+import { type BottomSlice, createBottomSlice } from "../features/bottom/store/bottomSlice";
+import { type ChatSlice, createChatSlice } from "../features/chat/store/chatSlice";
+import { createSettingsSlice, type SettingsSlice } from "../features/settings/store/settingsSlice";
+import { createSidebarSlice, type SidebarSlice } from "../features/sidebar/store/sidebarSlice";
+import { createWelcomeSlice, type WelcomeSlice } from "../features/welcome/store/welcomeSlice";
+import { createSocketSlice, type SocketSlice } from "./slices/socketSlice";
+import { createUISlice, type UISlice } from "./slices/uiSlice";
 
 export type AppState = BottomSlice & ChatSlice & SettingsSlice & SidebarSlice & WelcomeSlice & SocketSlice & UISlice;
 

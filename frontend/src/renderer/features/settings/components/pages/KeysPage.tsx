@@ -1,15 +1,9 @@
-import { ChangeEvent } from "react";
-
 import { Key } from "lucide-react";
-
+import type { ChangeEvent } from "react";
+import type { Config } from "../../types";
 import { Input } from "../ui/Input";
 import { InputGroup } from "../ui/InputGroup";
 import { SectionCard } from "../ui/SectionCard";
-
-interface ApiKeysPageProps {
-  config: any;
-  handleChange: (key: string, value: any) => void;
-}
 
 const ALL_PROVIDERS = [
   { key: "openai_api_key", label: "OpenAI", placeholder: "sk-..." },
@@ -22,7 +16,13 @@ const ALL_PROVIDERS = [
   { key: "xiaomi_mimo_api_key", label: "Xiaomi Mimo", placeholder: "sk-..." },
 ];
 
-export function KeysPage({ config, handleChange }: ApiKeysPageProps) {
+export function KeysPage({
+  config,
+  handleChange,
+}: {
+  config: Config;
+  handleChange: (key: string, value: unknown) => void;
+}) {
   return (
     <SectionCard
       title="Provider API Keys"
@@ -36,7 +36,7 @@ export function KeysPage({ config, handleChange }: ApiKeysPageProps) {
             <Input
               name={provider.key}
               type="password"
-              value={config[provider.key] || ""}
+              value={(config[provider.key] as string) || ""}
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(provider.key, e.target.value)}
               placeholder={provider.placeholder}
             />

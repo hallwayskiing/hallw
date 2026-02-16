@@ -1,13 +1,18 @@
-import { ChangeEvent } from "react";
-
 import { Sparkles } from "lucide-react";
-
+import type { ChangeEvent } from "react";
+import type { Config } from "../../types";
 import { Combobox } from "../ui/Combobox";
 import { Input } from "../ui/Input";
 import { InputGroup } from "../ui/InputGroup";
 import { SectionCard } from "../ui/SectionCard";
 
-export function ModelPage({ config, handleChange }: { config: any; handleChange: (key: string, value: any) => void }) {
+export function ModelPage({
+  config,
+  handleChange,
+}: {
+  config: Config;
+  handleChange: (key: string, value: unknown) => void;
+}) {
   return (
     <div className="space-y-6 max-w-2xl">
       <SectionCard
@@ -18,16 +23,16 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
       >
         <InputGroup label="Model Name" desc="e.g. gemini/gemini-2.5-flash">
           <Combobox
-            value={config.model_name || ""}
+            value={(config.model_name as string) || ""}
             onChange={(val) => handleChange("model_name", val)}
-            options={config.model_recent_used || []}
+            options={(config.model_recent_used as string[]) || []}
             placeholder="gemini/gemini-2.5-flash"
           />
         </InputGroup>
         <InputGroup label="OpenAI-Compatible Endpoint" desc="Endpoint for the custom OpenAI provider">
           <Input
             name="openai_api_base"
-            value={config.openai_api_base || ""}
+            value={(config.openai_api_base as string) || ""}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("openai_api_base", e.target.value)}
             placeholder="https://api.openai.com/v1"
           />
@@ -35,7 +40,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
         <InputGroup label="Anthropic-Compatible Endpoint" desc="Endpoint for the custom Anthropic provider">
           <Input
             name="anthropic_api_base"
-            value={config.anthropic_api_base || ""}
+            value={(config.anthropic_api_base as string) || ""}
             onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("anthropic_api_base", e.target.value)}
             placeholder="https://api.anthropic.com"
           />
@@ -50,7 +55,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
       >
         <InputGroup label="Reasoning Effort" desc="For supported models">
           <Combobox
-            value={config.model_reasoning_effort || "low"}
+            value={(config.model_reasoning_effort as string) || "low"}
             onChange={(val) => handleChange("model_reasoning_effort", val)}
             options={["low", "medium", "high"]}
             placeholder="low"
@@ -64,7 +69,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
               step="0.1"
               min="0"
               max="2"
-              value={config.model_temperature ?? 1}
+              value={(config.model_temperature as number) ?? 1}
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_temperature", e.target.value)}
             />
           </InputGroup>
@@ -73,7 +78,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
               name="model_max_output_tokens"
               type="number"
               min="1"
-              value={config.model_max_output_tokens ?? 10240}
+              value={(config.model_max_output_tokens as number) ?? 10240}
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_max_output_tokens", e.target.value)}
             />
           </InputGroup>
@@ -82,7 +87,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
               name="model_reflection_threshold"
               type="number"
               min="1"
-              value={config.model_reflection_threshold ?? 3}
+              value={(config.model_reflection_threshold as number) ?? 3}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 handleChange("model_reflection_threshold", e.target.value)
               }
@@ -93,7 +98,7 @@ export function ModelPage({ config, handleChange }: { config: any; handleChange:
               name="model_max_recursion"
               type="number"
               min="1"
-              value={config.model_max_recursion ?? 50}
+              value={(config.model_max_recursion as number) ?? 50}
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_max_recursion", e.target.value)}
             />
           </InputGroup>

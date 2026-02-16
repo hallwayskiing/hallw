@@ -1,10 +1,9 @@
-import { useState } from "react";
-
 import { useAppStore } from "@store/store";
 import { AlertTriangle, Check, X } from "lucide-react";
+import { useState } from "react";
 
 import { useCountdown } from "../hooks/useCountdown";
-import { ConfirmationProps, ConfirmationStatus } from "../types";
+import type { ConfirmationProps, ConfirmationStatus } from "../types";
 
 export function Confirmation({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) {
   const { handleConfirmationDecision } = useAppStore();
@@ -51,6 +50,7 @@ export function Confirmation({ requestId, message, timeout, initialStatus, onDec
         return (
           <div className="flex gap-3 pt-1">
             <button
+              type="button"
               onClick={() => handleDecision("approved")}
               className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-black font-semibold py-2 rounded-lg hover:bg-amber-400 transition-colors text-sm"
             >
@@ -58,6 +58,7 @@ export function Confirmation({ requestId, message, timeout, initialStatus, onDec
               Approve
             </button>
             <button
+              type="button"
               onClick={() => handleDecision("rejected")}
               className="flex-1 flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-medium py-2 rounded-lg transition-colors text-sm border border-border"
             >
@@ -70,7 +71,10 @@ export function Confirmation({ requestId, message, timeout, initialStatus, onDec
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-bottom-2">
+    <div
+      key={requestId}
+      className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-bottom-2"
+    >
       <div className="flex items-center gap-3 text-amber-500">
         <AlertTriangle className="w-5 h-5" />
         <span className="font-semibold text-sm tracking-wide uppercase">Confirmation</span>

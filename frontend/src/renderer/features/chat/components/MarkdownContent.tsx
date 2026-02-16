@@ -1,17 +1,15 @@
+import { cn } from "@lib/utils";
 import ReactMarkdown from "react-markdown";
-
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
-import { cn } from "@lib/utils";
-
 import { mdComponents } from "./ui/MarkdownComponents";
 
 export function MarkdownContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   return (
-    <div className={cn("md-content max-w-none break-words text-[14px]", isStreaming && "leading-relaxed")}>
+    <div className={cn("md-content max-w-none wrap-break-word text-[14px]", isStreaming && "leading-relaxed")}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeHighlight]}

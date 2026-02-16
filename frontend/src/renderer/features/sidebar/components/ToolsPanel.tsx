@@ -1,9 +1,8 @@
+import { cn } from "@lib/utils";
 import { useAppStore } from "@store/store";
 import { Activity, Loader2 } from "lucide-react";
 
-import { cn } from "@lib/utils";
-
-import { ToolItemProps, ToolsPanelProps } from "../types";
+import type { ToolItemProps, ToolsPanelProps } from "../types";
 
 function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
   const { tool_name, status } = state;
@@ -31,20 +30,21 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
   }
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       className={cn(
-        "group relative pl-4 border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm py-1 pr-2",
+        "w-full group relative pl-4 border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm py-1 pr-2",
         borderColor
       )}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className="font-medium text-[14px] text-foreground group-hover:text-primary transition-colors">
+        <span className="font-medium text-[15px] text-foreground group-hover:text-primary transition-colors">
           {tool_name}
         </span>
         {StatusIcon}
       </div>
-    </div>
+    </button>
   );
 }
 

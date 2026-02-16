@@ -1,8 +1,8 @@
-import { AppState } from "@store/store";
-import { StateCreator } from "zustand";
+import type { AppState } from "@store/store";
+import type { StateCreator } from "zustand";
 
 import { HIDDEN_TOOLS } from "../constants";
-import { ToolState } from "../types";
+import type { ToolState } from "../types";
 
 export interface SidebarSlice {
   toolStates: ToolState[];
@@ -22,7 +22,7 @@ export interface SidebarSlice {
   // Lifecycle handlers
   _onSidebarTaskStarted: () => void;
   _onSidebarTaskCancelled: () => void;
-  _onSidebarFatalError: (data: any) => void;
+  _onSidebarFatalError: (data: unknown) => void;
   _onSidebarReset: () => void;
   _onSidebarHistoryLoaded: (data: { toolStates?: ToolState[] }) => void;
 }

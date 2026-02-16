@@ -1,9 +1,8 @@
+import { cn } from "@lib/utils";
 import { Check, CheckCircle2, Copy, Loader2, X, XCircle } from "lucide-react";
 
-import { cn } from "@lib/utils";
-
 import { useToolPreview } from "../hooks/useToolPreview";
-import { ToolPreviewProps } from "../types";
+import type { ToolPreviewProps } from "../types";
 
 export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
   const {
@@ -49,7 +48,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
               <p className="text-xs text-muted-foreground font-mono">{toolState.run_id}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -57,6 +56,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         {/* Tabs */}
         <div className="flex border-b border-border px-4">
           <button
+            type="button"
             onClick={() => setActiveTab("result")}
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
@@ -68,6 +68,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
             Result
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("args")}
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
@@ -98,6 +99,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data</span>
                     <button
+                      type="button"
                       onClick={() => copyToClipboard(JSON.stringify(resultData, null, 2))}
                       className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                     >
@@ -120,6 +122,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                   Input Arguments
                 </span>
                 <button
+                  type="button"
                   onClick={() => copyToClipboard(toolState.args || "")}
                   className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -133,7 +136,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                     No arguments recorded.
                   </div>
                 ) : (
-                  parsedArgs.map(([key, value]: [string, any]) => (
+                  parsedArgs.map(([key, value]: [string, unknown]) => (
                     <div key={key} className="flex items-start gap-3 w-full group">
                       <div className="w-[15%] text-[13px] font-bold text-muted-foreground uppercase tracking-tight font-mono truncate text-right shrink-0 pt-2">
                         {key}
@@ -154,6 +157,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         {/* Footer */}
         <div className="p-4 border-t border-border bg-muted/10 flex justify-end">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md transition-colors"
           >

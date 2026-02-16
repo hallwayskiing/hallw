@@ -1,6 +1,5 @@
-import { ReactNode } from "react";
-
 import { cn } from "@lib/utils";
+import type { ReactNode } from "react";
 
 export function SectionCard({
   title,
@@ -18,7 +17,7 @@ export function SectionCard({
   return (
     <div
       className={cn(
-        "bg-gradient-to-br border border-border/30 rounded-2xl p-5 space-y-4",
+        "bg-linear-to-br border border-border/30 rounded-2xl p-5 space-y-4",
         gradient || "from-muted/20 to-muted/5"
       )}
     >

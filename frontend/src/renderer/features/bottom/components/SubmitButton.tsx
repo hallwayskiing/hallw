@@ -1,10 +1,9 @@
-import { FormEvent } from "react";
-
-import { Send, Square } from "lucide-react";
-
 import { cn } from "@lib/utils";
 
-import { SubmitButtonProps } from "../types";
+import { Send, Square } from "lucide-react";
+import type { FormEvent } from "react";
+
+import type { SubmitButtonProps } from "../types";
 
 export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitButtonProps) {
   return (
@@ -24,8 +23,8 @@ export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitBu
     >
       {/* Shimmer Overlay */}
       {!isRunning && hasInput && (
-        <div className="absolute inset-[-100%] rotate-[25deg] pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer-slide" />
+        <div className="absolute inset-full rotate-25 pointer-events-none">
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer-slide" />
         </div>
       )}
 

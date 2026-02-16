@@ -1,20 +1,20 @@
-import { useEffect } from "react";
+import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
 import { Clock, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 
-import { cn } from "@lib/utils";
-
-import { HistoryRowProps } from "../types";
+import type { HistoryRowProps } from "../types";
 import { EmptyHistory } from "./EmptyHistory";
 
 function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
   const dateStr = item.created_at || item.metadata?.created_at;
-  const date = dateStr ? new Date(dateStr).toLocaleString() : "";
-  const title = item.title || item.metadata?.title || `Conversation ${item.id.slice(0, 8)}`;
+  const date = dateStr ? new Date(dateStr as string).toLocaleString() : "";
+  const title = item.title || (item.metadata?.title as string) || `Conversation ${item.id.slice(0, 8)}`;
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onLoad}
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl transition-all duration-400 ease-out",
@@ -25,7 +25,7 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
     >
       <div
         className={cn(
-          "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 flex-shrink-0",
+          "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 shrink-0",
           "transition-all duration-200 group-hover:bg-white/10 group-hover:shadow-lg group-hover:shadow-emerald-500/50",
           "text-emerald-400"
         )}
@@ -46,8 +46,9 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
@@ -59,7 +60,7 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
         </button>
         <span className="text-muted-foreground/20 group-hover:text-foreground/40 transition-all duration-200">→</span>
       </div>
-    </div>
+    </button>
   );
 }
 

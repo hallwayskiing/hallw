@@ -1,7 +1,7 @@
-import { AppState } from "@store/store";
-import { StateCreator } from "zustand";
+import type { AppState } from "@store/store";
+import type { StateCreator } from "zustand";
 
-import { Config, SaveStatus, ServerResponse } from "../types";
+import type { Config, SaveStatus, ServerResponse } from "../types";
 
 export interface SettingsSlice {
   config: Config;
@@ -9,7 +9,7 @@ export interface SettingsSlice {
   saveStatus: SaveStatus;
   statusMsg: string;
   setSaveStatus: (status: SaveStatus) => void;
-  updateConfigLocal: (key: string, value: any) => void;
+  updateConfigLocal: (key: string, value: unknown) => void;
   _onConfigData: (data: Config) => void;
   _onConfigUpdated: (response: ServerResponse) => void;
 }

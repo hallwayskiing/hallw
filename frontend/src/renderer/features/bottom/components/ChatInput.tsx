@@ -1,21 +1,20 @@
+import { cn } from "@lib/utils";
 import { forwardRef, useImperativeHandle } from "react";
 
-import { cn } from "@lib/utils";
-
 import { useAutoResize } from "../hooks/useAutoResize";
-import { ChatInputProps } from "../types";
+import type { ChatInputProps } from "../types";
 
 export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
   ({ value, onChange, onKeyDown, disabled, isFocused, placeholder, onFocus, onBlur, className }, ref) => {
     const { textareaRef, height } = useAutoResize(value);
-    useImperativeHandle(ref, () => textareaRef.current!);
+    useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
 
     return (
       <form
         className={cn(
           "absolute bottom-0 left-0 right-0 bg-muted/30 rounded-2xl border border-border",
           "focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent",
-          "transition-[all] duration-200 ease-in-out overflow-hidden shadow-sm",
+          "transition-all duration-200 ease-in-out overflow-hidden shadow-sm",
           isFocused || value.length > 0 ? "bg-background shadow-lg" : "",
           className
         )}

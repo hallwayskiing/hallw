@@ -1,7 +1,6 @@
 import { BottomBar } from "@features/bottom";
 import { ChatArea } from "@features/chat";
 import { Settings } from "@features/settings";
-// Import Feature Modules
 import { Sidebar } from "@features/sidebar";
 import { Welcome } from "@features/welcome";
 import { useAppStore } from "@store/store";
@@ -21,9 +20,9 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Content Container: scroll and max-width */}
         <section className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <div className="max-w-[1200px] mx-auto w-full h-full flex flex-col">
+          <div className="max-w-300 mx-auto w-full h-full flex flex-col">
             {/* Background Pattern */}
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px] pointer-events-none" />
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-size-[20px_20px] pointer-events-none" />
 
             {/* Core View Switching */}
             {isChatting ? <ChatArea /> : <Welcome />}
@@ -35,7 +34,7 @@ export default function App() {
       </main>
 
       {/* Sidebar: App controls visibility, Logic internal */}
-      {isChatting && <Sidebar className="flex-shrink-0 border-l border-white/5" />}
+      {isChatting && <Sidebar className="shrink-0 border-l border-white/5" />}
 
       {/* Global Modals */}
       <Settings isOpen={isSettingsOpen} />

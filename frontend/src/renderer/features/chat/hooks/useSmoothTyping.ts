@@ -33,7 +33,7 @@ export function useSmoothTyping(targetText: string, isStreaming: boolean, speed:
 
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [targetText, isStreaming, speed]);
+  }, [targetText, isStreaming, speed, displayedText.length]);
 
   return displayedText;
 }

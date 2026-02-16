@@ -28,7 +28,7 @@ import {
   Utensils,
 } from "lucide-react";
 
-import { ColorName } from "./types";
+import type { ColorName } from "./types";
 
 export const ALL_QUICK_STARTS = [
   {

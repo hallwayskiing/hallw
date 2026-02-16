@@ -1,9 +1,8 @@
+import { MessageSquare, Send, X } from "lucide-react";
 import { useState } from "react";
 
-import { MessageSquare, Send, X } from "lucide-react";
-
 import { useCountdown } from "../hooks/useCountdown";
-import { DecisionRequest, DecisionStatus } from "../types";
+import type { DecisionRequest, DecisionStatus } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 
 export function Decision({
@@ -65,6 +64,7 @@ export function Decision({
               <div className="flex flex-col gap-2">
                 {options.map((option, index) => (
                   <button
+                    type="button"
                     key={option}
                     onClick={() => handleDecision("submitted", option)}
                     className="w-full text-left px-4 py-3 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 group"
@@ -114,7 +114,10 @@ export function Decision({
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2">
+    <div
+      id={requestId}
+      className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2"
+    >
       <div className="flex items-center gap-3 text-blue-500">
         <MessageSquare className="w-5 h-5" />
         <span className="font-semibold text-sm tracking-wide uppercase">User Input Required</span>

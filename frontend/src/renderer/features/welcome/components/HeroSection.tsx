@@ -1,10 +1,9 @@
-import { useState } from "react";
-
-import { useAppStore } from "@store/store";
-
 import { cn } from "@lib/utils";
 
-import { HeroSectionProps } from "../types";
+import { useAppStore } from "@store/store";
+import { useState } from "react";
+
+import type { HeroSectionProps } from "../types";
 
 export function HeroSection({ isLoaded }: HeroSectionProps) {
   const { theme } = useAppStore();
@@ -27,7 +26,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
         >
           <div
             className={cn(
-              "relative w-28 h-28 flex items-center justify-center [perspective:800px]",
+              "relative w-28 h-28 flex items-center justify-center perspective-midrange",
               isDark && "animate-hero-drift"
             )}
           >
@@ -38,7 +37,8 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
               </>
             )}
 
-            <div
+            <button
+              type="button"
               key={spinTick}
               onClick={() => setSpinTick((v) => v + 1)}
               className="relative w-16 h-16 pointer-events-auto cursor-pointer animate-hero-spin-y"
@@ -56,7 +56,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
                   fill={isDark ? "rgba(241,245,249,0.92)" : "rgba(10,10,10,0.95)"}
                 />
               </svg>
-            </div>
+            </button>
           </div>
         </div>
 

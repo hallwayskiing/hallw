@@ -1,10 +1,12 @@
-import { useCallback, useState } from "react";
-import type { ComponentPropsWithoutRef } from "react";
-import ReactMarkdown from "react-markdown";
-
-import { Check, Copy } from "lucide-react";
-
 import { cn } from "@lib/utils";
+import { Check, Copy } from "lucide-react";
+import type { ComponentPropsWithoutRef } from "react";
+import { useCallback, useState } from "react";
+import type ReactMarkdown from "react-markdown";
+
+interface MarkdownLiProps extends React.LiHTMLAttributes<HTMLLIElement> {
+  ordered?: boolean;
+}
 
 export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["components"] = {
   // Paragraphs
@@ -49,9 +51,9 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     const rawText = extractText(codeChild?.props?.children).replace(/\n$/, "");
 
     return (
-      <div className="md-code-block group relative my-4 rounded-xl overflow-hidden border border-white/[0.06] bg-[#0d1117]">
+      <div className="md-code-block group relative my-4 rounded-xl overflow-hidden border border-white/6 bg-[#0d1117]">
         {/* Header bar */}
-        <div className="flex items-center justify-between px-3 py-1 bg-white/[0.03] border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-3 py-1 bg-white/3 border-b border-white/6">
           <span className="text-[11px] font-mono font-medium text-muted-foreground/40 uppercase tracking-wider pl-1">
             {lang || "code"}
           </span>
@@ -59,7 +61,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
         </div>
         {/* Code content */}
         <div className="overflow-x-auto">
-          <pre className="!bg-transparent !m-0 !p-4 text-[13px] leading-6 font-mono">{children}</pre>
+          <pre className="bg-transparent! m-0! p-4! text-[13px] leading-6 font-mono">{children}</pre>
         </div>
       </div>
     );
@@ -70,14 +72,14 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     const isBlock = className?.includes("language-") || className?.includes("hljs");
     if (isBlock) {
       return (
-        <code className={cn(className, "!bg-transparent")} {...props}>
+        <code className={cn(className, "bg-transparent!")} {...props}>
           {children}
         </code>
       );
     }
     return (
       <code
-        className="px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[13px] font-mono text-emerald-300/90"
+        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[13px] font-mono text-emerald-300/90"
         {...props}
       >
         {children}
@@ -95,8 +97,8 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
   // Lists
   ul: ({ children }) => <ul className="my-3 ml-1 space-y-1.5 list-none">{children}</ul>,
   ol: ({ children }) => <ol className="my-3 ml-1 space-y-1.5 list-none counter-reset-item">{children}</ol>,
-  li: ({ children, ...props }) => {
-    const isOrdered = (props as any).ordered;
+  li: ({ children, ...props }: MarkdownLiProps) => {
+    const isOrdered = props.ordered;
     return (
       <li
         className={cn(
@@ -126,21 +128,21 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Tables
   table: ({ children }) => (
-    <div className="my-4 overflow-x-auto rounded-lg border border-white/[0.06]">
+    <div className="my-4 overflow-x-auto rounded-lg border border-white/6">
       <table className="w-full text-sm">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-white/[0.03] border-b border-white/[0.08]">{children}</thead>,
+  thead: ({ children }) => <thead className="bg-white/3 border-b border-white/8">{children}</thead>,
   th: ({ children }) => (
     <th className="px-4 py-2.5 text-left text-xs font-semibold text-foreground/70 uppercase tracking-wider">
       {children}
     </th>
   ),
-  td: ({ children }) => <td className="px-4 py-2.5 text-foreground/80 border-t border-white/[0.04]">{children}</td>,
-  tr: ({ children }) => <tr className="hover:bg-white/[0.02] transition-colors duration-150">{children}</tr>,
+  td: ({ children }) => <td className="px-4 py-2.5 text-foreground/80 border-t border-white/4">{children}</td>,
+  tr: ({ children }) => <tr className="hover:bg-white/2 transition-colors duration-150">{children}</tr>,
 
   // Horizontal rule
-  hr: () => <hr className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />,
+  hr: () => <hr className="my-8 border-0 h-px bg-linear-to-r from-transparent via-foreground/10 to-transparent" />,
 
   // Strong & emphasis
   strong: ({ children }) => <strong className="font-semibold text-foreground/90">{children}</strong>,
@@ -148,7 +150,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Images
   img: ({ src, alt }) => (
-    <img src={src} alt={alt} className="my-4 rounded-xl border border-white/[0.06] max-w-full shadow-lg" />
+    <img src={src} alt={alt} className="my-4 rounded-xl border border-white/6 max-w-full shadow-lg" />
   ),
 };
 
@@ -163,6 +165,7 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200",

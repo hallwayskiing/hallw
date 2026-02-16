@@ -1,6 +1,5 @@
-import { FormEvent, KeyboardEvent } from "react";
-
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { FormEvent } from "react";
 
 export interface ActionButtonProps {
   onClick: () => void;

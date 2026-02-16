@@ -1,13 +1,12 @@
+import { cn } from "@lib/utils";
 import { Bot, User } from "lucide-react";
 
-import { cn } from "@lib/utils";
-
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
-import { AvatarProps, MessageBubbleProps } from "../types";
+import type { AvatarProps, MessageBubbleProps } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningAccordion } from "./ReasoningAccordion";
 
-export function Avatar({ role }: AvatarProps) {
+export function Avatar({ msgRole: role }: AvatarProps) {
   const isUser = role === "user";
   return (
     <div
@@ -23,8 +22,8 @@ export function Avatar({ role }: AvatarProps) {
   );
 }
 
-export function MessageBubble({ role, content, reasoning, isStreaming }: MessageBubbleProps) {
-  const isUser = role === "user";
+export function MessageBubble({ msgRole, content, reasoning, isStreaming }: MessageBubbleProps) {
+  const isUser = msgRole === "user";
   const smoothContent = useSmoothTyping(content, isStreaming || false);
 
   return (
@@ -34,7 +33,7 @@ export function MessageBubble({ role, content, reasoning, isStreaming }: Message
         isUser && "flex-row-reverse"
       )}
     >
-      <Avatar role={role} />
+      <Avatar msgRole={msgRole} />
       <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
         <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">
           {isUser ? "You" : "HALLW"}
@@ -45,8 +44,8 @@ export function MessageBubble({ role, content, reasoning, isStreaming }: Message
             className={cn(
               "inline-block rounded-2xl max-w-[90%] text-left",
               isUser
-                ? "bg-gradient-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
-                : "bg-white/[0.02] border border-white/[0.04] text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
+                ? "bg-linear-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
+                : "bg-white/2 border border-white/4 text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
               isStreaming && "min-h-[40px]"
             )}
           >

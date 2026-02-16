@@ -1,6 +1,5 @@
+import { useAppStore } from "@store/store";
 import { useEffect } from "react";
-
-import { useAppStore } from "../store/store";
 
 export function useAppInitialization() {
   const initSocket = useAppStore((s) => s.initSocket);

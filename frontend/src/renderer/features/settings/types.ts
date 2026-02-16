@@ -1,9 +1,9 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export type SaveStatus = "idle" | "saving" | "success" | "error";
 
 export interface Config {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ServerResponse {

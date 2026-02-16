@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 
-import { cn } from "@lib/utils";
-
-import { SidebarProps } from "../types";
+import type { SidebarProps } from "../types";
 import { StagesPanel } from "./StagesPanel";
 import { ToolPreview } from "./ToolPreview";
 import { ToolsPanel } from "./ToolsPanel";
@@ -21,7 +20,7 @@ export function Sidebar({ className }: SidebarProps) {
   const selectedTool = selectedRunId ? toolStates.find((t) => t.run_id === selectedRunId) : null;
 
   return (
-    <div
+    <aside
       className={cn(
         "flex flex-col h-full bg-secondary/30 border-l border-border transition-all duration-300 ease-in-out",
         isExpanded ? "w-64" : "w-12",
@@ -51,6 +50,6 @@ export function Sidebar({ className }: SidebarProps) {
       {selectedTool && (
         <ToolPreview toolState={selectedTool} isOpen={!!selectedTool} onClose={() => setSelectedRunId(null)} />
       )}
-    </div>
+    </aside>
   );
 }

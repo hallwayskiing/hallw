@@ -1,6 +1,6 @@
-import { AppState } from "@store/store";
-import { Socket, io } from "socket.io-client";
-import { StateCreator } from "zustand";
+import type { AppState } from "@store/store";
+import { io, type Socket } from "socket.io-client";
+import type { StateCreator } from "zustand";
 
 export interface SocketSlice {
   isConnected: boolean;
@@ -73,8 +73,20 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       actions.setIsChatting(false);
     });
 
-    socket.on("request_confirmation", actions._onChatRequestConfirmation);
-    socket.on("request_user_decision", actions._onChatRequestUserDecision);
+    socket.on("request_confirmation", (data) => {
+      const normalizedData = {
+        ...data,
+        requestId: data.request_id,
+      };
+      actions._onChatRequestConfirmation(normalizedData);
+    });
+    socket.on("request_user_decision", (data) => {
+      const normalizedData = {
+        ...data,
+        requestId: data.request_id,
+      };
+      actions._onChatRequestUserDecision(normalizedData);
+    });
 
     // Sidebar events
     socket.on("tool_state_update", actions._onToolStateUpdate);
@@ -83,7 +95,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     socket.on("stages_completed", actions._onStagesCompleted);
     socket.on("stages_edited", actions._onStagesEdited);
 
-    // Welcome events (Wait, check WelcomeSlice)
+    // Welcome events
     socket.on("history_list", actions._onHistoryList);
     socket.on("history_loaded", (data) => {
       actions._onChatHistoryLoaded(data);
@@ -99,27 +111,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     set({ _socket: socket });
 
     return () => {
-      socket.off("user_message", actions._onChatUserMessage);
-      socket.off("llm_new_reasoning", actions._onChatNewReasoning);
-      socket.off("llm_new_text", actions._onChatNewText);
-      socket.off("task_started");
-      socket.off("task_finished", actions._onChatTaskFinished);
-      socket.off("task_cancelled");
-      socket.off("fatal_error");
-      socket.off("tool_error");
-      socket.off("reset");
-      socket.off("request_confirmation", actions._onChatRequestConfirmation);
-      socket.off("request_user_decision", actions._onChatRequestUserDecision);
-      socket.off("tool_state_update", actions._onToolStateUpdate);
-      socket.off("stages_built", actions._onStagesBuilt);
-      socket.off("stage_started", actions._onStageStarted);
-      socket.off("stages_completed", actions._onStagesCompleted);
-      socket.off("stages_edited", actions._onStagesEdited);
-      socket.off("history_list", actions._onHistoryList);
-      socket.off("history_loaded");
-      socket.off("history_deleted", actions._onHistoryDeleted);
-      socket.off("config_data", actions._onConfigData);
-      socket.off("config_updated", actions._onConfigUpdated);
+      socket.removeAllListeners();
       socket.close();
       set({ _socket: null, isConnected: false });
     };

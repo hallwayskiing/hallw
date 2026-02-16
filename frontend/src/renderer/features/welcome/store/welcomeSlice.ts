@@ -1,7 +1,7 @@
-import { AppState } from "@store/store";
-import { StateCreator } from "zustand";
+import type { AppState } from "@store/store";
+import type { StateCreator } from "zustand";
 
-import { HistoryItemProps } from "../types";
+import type { HistoryItemProps } from "../types";
 
 export interface WelcomeSlice {
   history: HistoryItemProps[];

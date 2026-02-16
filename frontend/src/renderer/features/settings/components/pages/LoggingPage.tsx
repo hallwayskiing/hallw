@@ -1,18 +1,18 @@
-import { ChangeEvent } from "react";
-
 import { Logs } from "lucide-react";
-
+import type { ChangeEvent } from "react";
+import type { Config } from "../../types";
 import { Combobox } from "../ui/Combobox";
 import { Input } from "../ui/Input";
 import { InputGroup } from "../ui/InputGroup";
 import { SectionCard } from "../ui/SectionCard";
 
-interface LoggingPageProps {
-  config: any;
-  handleChange: (key: string, value: any) => void;
-}
-
-export function LoggingPage({ config, handleChange }: LoggingPageProps) {
+export function LoggingPage({
+  config,
+  handleChange,
+}: {
+  config: Config;
+  handleChange: (key: string, value: unknown) => void;
+}) {
   return (
     <SectionCard
       title="System Logging"
@@ -22,7 +22,7 @@ export function LoggingPage({ config, handleChange }: LoggingPageProps) {
     >
       <InputGroup label="Log Level" desc="Verbosity of logging output">
         <Combobox
-          value={config.logging_level || "INFO"}
+          value={(config.logging_level as string) || "INFO"}
           onChange={(val) => handleChange("logging_level", val)}
           options={["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]}
           placeholder="INFO"
@@ -31,7 +31,7 @@ export function LoggingPage({ config, handleChange }: LoggingPageProps) {
       <InputGroup label="Log Directory" desc="Path to store log files">
         <Input
           name="logging_file_dir"
-          value={config.logging_file_dir || ""}
+          value={(config.logging_file_dir as string) || ""}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("logging_file_dir", e.target.value)}
           placeholder="logs"
         />
@@ -41,7 +41,7 @@ export function LoggingPage({ config, handleChange }: LoggingPageProps) {
           name="logging_max_chars"
           type="number"
           min="1"
-          value={config.logging_max_chars ?? 200}
+          value={(config.logging_max_chars as number) ?? 200}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("logging_max_chars", e.target.value)}
         />
       </InputGroup>

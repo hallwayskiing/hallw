@@ -23,7 +23,7 @@ export function useCountdown(seconds: number | undefined, onTimeout: () => void,
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [enabled, seconds]); // Re-run if seconds or enabled changes
+  }, [enabled, timeLeft]); // Re-run if seconds or enabled changes
 
   return timeLeft;
 }

@@ -1,7 +1,6 @@
-import { useEffect } from "react";
-
 import { useAppStore } from "@store/store";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 export function SaveStatusIndicator() {
   const { saveStatus, statusMsg, setSaveStatus } = useAppStore();
@@ -32,7 +31,7 @@ export function SaveStatusIndicator() {
       )}
       {saveStatus === "error" && (
         <>
-          <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+          <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
           <span className="text-red-400 truncate">{statusMsg}</span>
         </>
       )}

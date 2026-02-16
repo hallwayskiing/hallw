@@ -1,5 +1,5 @@
-import { AppState } from "@store/store";
-import { StateCreator } from "zustand";
+import type { AppState } from "@store/store";
+import type { StateCreator } from "zustand";
 
 export interface UISlice {
   theme: "light" | "dark";

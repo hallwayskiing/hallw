@@ -16,7 +16,7 @@ export interface HistoryItemProps {
   id: string;
   title?: string;
   created_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface HistoryRowProps {

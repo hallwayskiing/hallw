@@ -24,13 +24,14 @@ export function ToggleGroup({
         {desc && <span className="text-xs text-muted-foreground">{desc}</span>}
       </div>
       <button
+        type="button"
         id={id}
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
           "relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/30",
-          checked ? color || "bg-gradient-to-r from-primary to-primary/80" : "bg-muted/50"
+          checked ? color || "bg-linear-to-r from-primary to-primary/80" : "bg-muted/50"
         )}
       >
         <span

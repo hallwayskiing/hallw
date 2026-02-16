@@ -39,7 +39,7 @@ export function StringListEditor({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-foreground">{label}</label>
+        <div className="text-sm font-medium text-foreground">{label}</div>
         {desc && <span className="text-xs text-muted-foreground">{desc}</span>}
       </div>
 
@@ -65,7 +65,7 @@ export function StringListEditor({
         <div className="flex flex-wrap gap-2">
           {items.map((item, index) => (
             <span
-              key={index}
+              key={item}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-500/15 text-foreground rounded-lg text-sm group"
             >
               {item}

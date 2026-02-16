@@ -1,10 +1,9 @@
-import { useEffect, useMemo } from "react";
-
 import { useAppStore } from "@store/store";
 import { ArrowDown } from "lucide-react";
+import { useEffect, useMemo } from "react";
 
 import { useAutoScroll } from "../hooks/useAutoScroll";
-import { Message } from "../types";
+import type { Message } from "../types";
 import { Confirmation } from "./Confirmation";
 import { Decision } from "./Decision";
 import { ErrorCard } from "./ErrorCard";
@@ -40,7 +39,7 @@ export function ChatArea() {
     if (isRunning && !streamingContent && !streamingReasoning && !pendingDecision && !pendingConfirmation) {
       scrollToBottom();
     }
-  }, [isRunning, scrollToBottom, pendingDecision, pendingConfirmation]);
+  }, [isRunning, scrollToBottom, pendingDecision, pendingConfirmation, streamingContent, streamingReasoning]);
 
   if (processedMessages.length === 0 && !streamingContent && !isRunning) {
     return null;
@@ -53,15 +52,15 @@ export function ChatArea() {
         onScroll={handleScroll}
         className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth"
       >
-        {processedMessages.map((msg, idx) => (
-          <div key={idx} className="space-y-4">
+        {processedMessages.map((msg) => (
+          <div key={msg.id} className="space-y-4">
             {renderMessage(msg)}
           </div>
         ))}
 
         {(streamingContent || streamingReasoning) && (
           <MessageBubble
-            role="assistant"
+            msgRole="assistant"
             content={streamingContent}
             reasoning={streamingReasoning}
             isStreaming={true}
@@ -100,6 +99,7 @@ export function ChatArea() {
 
       {showScrollButton && (
         <button
+          type="button"
           onClick={scrollToBottom}
           className="absolute bottom-6 right-6 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in zoom-in duration-300 z-10"
           aria-label="Scroll to bottom"
@@ -129,8 +129,7 @@ function renderMessage(msg: Message) {
       return <StatusIndicator variant={msg.variant} />;
     case "error":
       return <ErrorCard content={msg.content} />;
-    case "text":
     default:
-      return <MessageBubble role={msg.role} content={msg.content} reasoning={msg.reasoning} />;
+      return <MessageBubble msgRole={msg.msgRole} content={msg.content} reasoning={msg.reasoning} />;
   }
 }

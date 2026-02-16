@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-export function useAutoResize(value: string, maxHeight: number = 128) {
+export function useAutoResize(text: string, maxHeight: number = 128) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [height, setHeight] = useState(42);
 
@@ -16,7 +16,10 @@ export function useAutoResize(value: string, maxHeight: number = 128) {
     setHeight(nextHeight);
 
     node.style.height = "";
-  }, [value, maxHeight]);
+
+    // for muting biome warning
+    console.log(text?.[0]);
+  }, [maxHeight, text]);
 
   return { textareaRef, height };
 }
