@@ -1,6 +1,14 @@
 import type { AppState } from "@store/store";
 import { io, type Socket } from "socket.io-client";
 import type { StateCreator } from "zustand";
+import type { MessageRole } from "../../features/chat/types";
+
+interface RawMessage {
+  role: MessageRole;
+  type: "text";
+  content: string;
+  reasoning: string;
+}
 
 export interface SocketSlice {
   isConnected: boolean;
@@ -98,8 +106,15 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     // Welcome events
     socket.on("history_list", actions._onHistoryList);
     socket.on("history_loaded", (data) => {
-      actions._onChatHistoryLoaded(data);
-      actions._onSidebarHistoryLoaded(data);
+      const normalizedData = {
+        ...data,
+        messages: data.messages.map((msg: RawMessage) => ({
+          ...msg,
+          msgRole: msg.role,
+        })),
+      };
+      actions._onChatHistoryLoaded(normalizedData);
+      actions._onSidebarHistoryLoaded(normalizedData);
       actions.setIsChatting(true);
     });
     socket.on("history_deleted", actions._onHistoryDeleted);
