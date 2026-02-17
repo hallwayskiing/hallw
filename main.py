@@ -28,17 +28,26 @@ def _patch_windows_asyncio():
 
 def kill_process_on_port(port: int):
     """Find and kill any process listening on the specified port."""
-    for proc in psutil.process_iter(["pid", "name"]):
-        try:
-            for conn in proc.net_connections(kind="inet"):
-                if conn.laddr.port == port:
-                    logger.warning(f"Port {port} is in use by {proc.info['name']} (PID: {proc.info['pid']}).")
-                    proc.terminate()
-                    proc.wait(timeout=3)
-                    logger.info(f"Process {proc.info['pid']} terminated.")
-                    return
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
+    try:
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.laddr.port == port:
+                pid = conn.pid
+                if pid:
+                    try:
+                        proc = psutil.Process(pid)
+                        logger.warning(f"Port {port} is in use by {proc.name()} (PID: {pid}).")
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=3)
+                            logger.info(f"Process {pid} terminated.")
+                        except psutil.TimeoutExpired:
+                            proc.kill()
+                            logger.info(f"Process {pid} killed (timeout expired).")
+                        return
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+    except Exception as e:
+        logger.error(f"Failed to check/kill process on port {port}: {e}")
 
 
 def run_frontend() -> Optional[subprocess.Popen]:
@@ -54,7 +63,9 @@ def run_frontend() -> Optional[subprocess.Popen]:
 
 def main():
     _patch_windows_asyncio()
-    kill_process_on_port(8000)
+
+    server_port = 8000
+    kill_process_on_port(server_port)
 
     # 1. Start Frontend in a separate thread
     fe_proc = run_frontend()
