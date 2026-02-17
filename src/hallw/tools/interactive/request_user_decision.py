@@ -1,5 +1,3 @@
-import asyncio
-
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
@@ -53,11 +51,6 @@ async def request_user_decision(prompt: str, options: list[str] = None, config: 
             data={"user_input": response},
         )
 
-    except asyncio.CancelledError:
-        return build_tool_response(
-            success=False,
-            message="Decision request was cancelled.",
-        )
     except Exception as e:
         return build_tool_response(
             success=False,
