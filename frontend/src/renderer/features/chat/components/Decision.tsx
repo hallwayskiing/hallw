@@ -31,8 +31,7 @@ export const Decision = memo(
             <div className="flex gap-3 w-full p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 items-center animate-in fade-in">
               <MessageSquare className="w-5 h-5 shrink-0" />
               <div className="flex flex-col">
-                <span className="text-sm font-medium">Input submitted.</span>
-                <span className="text-xs opacity-90 mt-1">"{input}"</span>
+                <span className="text-xs opacity-90 mt-1">{input}</span>
               </div>
             </div>
           );
@@ -113,14 +112,13 @@ export const Decision = memo(
       >
         <div className="flex items-center gap-3 text-blue-500">
           <MessageSquare className="w-5 h-5" />
-          <span className="font-semibold text-sm tracking-wide uppercase">User Input Required</span>
+          <span className="font-semibold text-sm tracking-wide uppercase">Decision Required</span>
           {timeLeft > 0 && status === "pending" && (
             <span className="ml-auto text-xs font-mono bg-blue-500/20 px-2 py-1 rounded">Expires in {timeLeft}s</span>
           )}
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm text-foreground/80">The agent is asking for your input:</p>
           <div className="bg-background/50 rounded-lg p-3 border border-border/50 text-sm overflow-x-auto">
             <MarkdownContent content={message} />
           </div>
