@@ -12,7 +12,8 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
   setInput: (input) => set({ input }),
   submitInput: () => {
     const { input, _socket } = get();
-    if (!input.trim() || !_socket) return;
+    if (!input.trim() || !_socket || get().isRunning) return;
+    set({ isRunning: true });
     _socket.emit("start_task", { task: input });
     set({ input: "" });
   },

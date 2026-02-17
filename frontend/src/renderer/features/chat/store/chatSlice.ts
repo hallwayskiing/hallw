@@ -1,6 +1,5 @@
 import type { AppState } from "@store/store";
 import type { StateCreator } from "zustand";
-
 import type { ConfirmationRequest, ConfirmationStatus, DecisionRequest, DecisionStatus, Message } from "../types";
 
 export interface ChatSlice {
@@ -101,6 +100,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     const { _socket } = get();
     if (!_socket) return;
     set({
+      isChatting: true,
       isRunning: true,
       streamingContent: "",
       streamingReasoning: "",

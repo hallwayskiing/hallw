@@ -36,4 +36,5 @@ export interface QuickStartCardProps {
   onClick: (text: string) => void;
   delay: number;
   isLoaded: boolean;
+  disabled?: boolean;
 }

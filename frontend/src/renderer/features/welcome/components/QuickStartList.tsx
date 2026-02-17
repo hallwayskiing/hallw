@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ALL_QUICK_STARTS, COLOR_MAP } from "../constants";
 import type { ColorName, QuickStartCardProps } from "../types";
 
-function QuickStartCard({ icon, color, text, onClick, delay, isLoaded }: QuickStartCardProps) {
+function QuickStartCard({ icon, color, text, onClick, delay, isLoaded, disabled }: QuickStartCardProps) {
   const colors = COLOR_MAP[color] || COLOR_MAP.blue;
   const [isVisible, setIsVisible] = useState(false);
 
@@ -20,7 +20,8 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded }: QuickSt
   return (
     <button
       type="button"
-      onClick={() => onClick(text)}
+      onClick={() => !disabled && onClick(text)}
+      disabled={disabled}
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl",
         "bg-card/20 backdrop-blur-sm border border-border/30",
@@ -29,7 +30,8 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded }: QuickSt
         colors.border,
         "hover:shadow-lg hover:-translate-y-0.5",
         "active:scale-[0.99]",
-        isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+        isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8",
+        disabled && "opacity-50 cursor-not-allowed pointer-events-none"
       )}
     >
       <div
@@ -54,10 +56,12 @@ export function QuickStartList({
   onQuickStart,
   isVisible,
   refreshKey,
+  disabled,
 }: {
   onQuickStart: (text: string) => void;
   isVisible: boolean;
   refreshKey: number;
+  disabled?: boolean;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -95,6 +99,7 @@ export function QuickStartList({
           onClick={onQuickStart}
           delay={100 + idx * 100}
           isLoaded={isLoaded}
+          disabled={disabled}
         />
       ))}
     </div>
