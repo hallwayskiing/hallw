@@ -305,6 +305,8 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingReasoning: "",
         _streamingContentRef: "",
         isRunning: false,
+        pendingConfirmation: null,
+        pendingDecision: null,
       };
     });
   },

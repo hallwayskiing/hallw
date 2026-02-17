@@ -119,7 +119,7 @@ export const Decision = memo(
         </div>
 
         <div className="space-y-2">
-          <div className="bg-background/50 rounded-lg p-3 border border-border/50 text-sm overflow-x-auto">
+          <div className="bg-background/50 rounded-lg p-3 border border-border/50 text-sm wrap-break-word">
             <MarkdownContent content={message} />
           </div>
         </div>

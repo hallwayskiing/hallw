@@ -85,7 +85,7 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
 
       <div className="space-y-2">
         <p className="text-sm text-foreground/80">The agent wants your confirmation:</p>
-        <div className="bg-background/50 rounded-lg p-3 border border-border/50 font-mono text-xs overflow-x-auto">
+        <div className="bg-background/50 rounded-lg p-3 border border-border/50 font-mono text-xs break-all whitespace-pre-wrap">
           {message}
         </div>
       </div>
