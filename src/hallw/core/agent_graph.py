@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolM
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from hallw.tools import build_stages, build_tool_response, dummy_for_missed_tool, parse_tool_response
+from hallw.tools import build_stages, build_tool_response, dummy_for_missed_tool, load_tools, parse_tool_response
 from hallw.tools.edit_stages import edit_stages
 from hallw.tools.end_stage import end_current_stage
 from hallw.utils import config as hallw_config
@@ -13,10 +13,12 @@ from hallw.utils import config as hallw_config
 from .agent_state import AgentState
 
 
-def build_graph(model, tools_dict, checkpointer) -> StateGraph:
+def build_graph(model, checkpointer) -> StateGraph:
     """
     Builds the LangGraph workflow
     """
+
+    tools_dict = load_tools()
 
     # --- Nodes ---
 
@@ -33,8 +35,9 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             </rules>
         """
         )
-        planner = model.bind_tools([build_stages], tool_choice="required")
-        response = await planner.ainvoke(state["messages"] + [builder_msg], config=config)
+        response = await model.bind_tools([build_stages], tool_choice="required").ainvoke(
+            state["messages"] + [builder_msg], config=config
+        )
 
         return {
             "messages": [response],
@@ -43,7 +46,9 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
 
     async def model_node(state: AgentState, config: RunnableConfig):
         messages = state["messages"]
-        response = await model.ainvoke(messages, config=config)
+        response = await model.bind_tools(list(tools_dict.values()), tool_choice="auto").ainvoke(
+            messages, config=config
+        )
 
         return {
             "messages": [response],
@@ -58,16 +63,23 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
         """
         proceed_tools = [end_current_stage, edit_stages]
 
+        curr_stage = state["current_stage"]
+        total_stages = state["total_stages"]
+        remaining_stages = [state["stage_names"][i] for i in range(curr_stage, total_stages)]
+
         hint = SystemMessage(
             content=(
-                "Stages not completed. You must now either:\n"
+                "Stages not completed. Remaining stages: "
+                f"{', '.join(remaining_stages)}"
+                "You must now either:\n"
                 "1. Call `end_current_stage` to advance to the next stage (or finish the task).\n"
                 "2. Call `edit_stages` to replace all remaining stages with a new plan.\n"
                 "You MUST call one of these tools."
             )
         )
-        bounded = model.bind_tools(proceed_tools, tool_choice="required")
-        response = await bounded.ainvoke(state["messages"] + [hint], config=config)
+        response = await model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
+            state["messages"] + [hint], config=config
+        )
 
         return {
             "messages": [response],
@@ -173,11 +185,6 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
             return "reflection"
         return "model"
 
-    def route_reflection(state: AgentState):
-        if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
-            return "tools"
-        return "model"
-
     # --- Build Graph ---
 
     builder = StateGraph(AgentState)
@@ -196,7 +203,7 @@ def build_graph(model, tools_dict, checkpointer) -> StateGraph:
     builder.add_conditional_edges(
         "tools", route_tools, {"model": "model", "reflection": "reflection", "build": "build", END: END}
     )
-    builder.add_conditional_edges("reflection", route_reflection, {"model": "model", "tools": "tools"})
+    builder.add_edge("reflection", "model")
 
     return builder.compile(checkpointer=checkpointer)
 
@@ -252,7 +259,7 @@ def _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config):
         {"stage_index": curr_idx, "total_stages": total, "stage_name": stage_names[curr_idx]},
         config=config,
     )
-    new_messages.append(SystemMessage(content=f"Stage {curr_idx+1}/{total}: {stage_names[curr_idx]}"))
+    new_messages.append(SystemMessage(content=f"Stage {curr_idx + 1}/{total}: {stage_names[curr_idx]}"))
     return curr_idx, False
 
 
@@ -271,7 +278,7 @@ def _handle_edit_stages(output, curr_idx, stage_names, new_messages, config):
         {"stages": stage_names, "current_index": curr_idx},
         config=config,
     )
-    new_messages.append(SystemMessage(content=f"Stages updated. Stage {curr_idx+1}/{total}: {stage_names[curr_idx]}"))
+    new_messages.append(SystemMessage(content=f"Stages updated. Stage {curr_idx + 1}/{total}: {stage_names[curr_idx]}"))
     return stage_names, total
 
 

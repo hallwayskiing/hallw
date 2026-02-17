@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, Dict, Optional, cast
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 
 from .agent_event_dispatcher import AgentEventDispatcher
@@ -20,7 +19,6 @@ class AgentTask:
         self,
         task_id: str,
         llm: BaseChatModel,
-        tools_dict: Dict[str, BaseTool],
         dispatcher: AgentEventDispatcher,
         initial_state: AgentState,
         checkpointer: BaseCheckpointSaver,
@@ -28,7 +26,6 @@ class AgentTask:
     ):
         self.task_id = task_id
         self.llm = llm
-        self.tools_dict = tools_dict
         self.dispatcher = dispatcher
         self.initial_state = initial_state
         self.checkpointer = checkpointer
@@ -55,7 +52,7 @@ class AgentTask:
 
     async def _run(self) -> AgentState:
         """Internal async execution of the agent workflow. Returns the final agent state."""
-        workflow = build_graph(self.llm, self.tools_dict, self.checkpointer)
+        workflow = build_graph(self.llm, self.checkpointer)
         event = None
 
         try:

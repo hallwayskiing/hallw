@@ -11,12 +11,10 @@ from pydantic import SecretStr
 
 from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
-from hallw.tools import load_tools
 from hallw.tools.playwright.playwright_mgr import browser_close
 from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
 
 # --- Global State ---
-tools_dict = load_tools()
 active_task: Optional[AgentTask] = None
 
 
@@ -63,7 +61,7 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
         model_kwargs={
             "reasoning_effort": config.model_reasoning_effort,
         },
-    ).bind_tools(list(tools_dict.values()), tool_choice="auto")
+    )
 
     # Build initial state
     initial_state: AgentState = {
@@ -92,7 +90,6 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
     return AgentTask(
         task_id=current_session.task_id,
         llm=llm,
-        tools_dict=tools_dict,
         dispatcher=AgentEventDispatcher(current_session.renderer),
         initial_state=initial_state,
         checkpointer=checkpointer,
