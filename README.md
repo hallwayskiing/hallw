@@ -7,9 +7,9 @@
 
 <div align='center'>
 
-https://github.com/user-attachments/assets/a5af23c3-c471-4682-9064-33be84d64775
+https://github.com/user-attachments/assets/0027e982-f924-4f14-b922-7c141804657d
 
-<p><em>Demo for 'How can I scientifically plan my week to be more productive?'</em></p>
+<p><em>Demo for 'Collect latest 30 days NVIDIA stock price and save it to my desktop'</em></p>
 </div>
 
 **HALLW** (Heuristic Autonomous Logic Loop Worker) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
