@@ -66,48 +66,11 @@ if __name__ == "__main__":
 
     command = sys.argv[1]
 
-    # Helper to save and print result
-    def save_and_print(state):
-        save_game(state)
-        print(json.dumps(state, indent=2))
-
     if command == "load":
         print(json.dumps(load_game(), indent=2))
     elif command == "reset":
         print(json.dumps(reset_game(), indent=2))
         print("Game reset.")
-    elif command == "save":
-        try:
-            data_str = ""
-            if len(sys.argv) > 2:
-                data_str = " ".join(sys.argv[2:])
-            else:
-                # Read from stdin
-                if not sys.stdin.isatty():
-                    data_bytes = sys.stdin.buffer.read()
-                    data_str = data_bytes.decode('utf-8-sig')
-
-            if not data_str.strip():
-                print("Error: No data provided for save.")
-                sys.exit(1)
-
-            # Clean up potential shell-induced artifacts
-            data_str = data_str.strip()
-            if data_str.startswith("'") and data_str.endswith("'"):
-                data_str = data_str[1:-1]
-
-            try:
-                data = json.loads(data_str)
-            except json.JSONDecodeError:
-                # Fallback for common shell escaping issues: try replacing escaped quotes
-                fixed_str = data_str.replace('\\"', '"')
-                data = json.loads(fixed_str)
-
-            save_game(data)
-            print("Success")
-        except Exception as e:
-            print(f"Error: {e}")
-            sys.exit(1)
 
     # Atomic Commands
     elif command == "set_location":
@@ -118,7 +81,8 @@ if __name__ == "__main__":
         loc = " ".join(sys.argv[2:])
         state = load_game()
         state["location"] = loc
-        save_and_print(state)
+        save_game(state)
+        print("Current location: " + loc)
 
     elif command == "add_item":
         if len(sys.argv) < 3:
@@ -128,7 +92,8 @@ if __name__ == "__main__":
         state = load_game()
         if item not in state.get("inventory", []):
             state.setdefault("inventory", []).append(item)
-        save_and_print(state)
+        save_game(state)
+        print("Current inventory: " + ", ".join(state["inventory"]))
 
     elif command == "remove_item":
         if len(sys.argv) < 3:
@@ -138,7 +103,8 @@ if __name__ == "__main__":
         state = load_game()
         if "inventory" in state and item in state["inventory"]:
             state["inventory"].remove(item)
-        save_and_print(state)
+        save_game(state)
+        print("Current inventory: " + ", ".join(state["inventory"]))
 
     elif command == "set_stat":
         if len(sys.argv) < 4:
@@ -149,7 +115,8 @@ if __name__ == "__main__":
         state = load_game()
 
         state.setdefault("stats", {})[stat] = float(val_str)
-        save_and_print(state)
+        save_game(state)
+        print("Current stats: " + str(state["stats"]))
 
     elif command == "set_flag":
         if len(sys.argv) < 4:
@@ -166,7 +133,8 @@ if __name__ == "__main__":
             val = False
 
         state.setdefault("flags", {})[flag] = val
-        save_and_print(state)
+        save_game(state)
+        print("Current flags: " + str(state["flags"]))
 
     elif command == "set_improbability":
         if len(sys.argv) < 3:
@@ -176,7 +144,8 @@ if __name__ == "__main__":
             improbability = sys.argv[2]
             state = load_game()
             state["improbability"] = float(improbability)
-            save_and_print(state)
+            save_game(state)
+            print("Current improbability: " + str(state["improbability"]))
         except ValueError:
             print("Error: Improbability must be a float.")
             sys.exit(1)
@@ -188,7 +157,8 @@ if __name__ == "__main__":
         entry = " ".join(sys.argv[2:])
         state = load_game()
         state.setdefault("history", []).append(entry)
-        save_and_print(state)
+        save_game(state)
+        print("Current history:\n" + "\n".join(state["history"]))
 
 
     elif command == "roll_a_dice":
@@ -207,7 +177,7 @@ if __name__ == "__main__":
         state = load_game()
         state["improbability"] = 0.42
         save_game(state)
-        print("42")
+        print("The ultimate answer is 42.")
 
     else:
         print(f"Unknown command: {command}")
