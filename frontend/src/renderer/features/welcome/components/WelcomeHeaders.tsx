@@ -27,7 +27,7 @@ export function WelcomeHeaders({ isHistoryOpen, theme }: WelcomeHeadersProps) {
         </div>
         <span
           className={cn(
-            "text-[12px] uppercase tracking-[0.2em] whitespace-nowrap",
+            "text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
             theme === "dark"
               ? "font-light text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
               : "font-medium text-amber-600"
@@ -57,7 +57,7 @@ export function WelcomeHeaders({ isHistoryOpen, theme }: WelcomeHeadersProps) {
         </div>
         <span
           className={cn(
-            "text-[12px] uppercase tracking-[0.2em] whitespace-nowrap",
+            "text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
             theme === "dark"
               ? "font-light text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]"
               : "font-medium text-emerald-600"

@@ -6,13 +6,14 @@ import type { ChatInputProps } from "../types";
 
 export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
   ({ value, onChange, onKeyDown, disabled, isFocused, placeholder, onFocus, onBlur, className }, ref) => {
-    const { textareaRef, height } = useAutoResize(value);
+    const maxHeight = 320;
+    const { textareaRef, height } = useAutoResize(value, maxHeight);
     useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
 
     return (
       <form
         className={cn(
-          "absolute bottom-0 left-0 right-0 bg-muted/30 rounded-2xl border border-border",
+          "absolute bottom-0 left-0 right-0 bg-muted/30 rounded-2xl border border-border flex items-center",
           "focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent",
           "transition-all duration-200 ease-in-out overflow-hidden shadow-sm",
           isFocused || value.length > 0 ? "bg-background shadow-lg" : "",
@@ -30,11 +31,11 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none",
-            "resize-none py-2.5 leading-5 px-4 text-sm text-foreground",
-            "placeholder:text-muted-foreground/50",
+            "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none flex items-center",
+            "resize-none py-2 px-4 text-[15px] text-foreground",
+            "placeholder:text-muted-foreground/50 leading-[24px]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            height >= 128 ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
+            height >= maxHeight ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
           )}
           rows={1}
         />

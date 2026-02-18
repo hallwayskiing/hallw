@@ -39,7 +39,7 @@ export const ALL_QUICK_STARTS = [
   {
     icon: <Globe className="w-4 h-4" />,
     color: "blue",
-    text: "Search for hidden gems and underrated neighborhoods to explore in Tokyo.",
+    text: "Search for hidden gems and underrated neighborhoods in Tokyo.",
   },
   {
     icon: <Heart className="w-4 h-4" />,

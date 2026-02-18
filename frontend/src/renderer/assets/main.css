@@ -1,10 +1,14 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource/jetbrains-mono/index.css";
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-border: hsl(var(--border));
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "JetBrains Mono", "Google Sans Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
   --color-background: hsl(var(--background));
@@ -52,7 +56,7 @@
     }
 
     50% {
-      transform: translateY(-3px);
+      transform: translateY(-12px);
     }
   }
 
@@ -80,11 +84,11 @@
   @keyframes stellar-flare {
     0%,
     100% {
-      filter: brightness(0.8);
+      opacity: 1;
     }
 
     50% {
-      filter: brightness(1.45);
+      opacity: 1;
     }
   }
 
@@ -105,6 +109,7 @@
 
 @layer base {
   :root {
+    font-size: 15px;
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -128,7 +133,7 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 5% 8%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -149,12 +154,13 @@
     --ring: 240 4.9% 83.9%;
   }
 
-  * {
-    @apply border-border;
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 
   button {
@@ -188,6 +194,18 @@
   }
 
   /* Markdown content polishing */
+  .md-content {
+    font-family: var(--font-sans);
+  }
+
+  .md-content p,
+  .md-content li,
+  .md-content span:not([class*="hljs"]),
+  .md-content strong,
+  .md-content em {
+    font-family: inherit;
+  }
+
   .md-content .katex-display {
     overflow-x: auto;
     overflow-y: hidden;

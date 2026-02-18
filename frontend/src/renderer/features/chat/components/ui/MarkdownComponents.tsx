@@ -11,7 +11,7 @@ interface MarkdownLiProps extends React.LiHTMLAttributes<HTMLLIElement> {
 export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["components"] = {
   // Paragraphs
   p: ({ children }) => (
-    <p className="mb-4 last:mb-0 leading-[1.75] text-[14.5px] text-foreground/80 font-[450] tracking-[-0.005em]">
+    <p className="mb-4 last:mb-0 leading-[1.75] text-[15px] text-foreground/80 font-[450] tracking-[-0.005em]">
       {children}
     </p>
   ),
@@ -54,15 +54,15 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
       <div className="md-code-block group relative my-4 rounded-xl overflow-hidden border border-white/6 bg-[#0d1117]">
         {/* Header bar */}
         <div className="flex items-center justify-between px-3 py-1 bg-white/3 border-b border-white/6">
-          <span className="text-[11px] font-mono font-medium text-muted-foreground/40 uppercase tracking-wider pl-1">
+          <span className="text-[12px] font-mono font-medium text-muted-foreground/40 uppercase tracking-wider pl-1">
             {lang || "code"}
           </span>
           <CopyButton text={rawText} />
         </div>
         {/* Code content */}
-        <div className="overflow-x-auto">
-          <pre className="bg-transparent! m-0! p-4! text-[13px] leading-6 font-mono">{children}</pre>
-        </div>
+        <pre className="bg-transparent! m-0! p-4! text-[13px] leading-6 font-mono whitespace-pre-wrap wrap-break-word overflow-y-hidden">
+          {children}
+        </pre>
       </div>
     );
   },
@@ -79,7 +79,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     }
     return (
       <code
-        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[13px] font-mono text-emerald-300/90"
+        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[14px] font-mono text-emerald-300/90"
         {...props}
       >
         {children}
@@ -105,7 +105,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
           "relative pl-6 text-foreground/90 leading-7 mb-2 last:mb-0",
           "before:absolute before:left-0 before:top-[11px]",
           isOrdered
-            ? "before:content-[counter(list-item)'.'] before:text-foreground before:text-[11px] before:font-bold before:opacity-90 [counter-increment:list-item]"
+            ? "before:content-[counter(list-item)'.'] before:text-foreground before:text-[12px] before:font-bold before:opacity-90 [counter-increment:list-item]"
             : "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-foreground before:opacity-85"
         )}
       >
@@ -168,7 +168,7 @@ function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={handleCopy}
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200",
+        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-all duration-200",
         copied
           ? "text-emerald-400 bg-emerald-500/10"
           : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-white/5"

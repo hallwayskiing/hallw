@@ -11,7 +11,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, "../preload/index.ts"),
+      preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
     },
   });

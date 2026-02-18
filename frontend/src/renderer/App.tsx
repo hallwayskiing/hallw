@@ -19,7 +19,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Content Container: scroll and max-width */}
-        <section className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <section className="flex-1 overflow-hidden relative">
           <div className="max-w-300 mx-auto w-full h-full flex flex-col">
             {/* Background Pattern */}
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-size-[20px_20px] pointer-events-none" />

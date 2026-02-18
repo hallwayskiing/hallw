@@ -44,7 +44,7 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded, disabled 
       >
         {icon}
       </div>
-      <span className="flex-1 text-sm text-muted-foreground/80 group-hover:text-foreground transition-colors duration-200">
+      <span className="flex-1 text-[14px] text-muted-foreground/80 group-hover:text-foreground transition-colors duration-200">
         {text}
       </span>
       <span className="text-muted-foreground/20 group-hover:text-foreground/40 transition-all duration-200">→</span>

@@ -46,7 +46,7 @@ export function BottomBar() {
         />
 
         {/* Input Form Container */}
-        <div className="flex-1 relative min-h-10.5 z-20">
+        <div className="flex-1 relative h-11 z-20">
           <ChatInput
             value={input}
             onChange={setInput}

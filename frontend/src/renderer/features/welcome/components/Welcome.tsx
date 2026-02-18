@@ -57,7 +57,7 @@ export function Welcome() {
               className="group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90"
               title="Shuffle prompts"
             >
-              <RefreshCw className="w-3.5 h-3.5 transition-transform duration-500 group-hover:rotate-180" />
+              <RefreshCw className="w-4.5 h-4.5 transition-transform duration-500 group-hover:rotate-180 " />
             </button>
           )}
         </div>

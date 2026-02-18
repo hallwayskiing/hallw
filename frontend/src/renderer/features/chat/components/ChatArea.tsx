@@ -60,6 +60,7 @@ export function ChatArea() {
 
         {(streamingContent || streamingReasoning) && (
           <MessageBubble
+            key="streaming-bubble"
             msgRole="assistant"
             content={streamingContent}
             reasoning={streamingReasoning}
@@ -68,9 +69,11 @@ export function ChatArea() {
         )}
 
         {pendingConfirmation && (
-          <div className="animate-in slide-in-from-bottom-2 duration-300">
+          <div
+            key={`pending-confirmation-${pendingConfirmation.requestId}`}
+            className="animate-in slide-in-from-bottom-2 duration-300"
+          >
             <Confirmation
-              key={pendingConfirmation.requestId}
               requestId={pendingConfirmation.requestId}
               message={pendingConfirmation.message}
               timeout={pendingConfirmation.timeout}
@@ -80,9 +83,11 @@ export function ChatArea() {
         )}
 
         {pendingDecision && (
-          <div className="animate-in slide-in-from-bottom-2 duration-300">
+          <div
+            key={`pending-decision-${pendingDecision.requestId}`}
+            className="animate-in slide-in-from-bottom-2 duration-300"
+          >
             <Decision
-              key={pendingDecision.requestId}
               requestId={pendingDecision.requestId}
               message={pendingDecision.message}
               options={pendingDecision.options}
@@ -92,9 +97,9 @@ export function ChatArea() {
           </div>
         )}
 
-        {isRunning && !streamingContent && !streamingReasoning && <ThinkingIndicator />}
+        {isRunning && !streamingContent && !streamingReasoning && <ThinkingIndicator key="thinking-indicator" />}
 
-        <div className="h-4 w-full shrink-0" />
+        <div key="chat-bottom-spacer" className="h-4 w-full shrink-0" />
       </div>
 
       {showScrollButton && (

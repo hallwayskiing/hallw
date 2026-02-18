@@ -13,46 +13,48 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
   const title = item.title || (item.metadata?.title as string) || `Conversation ${item.id.slice(0, 8)}`;
 
   return (
-    <button
-      type="button"
-      onClick={onLoad}
+    <div
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl transition-all duration-400 ease-out",
         "bg-card/20 backdrop-blur-sm border border-border/30",
         "hover:bg-emerald-500/5 hover:border-emerald-500/30 hover:shadow-lg hover:-translate-y-0.5",
-        "active:scale-[0.99] cursor-pointer"
+        "active:scale-[0.99]"
       )}
     >
-      <div
-        className={cn(
-          "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 shrink-0",
-          "transition-all duration-200 group-hover:bg-white/10 group-hover:shadow-lg group-hover:shadow-emerald-500/50",
-          "text-emerald-400"
-        )}
+      <button
+        type="button"
+        onClick={onLoad}
+        className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer outline-none"
       >
-        <Clock className="w-3.5 h-3.5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="block text-sm font-medium text-foreground/90 group-hover:text-foreground truncate transition-colors duration-200">
-          {title}
-        </span>
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50 uppercase tracking-widest mt-0.5">
-          <span className="font-mono">{item.id.slice(0, 8)}</span>
-          {date && (
-            <>
-              <span>•</span>
-              <span>{date}</span>
-            </>
+        <div
+          className={cn(
+            "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 shrink-0",
+            "transition-all duration-200 group-hover:bg-white/10 group-hover:shadow-lg group-hover:shadow-emerald-500/50",
+            "text-emerald-400"
           )}
+        >
+          <Clock className="w-3.5 h-3.5" />
         </div>
-      </div>
+        <div className="flex-1 min-w-0 text-left">
+          <span className="block text-[14px] font-medium text-foreground/90 group-hover:text-foreground truncate transition-colors duration-200">
+            {title}
+          </span>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50 uppercase tracking-widest mt-0.5">
+            <span className="font-mono">{item.id.slice(0, 8)}</span>
+            {date && (
+              <>
+                <span>•</span>
+                <span>{date}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </button>
+
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
+          onClick={onDelete}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200"
           title="Delete thread"
         >
@@ -60,7 +62,7 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
         </button>
         <span className="text-muted-foreground/20 group-hover:text-foreground/40 transition-all duration-200">→</span>
       </div>
-    </button>
+    </div>
   );
 }
 

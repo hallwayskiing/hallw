@@ -37,23 +37,48 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
               </>
             )}
 
+            {/* Stable Gradient Definition */}
+            <svg className="absolute w-0 h-0" aria-hidden="true">
+              <defs>
+                <linearGradient id="hero-gradient" x1="0" y1="0" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stopColor="#05B6FF" />
+                  <stop offset="0.166" stopColor="#8D46FF" />
+                  <stop offset="0.333" stopColor="#FF5B37" />
+                  <stop offset="0.5" stopColor="#05B6FF" />
+                  <stop offset="0.666" stopColor="#8D46FF" />
+                  <stop offset="0.833" stopColor="#FF5B37" />
+                  <stop offset="1" stopColor="#05B6FF" />
+                  <animateTransform
+                    attributeName="gradientTransform"
+                    type="translate"
+                    from="0 0"
+                    to="0 -100"
+                    dur="30s"
+                    repeatCount="indefinite"
+                  />
+                </linearGradient>
+              </defs>
+            </svg>
+
             <button
               type="button"
               key={spinTick}
               onClick={() => setSpinTick((v) => v + 1)}
-              className="relative w-16 h-16 pointer-events-auto cursor-pointer animate-hero-spin-y"
+              className="relative w-18 h-18 pointer-events-auto cursor-pointer animate-hero-spin-y"
             >
               <svg
                 viewBox="0 0 100 100"
-                className={cn(
-                  "relative w-16 h-16",
-                  isDark && "animate-stellar-flare drop-shadow-[0_0_16px_rgba(226,232,240,0.9)]"
-                )}
+                className="relative w-18 h-18"
                 aria-hidden="true"
+                style={{
+                  filter: isDark
+                    ? "drop-shadow(0 0 20px rgba(124, 58, 237, 0.4)) drop-shadow(0 0 40px rgba(5, 182, 255, 0.2))"
+                    : "drop-shadow(0 0 15px rgba(124, 58, 237, 0.2))",
+                }}
               >
                 <path
                   d="M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z"
-                  fill={isDark ? "rgba(241,245,249,0.92)" : "rgba(10,10,10,0.95)"}
+                  fill="url(#hero-gradient)"
                 />
               </svg>
             </button>
@@ -62,7 +87,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
 
         <h1
           className={cn(
-            "text-2xl font-light tracking-[0.3em] text-foreground/95 mb-1 transition-all duration-500 delay-200",
+            "text-[28px] font-light tracking-[0.3em] text-foreground/95 mb-1 transition-all duration-500 delay-200",
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
         >
@@ -71,7 +96,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
 
         <p
           className={cn(
-            "text-xs text-muted-foreground/60 tracking-[0.2em] uppercase transition-all duration-500 delay-300",
+            "text-[12px] text-muted-foreground/60 tracking-[0.2em] uppercase transition-all duration-500 delay-300",
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
         >
