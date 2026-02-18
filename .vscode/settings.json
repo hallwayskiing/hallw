@@ -28,6 +28,5 @@
     "editor.tabSize": 4,
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
   "biome.lsp.bin": "frontend/node_modules/.bin/biome.exe"
 }
