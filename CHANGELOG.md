@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.13.0 (2026-02-18)
+
+### Feat
+
+- **ui**: enable new fonts, adjust font sizes across the app and design new Hero
+- **skills**: add hitchhikers adventure game skill
+- **ui**: update app logo
+- **core**: upgrade `request_user_input` to `request_user_decision`
+- **ui**: enhance animations and particle effects in welcome section
+
+### Fix
+
+- **ui**: improve cancellation ui
+- **tools**: fix cancellation error
+- **ui**: improve decision card rendering
+- **ui**: prevent duplicate submissions
+- **ui**: fix history switch animation
+- **ui**: fix load_history param name conversion
+- **ui**: fix tool preview json parse issues
+
+### Refactor
+
+- **core**: change tools injection method and improve `proceed_node` clarity
+- migrate from Node.js to Bun and switch formatter + linter to Biome
+
+### Perf
+
+- **server**: optimize startup
+- **ui**: use memo to prevent unnecessary re-renders
+
 ## v0.12.0 (2026-02-14)
 
 ### Feat
