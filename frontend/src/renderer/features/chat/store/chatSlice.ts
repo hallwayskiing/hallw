@@ -19,7 +19,6 @@ export interface ChatSlice {
   handleConfirmationDecision: (status: ConfirmationStatus) => void;
   handleDecision: (status: DecisionStatus, value?: string) => void;
 
-  _onChatUserMessage: (msg: string) => void;
   _onChatNewReasoning: (reasoning: string) => void;
   _onChatNewText: (text: string) => void;
   _onChatTaskStarted: () => void;
@@ -99,7 +98,8 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
   startTask: (task) => {
     const { _socket } = get();
     if (!_socket) return;
-    set({
+    set((state) => ({
+      messages: [...state.messages, { id: crypto.randomUUID(), type: "text", msgRole: "user", content: task }],
       isChatting: true,
       isRunning: true,
       streamingContent: "",
@@ -107,7 +107,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       pendingConfirmation: null,
       pendingDecision: null,
       _streamingContentRef: "",
-    });
+    }));
     _socket.emit("start_task", { task });
   },
 
@@ -186,18 +186,6 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           status,
         },
       ],
-      pendingDecision: null,
-    }));
-  },
-
-  _onChatUserMessage: (msg) => {
-    set((state) => ({
-      messages: [...state.messages, { id: crypto.randomUUID(), type: "text", msgRole: "user", content: msg }],
-      streamingContent: "",
-      streamingReasoning: "",
-      _streamingContentRef: "",
-      isRunning: true,
-      pendingConfirmation: null,
       pendingDecision: null,
     }));
   },

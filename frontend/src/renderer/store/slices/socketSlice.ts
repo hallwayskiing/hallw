@@ -48,7 +48,6 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     const actions = get();
 
     // Chat events
-    socket.on("user_message", actions._onChatUserMessage);
     socket.on("llm_new_reasoning", actions._onChatNewReasoning);
     socket.on("llm_new_text", actions._onChatNewText);
 

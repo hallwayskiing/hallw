@@ -13,10 +13,10 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     return (
       <form
         className={cn(
-          "absolute bottom-0 left-0 right-0 bg-muted/30 rounded-2xl border border-border flex items-center",
-          "focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent",
+          "absolute bottom-0 left-0 right-0 bg-muted/50 hover:bg-muted/80 rounded-2xl border border-border/80 flex items-center",
+          "focus-within:ring-2 focus-within:ring-ring focus-within:border-ring",
           "transition-all duration-200 ease-in-out overflow-hidden shadow-sm",
-          isFocused || value.length > 0 ? "bg-background shadow-lg" : "",
+          isFocused || value.length > 0 ? "bg-background shadow-md border-border" : "",
           className
         )}
         style={{ height: `${height}px` }}
