@@ -1,7 +1,7 @@
 # HALLW 🤖
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.12+-yellow.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/Python-3.14+-yellow.svg)](https://www.python.org/downloads/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Framework-blue.svg)](https://github.com/langchain-ai/langgraph)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-green.svg)](https://playwright.dev/)
 

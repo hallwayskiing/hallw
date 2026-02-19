@@ -7,7 +7,7 @@ name = "hallw"
 version = "0.13.0"
 description = "An AI automation agent with LangGraph and Playwright"
 readme = "README.md"
-requires-python = "==3.12.*"
+requires-python = "==3.14.*"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Ethan Nie", email = "ethannie88@gmail.com"}
@@ -18,7 +18,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.14",
 ]
 
 dependencies = [
@@ -57,7 +57,7 @@ dev = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py313"
 exclude = [
     ".git",
     ".mypy_cache",
@@ -75,7 +75,7 @@ select = ["E", "F", "I"]
 known-first-party = ["hallw"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 check_untyped_defs = true
@@ -108,6 +108,10 @@ markers = [
     "slow: marks tests as slow",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+]
+filterwarnings = [
+    "ignore:.*Core Pydantic V1 functionality.*:UserWarning",
+    "ignore:.*LangSmith now uses UUID v7.*:UserWarning",
 ]
 asyncio_mode = "auto"
 

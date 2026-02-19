@@ -8,11 +8,10 @@ from typing import Optional
 
 import psutil
 
-from hallw.server.server import main as server_main
-from hallw.utils import logger
-
 # Ignore specific warnings from LangSmith about UUID v7
 warnings.filterwarnings("ignore", message=".*LangSmith now uses UUID v7.*")
+# Ignore specific warnings from LangChain about Pydantic V1 and Python 3.14+
+warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality isn't compatible with Python 3.14.*")
 
 
 def _patch_windows_asyncio():
@@ -35,19 +34,16 @@ def kill_process_on_port(port: int):
                 if pid:
                     try:
                         proc = psutil.Process(pid)
-                        logger.warning(f"Port {port} is in use by {proc.name()} (PID: {pid}).")
                         proc.terminate()
                         try:
                             proc.wait(timeout=3)
-                            logger.info(f"Process {pid} terminated.")
                         except psutil.TimeoutExpired:
                             proc.kill()
-                            logger.info(f"Process {pid} killed (timeout expired).")
                         return
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
-    except Exception as e:
-        logger.error(f"Failed to check/kill process on port {port}: {e}")
+    except Exception:
+        pass
 
 
 def run_frontend() -> Optional[subprocess.Popen]:
@@ -56,12 +52,14 @@ def run_frontend() -> Optional[subprocess.Popen]:
 
     try:
         return subprocess.Popen(["bun", "dev"], cwd=frontend_dir, shell=True)
-    except Exception as e:
-        logger.error(f"Failed to start frontend: {e}")
+    except Exception:
         return None
 
 
 def main():
+    from hallw.server.server import main as server_main
+    from hallw.utils import logger
+
     _patch_windows_asyncio()
 
     server_port = 8000

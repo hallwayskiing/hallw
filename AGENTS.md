@@ -7,7 +7,7 @@ This document provides a comprehensive overview of the HALLW (Heuristic Autonomo
 *   **Name:** HALLW
 *   **Purpose:** Autonomous desktop AI agent framework.
 *   **Core Technologies:**
-    *   **Backend:** Python 3.12+, LangGraph (State Machine), Playwright (Browser Automation), FastAPI/Uvicorn (Server).
+    *   **Backend:** Python 3.14+, LangGraph (State Machine), Playwright (Browser Automation), FastAPI/Uvicorn (Server).
     *   **Frontend:** Electron, React 19, Vite, TailwindCSS, Zustand.
     *   **Communication:** Socket.io (Real-time bidirectional events).
     *   **Package Manager:** `uv` (Python), `npm` (Node.js).

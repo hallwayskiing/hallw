@@ -89,7 +89,7 @@ We welcome feature suggestions! Please open an issue with:
 
 ### Prerequisites
 
-- Python 3.12.*
+- Python 3.14.*
 - Git
 - Chrome/Chromium
 
