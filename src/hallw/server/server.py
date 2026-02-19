@@ -136,7 +136,8 @@ async def start_task(sid, data):
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             await sio.emit("task_cancelled", {}, room=sid)
-            await active_task.cancel()
+            if active_task:
+                await active_task.cancel()
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
             await sio.emit("fatal_error", {"message": str(e)}, room=sid)
