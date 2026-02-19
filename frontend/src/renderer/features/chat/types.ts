@@ -11,6 +11,8 @@ export interface TextMessage extends BaseMessage {
   type: "text";
   content: string;
   reasoning?: string;
+  isStreamingReasoning?: boolean;
+  isStreamingContent?: boolean;
 }
 
 export interface ErrorMessage extends BaseMessage {
@@ -35,12 +37,7 @@ export interface DecisionMessage extends BaseMessage {
   status: DecisionStatus;
 }
 
-export interface StatusMessage extends BaseMessage {
-  type: "status";
-  variant: "completed" | "cancelled";
-}
-
-export type Message = TextMessage | ErrorMessage | ConfirmationMessage | DecisionMessage | StatusMessage;
+export type Message = TextMessage | ErrorMessage | ConfirmationMessage | DecisionMessage;
 
 export interface ConfirmationRequest {
   requestId: string;
@@ -58,10 +55,6 @@ export interface DecisionRequest {
   onDecision?: (status: DecisionStatus, value: string) => void;
 }
 
-export interface StatusIndicatorProps {
-  variant: "completed" | "cancelled";
-}
-
 export interface AvatarProps {
   msgRole: MessageRole;
 }
@@ -70,7 +63,8 @@ export interface MessageBubbleProps {
   msgRole: MessageRole;
   content: string;
   reasoning?: string;
-  isStreaming?: boolean;
+  isStreamingReasoning?: boolean;
+  isStreamingContent?: boolean;
 }
 
 export interface ConfirmationProps {

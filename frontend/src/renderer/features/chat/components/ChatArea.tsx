@@ -7,7 +7,7 @@ import type { Message } from "../types";
 import { Confirmation } from "./Confirmation";
 import { Decision } from "./Decision";
 import { ErrorCard } from "./ErrorCard";
-import { StatusIndicator, ThinkingIndicator } from "./Indicators";
+import { ThinkingIndicator } from "./Indicators";
 import { MessageBubble } from "./MessageBubble";
 
 export function ChatArea() {
@@ -15,6 +15,7 @@ export function ChatArea() {
     messages,
     streamingContent,
     streamingReasoning,
+    _streamingMessageId,
     isRunning,
     pendingConfirmation,
     pendingDecision,
@@ -24,7 +25,21 @@ export function ChatArea() {
   } = useAppStore();
 
   // 1. Data Processing Logic (Memoized)
-  const processedMessages = useMemo(() => getProcessedMessages(messages), [messages, getProcessedMessages]);
+  const processedMessages = useMemo(() => {
+    const result = getProcessedMessages(messages);
+    if (streamingContent || streamingReasoning) {
+      result.push({
+        id: _streamingMessageId,
+        type: "text",
+        msgRole: "assistant",
+        content: streamingContent,
+        reasoning: streamingReasoning,
+        isStreamingReasoning: !!streamingReasoning && !streamingContent,
+        isStreamingContent: !!streamingContent,
+      });
+    }
+    return result;
+  }, [messages, streamingContent, streamingReasoning, _streamingMessageId, getProcessedMessages]);
 
   // 2. Custom Scroll Hook
   const { scrollRef, handleScroll, scrollToBottom, showScrollButton } = useAutoScroll([
@@ -41,7 +56,7 @@ export function ChatArea() {
     }
   }, [isRunning, scrollToBottom, pendingDecision, pendingConfirmation, streamingContent, streamingReasoning]);
 
-  if (processedMessages.length === 0 && !streamingContent && !isRunning) {
+  if (processedMessages.length === 0 && !streamingContent && !streamingReasoning && !isRunning) {
     return null;
   }
 
@@ -52,21 +67,11 @@ export function ChatArea() {
         onScroll={handleScroll}
         className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth"
       >
-        {processedMessages.map((msg) => (
+        {processedMessages.map((msg: Message) => (
           <div key={msg.id} className="space-y-4">
             {renderMessage(msg)}
           </div>
         ))}
-
-        {(streamingContent || streamingReasoning) && (
-          <MessageBubble
-            key="streaming-bubble"
-            msgRole="assistant"
-            content={streamingContent}
-            reasoning={streamingReasoning}
-            isStreaming={true}
-          />
-        )}
 
         {pendingConfirmation && (
           <div
@@ -97,7 +102,9 @@ export function ChatArea() {
           </div>
         )}
 
-        {isRunning && !streamingContent && !streamingReasoning && <ThinkingIndicator key="thinking-indicator" />}
+        {isRunning && !streamingContent && !streamingReasoning && !pendingConfirmation && !pendingDecision && (
+          <ThinkingIndicator key="thinking-indicator" />
+        )}
 
         <div key="chat-bottom-spacer" className="h-4 w-full shrink-0" />
       </div>
@@ -130,11 +137,17 @@ function renderMessage(msg: Message) {
           initialValue={msg.result}
         />
       );
-    case "status":
-      return <StatusIndicator variant={msg.variant} />;
     case "error":
       return <ErrorCard content={msg.content} />;
     default:
-      return <MessageBubble msgRole={msg.msgRole} content={msg.content} reasoning={msg.reasoning} />;
+      return (
+        <MessageBubble
+          msgRole={msg.msgRole}
+          content={msg.content}
+          reasoning={msg.reasoning}
+          isStreamingReasoning={"isStreamingReasoning" in msg ? msg.isStreamingReasoning : false}
+          isStreamingContent={"isStreamingContent" in msg ? msg.isStreamingContent : false}
+        />
+      );
   }
 }

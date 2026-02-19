@@ -10,6 +10,7 @@ export interface ChatSlice {
   pendingConfirmation: ConfirmationRequest | null;
   pendingDecision: DecisionRequest | null;
   _streamingContentRef: string;
+  _streamingMessageId: string;
 
   getProcessedMessages: (messages: Message[]) => Message[];
 
@@ -39,31 +40,36 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
   pendingConfirmation: null,
   pendingDecision: null,
   _streamingContentRef: "",
+  _streamingMessageId: crypto.randomUUID(),
 
   getProcessedMessages: (messages: Message[]) => {
     const result: Message[] = [];
     let reasoningBuffer: string[] = [];
+    let firstReasoningId: string | null = null;
 
     for (const msg of messages) {
       const isReasoningOnly = msg.type === "text" && !msg.content?.trim() && !!msg.reasoning;
       const isAssistantContentMsg = msg.type === "text" && msg.msgRole === "assistant" && !!msg.content?.trim();
 
       if (isReasoningOnly) {
+        if (!firstReasoningId) firstReasoningId = msg.id;
         if (msg.reasoning) reasoningBuffer.push(msg.reasoning);
       } else if (isAssistantContentMsg) {
         const combinedReasoning = [...reasoningBuffer, msg.reasoning].filter(Boolean).join("\n\n");
         result.push({ ...msg, reasoning: combinedReasoning || undefined });
         reasoningBuffer = [];
+        firstReasoningId = null;
       } else {
         if (reasoningBuffer.length > 0) {
           result.push({
-            id: crypto.randomUUID(),
+            id: firstReasoningId || `merged-reasoning-${result.length}`,
             type: "text",
             msgRole: "assistant",
             content: "",
             reasoning: reasoningBuffer.join("\n\n"),
           });
           reasoningBuffer = [];
+          firstReasoningId = null;
         }
         result.push(msg);
       }
@@ -84,7 +90,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       }
       if (!merged) {
         result.push({
-          id: crypto.randomUUID(),
+          id: firstReasoningId || `merged-reasoning-end`,
           type: "text",
           msgRole: "assistant",
           content: "",
@@ -107,6 +113,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       pendingConfirmation: null,
       pendingDecision: null,
       _streamingContentRef: "",
+      _streamingMessageId: crypto.randomUUID(),
     }));
     _socket.emit("start_task", { task });
   },
@@ -130,6 +137,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       pendingConfirmation: null,
       pendingDecision: null,
       _streamingContentRef: "",
+      _streamingMessageId: crypto.randomUUID(),
     });
   },
 
@@ -229,7 +237,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           )
         ) {
           newMessages.push({
-            id: crypto.randomUUID(),
+            id: state._streamingMessageId,
             type: "text",
             msgRole: "assistant",
             content,
@@ -237,17 +245,12 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           });
         }
       }
-      newMessages.push({
-        id: crypto.randomUUID(),
-        type: "status",
-        msgRole: "system",
-        variant: "completed",
-      });
       return {
         messages: newMessages,
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
+        _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
       };
     });
@@ -272,7 +275,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           )
         ) {
           newMessages.push({
-            id: crypto.randomUUID(),
+            id: state._streamingMessageId,
             type: "text",
             msgRole: "assistant",
             content,
@@ -280,18 +283,13 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           });
         }
       }
-      newMessages.push({
-        id: crypto.randomUUID(),
-        type: "status",
-        msgRole: "system",
-        variant: "cancelled",
-      });
 
       return {
         messages: newMessages,
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
+        _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
         pendingConfirmation: null,
         pendingDecision: null,
@@ -318,7 +316,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           )
         ) {
           newMessages.push({
-            id: crypto.randomUUID(),
+            id: state._streamingMessageId,
             type: "text",
             msgRole: "assistant",
             content: pendingContent,
@@ -332,6 +330,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
+        _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
       };
     });
@@ -342,6 +341,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       messages: [],
       streamingContent: "",
       _streamingContentRef: "",
+      _streamingMessageId: crypto.randomUUID(),
       isRunning: false,
       pendingConfirmation: null,
       pendingDecision: null,
@@ -355,6 +355,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       streamingContent: "",
       streamingReasoning: "",
       _streamingContentRef: "",
+      _streamingMessageId: crypto.randomUUID(),
     });
   },
 
@@ -374,7 +375,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           )
         ) {
           newMessages.push({
-            id: crypto.randomUUID(),
+            id: state._streamingMessageId,
             type: "text",
             msgRole: "assistant",
             content,
@@ -387,6 +388,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
+        _streamingMessageId: crypto.randomUUID(),
         pendingConfirmation: {
           requestId: data.requestId,
           message: data.message,
@@ -412,7 +414,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           )
         ) {
           newMessages.push({
-            id: crypto.randomUUID(),
+            id: state._streamingMessageId,
             type: "text",
             msgRole: "assistant",
             content,
@@ -425,6 +427,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingContent: "",
         streamingReasoning: "",
         _streamingContentRef: "",
+        _streamingMessageId: crypto.randomUUID(),
         pendingDecision: {
           requestId: data.requestId,
           message: data.message,

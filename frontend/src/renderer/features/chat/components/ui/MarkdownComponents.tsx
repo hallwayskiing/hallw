@@ -1,5 +1,6 @@
 import { cn } from "@lib/utils";
 import { Check, Copy } from "lucide-react";
+import type React from "react";
 import type { ComponentPropsWithoutRef } from "react";
 import { useCallback, useState } from "react";
 import type ReactMarkdown from "react-markdown";

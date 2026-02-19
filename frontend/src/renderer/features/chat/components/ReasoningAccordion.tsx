@@ -1,21 +1,22 @@
 import { cn } from "@lib/utils";
 
 import { Brain, ChevronDown, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
+import { useAutoScroll } from "../hooks/useAutoScroll";
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import { MarkdownContent } from "./MarkdownContent";
 
 export function ReasoningAccordion({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const smoothContent = useSmoothTyping(content, isStreaming || false);
+
+  const { scrollRef, handleScroll, scrollToBottom } = useAutoScroll([smoothContent, isOpen]);
 
   useEffect(() => {
     if (isOpen && isStreaming) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      scrollToBottom();
     }
-  }, [isOpen, isStreaming]);
+  }, [isOpen, isStreaming, scrollToBottom]);
 
   const summary = useMemo(() => {
     return (
@@ -55,9 +56,12 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
         </div>
       </button>
       {isOpen && (
-        <div className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto custom-scrollbar">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto custom-scrollbar"
+        >
           <MarkdownContent content={isStreaming ? smoothContent : content} isStreaming={isStreaming} />
-          <div ref={bottomRef} className="h-0 w-0" />
         </div>
       )}
     </div>

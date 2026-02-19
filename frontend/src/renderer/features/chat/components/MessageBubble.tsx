@@ -23,37 +23,42 @@ export function Avatar({ msgRole: role }: AvatarProps) {
   );
 }
 
-export const MessageBubble = memo(({ msgRole, content, reasoning, isStreaming }: MessageBubbleProps) => {
-  const isUser = msgRole === "user";
-  const smoothContent = useSmoothTyping(content, isStreaming || false);
+export const MessageBubble = memo(
+  ({ msgRole, content, reasoning, isStreamingReasoning, isStreamingContent }: MessageBubbleProps) => {
+    const isUser = msgRole === "user";
+    const smoothContent = useSmoothTyping(content, isStreamingContent || false);
 
-  return (
-    <div
-      className={cn(
-        "flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in duration-300",
-        isUser && "flex-row-reverse"
-      )}
-    >
-      <Avatar msgRole={msgRole} />
-      <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
-        <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">
-          {isUser ? "You" : "HALLW"}
-        </div>
-        {reasoning && <ReasoningAccordion content={reasoning} isStreaming={isStreaming} />}
-        {(isStreaming || content) && (
-          <div
-            className={cn(
-              "inline-block rounded-2xl max-w-[90%] text-left",
-              isUser
-                ? "bg-linear-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
-                : "bg-white/2 border border-white/4 text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
-              isStreaming && "min-h-[40px]"
-            )}
-          >
-            <MarkdownContent content={isStreaming ? smoothContent : content} isStreaming={isStreaming} />
-          </div>
+    return (
+      <div
+        className={cn(
+          "flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in duration-300",
+          isUser && "flex-row-reverse"
         )}
+      >
+        <Avatar msgRole={msgRole} />
+        <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
+          <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">
+            {isUser ? "You" : "HALLW"}
+          </div>
+          {reasoning && <ReasoningAccordion content={reasoning} isStreaming={isStreamingReasoning} />}
+          {(isStreamingContent || content) && (
+            <div
+              className={cn(
+                "inline-block rounded-2xl max-w-[90%] text-left",
+                isUser
+                  ? "bg-linear-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
+                  : "bg-white/2 border border-white/4 text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
+                isStreamingContent && "min-h-[40px]"
+              )}
+            >
+              <MarkdownContent
+                content={isStreamingContent ? smoothContent : content}
+                isStreaming={isStreamingContent}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);

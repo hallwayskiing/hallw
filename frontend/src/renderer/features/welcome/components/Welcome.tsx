@@ -47,19 +47,22 @@ export function Welcome() {
           isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 min-h-[30px]">
           <WelcomeHeaders isHistoryOpen={isHistoryOpen} theme={theme} />
 
-          {!isHistoryOpen && (
-            <button
-              type="button"
-              onClick={refreshQuickStarts}
-              className="group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90"
-              title="Shuffle prompts"
-            >
-              <RefreshCw className="w-4.5 h-4.5 transition-transform duration-500 group-hover:rotate-180 " />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={refreshQuickStarts}
+            className={cn(
+              "group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90",
+              isHistoryOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+            title="Shuffle prompts"
+            disabled={isHistoryOpen}
+            aria-hidden={isHistoryOpen}
+          >
+            <RefreshCw className="w-4.5 h-4.5 transition-transform duration-500 group-hover:rotate-180 " />
+          </button>
         </div>
 
         <div className="relative h-48 overflow-hidden pt-1">

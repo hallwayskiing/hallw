@@ -16,7 +16,7 @@ export const MarkdownContent = memo(({ content, isStreaming }: { content: string
     <div className={cn("md-content max-w-none wrap-break-word text-[15px]", isStreaming && "leading-relaxed")}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+        rehypePlugins={[rehypeKatex, rehypeHighlight]}
         components={mdComponents}
       >
         {content}
