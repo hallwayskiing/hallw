@@ -1,17 +1,20 @@
 import os
 from itertools import islice
 
+from docling.document_converter import DocumentConverter
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
 
 READ_LINES_LIMIT = 1000
 MAX_FILE_SIZE = 10 * 1024 * 1024
+SUPPORTED_EXTENSIONS = ["pdf", "xlsx", "xls", "doc", "docx", "pptx"]
 
 
 @tool
 def read_file(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
     """Read the content of a file.
+    Support [pdf, xlsx, xls, doc, docx, pptx] and all text files.
 
     Args:
         file_path: The absolute path to the file to read.
@@ -42,6 +45,43 @@ def read_file(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
             False,
             f"Start line ({start_line}) cannot be greater than end line ({end_line}).",
         )
+
+    file_type = file_path.split(".")[-1]
+    if file_type in SUPPORTED_EXTENSIONS:
+        try:
+            converter = DocumentConverter()
+            result = converter.convert(file_path)
+
+            all_lines = result.document.export_to_markdown().splitlines()
+
+            # Calculate range
+            actual_end = end_line if end_line != -1 else len(all_lines)
+            lines = all_lines[start_line:actual_end]
+
+            if len(lines) > READ_LINES_LIMIT:
+                lines = lines[:READ_LINES_LIMIT]
+
+            if not lines:
+                return build_tool_response(
+                    False,
+                    f"No content found in the specified line range ({start_line}-{end_line}).",
+                )
+
+            content = "\n".join(lines)
+
+            return build_tool_response(
+                True,
+                "Read document successfully.",
+                {
+                    "file_path": file_path,
+                    "start_line": start_line,
+                    "end_line": start_line + len(lines),
+                    "lines_read": len(lines),
+                    "content": content,
+                },
+            )
+        except Exception as e:
+            return build_tool_response(False, f"Failed to read document: {e}")
 
     try:
         with open(file_path, "r", encoding="utf-8", errors="replace") as f:
