@@ -26,6 +26,13 @@ export function ModelPage({
             value={(config.model_name as string) || ""}
             onChange={(val) => handleChange("model_name", val)}
             options={(config.model_recent_used as string[]) || []}
+            onDelete={(val) => {
+              const recent = (config.model_recent_used as string[]) || [];
+              handleChange(
+                "model_recent_used",
+                recent.filter((m) => m !== val)
+              );
+            }}
             placeholder="gemini/gemini-2.5-flash"
           />
         </InputGroup>
