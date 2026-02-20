@@ -13,7 +13,12 @@ import { mdComponents } from "./ui/MarkdownComponents";
 
 export const MarkdownContent = memo(({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
   return (
-    <div className={cn("md-content max-w-none wrap-break-word text-[15px]", isStreaming && "leading-relaxed")}>
+    <div
+      className={cn(
+        "md-content max-w-none wrap-break-word text-[15px]",
+        isStreaming && "leading-relaxed [&>p:last-of-type]:inline"
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex, rehypeHighlight]}
@@ -22,7 +27,7 @@ export const MarkdownContent = memo(({ content, isStreaming }: { content: string
         {content}
       </ReactMarkdown>
       {isStreaming && (
-        <span className="inline-flex gap-1 items-baseline">
+        <span className="inline-flex gap-1 items-baseline ml-1.5 align-middle mix-blend-screen opacity-80">
           <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
           <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />
           <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
