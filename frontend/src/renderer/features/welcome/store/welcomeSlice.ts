@@ -37,9 +37,10 @@ export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = 
   },
 
   loadHistory: (id) => {
-    const { _socket } = get();
+    const { _socket, setIsChatting } = get();
     if (!_socket) return;
     _socket.emit("load_history", { thread_id: id });
+    setIsChatting(true);
   },
 
   deleteHistory: (id) => {

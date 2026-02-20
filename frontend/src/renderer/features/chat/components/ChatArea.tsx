@@ -62,7 +62,7 @@ export function ChatArea() {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col h-full overflow-y-auto p-4 scroll-smooth">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col h-full overflow-auto p-4 scroll-smooth">
         <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
           {processedMessages.map((msg: Message) => (
             <div key={msg.id} className="space-y-4">

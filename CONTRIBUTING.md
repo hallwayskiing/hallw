@@ -112,12 +112,7 @@ We welcome feature suggestions! Please open an issue with:
    uv sync
    ```
 
-4. **Install Playwright**:
-   ```bash
-   playwright install chromium
-   ```
-
-5. **Configure environment**:
+4. **Configure environment**:
    ```bash
    cp .env.example .env
    # Edit .env with your configuration

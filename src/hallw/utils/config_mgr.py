@@ -58,10 +58,7 @@ class Settings(BaseSettings):
     # =================================================
     # 6. Playwright & Browser
     # =================================================
-    prefer_local_chrome: bool = True
     chrome_user_data_dir: Optional[str] = None
-    cdp_port: int = 9222
-    keep_browser_open: bool = True
     # Playwright timeouts (in milliseconds)
     pw_goto_timeout: int = 10000
     pw_click_timeout: int = 6000

@@ -144,3 +144,22 @@ class SocketAgentRenderer(AgentRenderer):
             future = self._pending_confirmation["future"]
             if not future.done():
                 future.set_result(value if status == "submitted" and value is not None else status)
+
+    async def on_request_cdp_page(self, timeout: int = 30, headless: bool = True, user_data_dir: str = None) -> str:
+        """Ask the frontend to open a new BrowserWindow for CDP, wait for success."""
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        request_id = f"cdp_{id(future)}"
+        self._pending_confirmation = {"request_id": request_id, "future": future}
+        self._fire("request_cdp_page", {"request_id": request_id, "headless": headless, "userDataDir": user_data_dir})
+        try:
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError:
+            return "timeout"
+        finally:
+            self._pending_confirmation = None
+
+    def on_resolve_cdp_page(self, status: str):
+        if self._pending_confirmation and self._pending_confirmation["request_id"].startswith("cdp_"):
+            if not self._pending_confirmation["future"].done():
+                self._pending_confirmation["future"].set_result(status)

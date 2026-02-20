@@ -22,7 +22,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-secondary/30 border-l border-border transition-all duration-300 ease-in-out",
+        "flex flex-col h-full bg-secondary/30 border-l border-border transition-all duration-300 ease-in-out overflow-x-hidden",
         isExpanded ? "w-64" : "w-12",
         className
       )}

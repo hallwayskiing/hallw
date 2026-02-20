@@ -9,18 +9,17 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_goto(page_index: int, url: str) -> str:
+async def browser_goto(url: str) -> str:
     """Navigate the page to a URL.
     Args:
-        page_index: Index of the page to perform the navigation on.
         url: Target URL
 
     Returns:
         Status message with the final page title.
     """
-    page = await get_page(page_index)
+    page = await get_page()
     if page is None:
-        return build_tool_response(False, "Launch browser first or page index is invalid.")
+        return build_tool_response(False, "Please launch browser first.")
 
     try:
         # 1. Basic Navigation
@@ -41,17 +40,13 @@ async def browser_goto(page_index: int, url: str) -> str:
 
         # 3. Return Success with Context
         final_title = await page.title()
-        return build_tool_response(
-            True, f"Navigated to {url} successfully.", {"page_index": page_index, "url": page.url, "title": final_title}
-        )
+        return build_tool_response(True, f"Navigated to {url} successfully.", {"url": page.url, "title": final_title})
 
     except PlaywrightTimeoutError:
         return build_tool_response(
             False,
             f"Timeout while navigating to {url}. Site might be slow or blocking bot traffic.",
-            {"page_index": page_index, "url": url},
+            {"url": url},
         )
     except Exception as e:
-        return build_tool_response(
-            False, f"Error while navigating to {url}: {str(e)}", {"page_index": page_index, "url": url}
-        )
+        return build_tool_response(False, f"Error while navigating to {url}: {str(e)}", {"url": url})

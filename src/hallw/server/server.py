@@ -11,7 +11,7 @@ from pydantic import SecretStr
 
 from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
-from hallw.tools.playwright.playwright_mgr import browser_close
+from hallw.tools.playwright.playwright_mgr import browser_disconnect
 from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
 
 # --- Global State ---
@@ -152,7 +152,7 @@ async def start_task(sid, data):
 async def reset_session(sid):
     global current_session, active_task
 
-    await browser_close()
+    await browser_disconnect()
 
     if active_task and active_task.is_running:
         try:
@@ -290,6 +290,12 @@ async def resolve_confirmation(sid, data):
 async def resolve_user_decision(sid, data):
     if current_session:
         current_session.renderer.on_resolve_user_decision(data["request_id"], data["status"], data["value"])
+
+
+@sio.event
+async def resolve_cdp_page(sid, data):
+    if current_session:
+        current_session.renderer.on_resolve_cdp_page(data.get("status", "error"))
 
 
 @sio.event

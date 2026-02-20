@@ -106,8 +106,6 @@ Both launchers automatically download uv, install dependencies, and start the El
 # Install via uv
 uv sync
 
-# Install browser binaries (Optional)
-playwright install chromium
 ```
 
 ### Running Tasks

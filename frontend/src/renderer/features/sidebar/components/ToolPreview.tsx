@@ -1,5 +1,6 @@
 import { cn } from "@lib/utils";
 import { Check, CheckCircle2, Copy, Loader2, X, XCircle } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { useToolPreview } from "../hooks/useToolPreview";
 import type { ToolPreviewProps } from "../types";
@@ -19,8 +20,15 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in-0">
+  const target = document.getElementById("chat-viewport") || document.body;
+
+  return createPortal(
+    <div
+      className={cn(
+        "z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in-0",
+        target === document.body ? "fixed inset-0" : "absolute inset-0"
+      )}
+    >
       <div className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-lg flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -165,6 +173,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    target
   );
 }

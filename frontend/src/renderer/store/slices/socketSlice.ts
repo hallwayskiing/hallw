@@ -78,6 +78,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       actions._onChatReset();
       actions._onSidebarReset();
       actions.setIsChatting(false);
+      actions.toggleCdpView(false);
     });
 
     socket.on("request_confirmation", (data) => {
@@ -121,6 +122,14 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
     // Settings events
     socket.on("config_data", actions._onConfigData);
     socket.on("config_updated", actions._onConfigUpdated);
+
+    // Browser/CDP events
+    socket.on("request_cdp_page", async (data: { request_id: string; headless?: boolean; userDataDir?: string }) => {
+      // Expand the window and render the CDP component (or run headless)
+      await actions.toggleCdpView(true, data?.headless ?? true, data?.userDataDir);
+      // Let the backend know the page is ready
+      socket.emit("resolve_cdp_page", { status: "success" });
+    });
 
     set({ _socket: socket });
 

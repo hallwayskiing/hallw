@@ -9,17 +9,15 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_get_content(page_index: int) -> str:
+async def browser_get_content() -> str:
     """Get content from a page.
-    Args:
-        page_index: Index of the page to get content from.
 
     Returns:
         Status message with the final page title, url and content in markdown format.
     """
-    page = await get_page(page_index)
+    page = await get_page()
     if page is None:
-        return build_tool_response(False, "Launch browser first or page index is invalid.")
+        return build_tool_response(False, "Please launch browser first.")
 
     try:
         await page.wait_for_load_state("domcontentloaded", timeout=5000)
@@ -55,7 +53,7 @@ async def browser_get_content(page_index: int) -> str:
 
         return build_tool_response(
             True,
-            f"Successfully get content from page {page_index}",
+            f"Successfully get content from {url}",
             {
                 "title": page_title,
                 "url": url,
@@ -66,7 +64,7 @@ async def browser_get_content(page_index: int) -> str:
     except PlaywrightTimeoutError:
         return build_tool_response(
             False,
-            f"Timeout while getting content from page {page_index}. Site might be slow or blocking bot traffic.",
+            f"Timeout while getting content from {url}. Site might be slow or blocking bot traffic.",
         )
     except Exception as e:
-        return build_tool_response(False, f"Error while getting content from page {page_index}: {str(e)}")
+        return build_tool_response(False, f"Error while getting content from {url}: {str(e)}")

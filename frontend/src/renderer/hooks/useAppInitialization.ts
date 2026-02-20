@@ -10,6 +10,12 @@ export function useAppInitialization() {
     return initSocket();
   }, [initSocket]);
 
+  const toggleCdpView = useAppStore((s) => s.toggleCdpView);
+  // Reset CDP view on mount to ensure Electron window is at default size
+  useEffect(() => {
+    toggleCdpView(false);
+  }, [toggleCdpView]);
+
   // Apply theme on mount and when theme changes
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");

@@ -112,11 +112,11 @@ SCRIPT = """
 
 
 @tool
-async def browser_get_structure(page_index: int) -> str:
+async def browser_get_structure() -> str:
     """Get the robust structure of the page (Viewport independent)."""
-    page = await get_page(page_index)
+    page = await get_page()
     if page is None:
-        return build_tool_response(False, "Launch browser first or page index is invalid.")
+        return build_tool_response(False, "Please launch browser first.")
 
     # 1. Preprocess: Wait for load, remove overlays, handle consent
     try:
@@ -144,7 +144,6 @@ async def browser_get_structure(page_index: int) -> str:
         f"Fetched structure with {len(formatted_elements)} interactive elements.",
         {
             "summary": "\n".join(formatted_elements),
-            "page_index": page_index,
             "url": data["url"],
             "title": data["title"],
         },

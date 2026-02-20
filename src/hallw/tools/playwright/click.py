@@ -8,19 +8,18 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_click(page_index: int, element_id: str) -> str:
+async def browser_click(element_id: str) -> str:
     """Click an element by ID.
 
     Args:
-        page_index: The index of the page to click on.
         element_id: The ID of the element to click.
 
     Returns:
         str: The result of the click operation.
     """
-    page = await get_page(page_index)
+    page = await get_page()
     if page is None:
-        return build_tool_response(False, "Launch browser first or page index is invalid.")
+        return build_tool_response(False, "Please launch browser first.")
 
     selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"
 

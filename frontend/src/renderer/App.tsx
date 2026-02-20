@@ -4,6 +4,7 @@ import { Settings } from "@features/settings";
 import { Sidebar } from "@features/sidebar";
 import { Welcome } from "@features/welcome";
 import { useAppStore } from "@store/store";
+import { X } from "lucide-react";
 import "katex/dist/katex.min.css";
 
 import { useAppInitialization } from "./hooks/useAppInitialization";
@@ -11,11 +12,11 @@ import { useAppInitialization } from "./hooks/useAppInitialization";
 export default function App() {
   useAppInitialization();
 
-  const { isChatting, isSettingsOpen } = useAppStore();
+  const { isChatting, isSettingsOpen, showCdpView, toggleCdpView } = useAppStore();
 
   return (
     // Root container: global font, background, overflow control
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20">
+    <div className="flex h-screen w-full bg-background text-foreground overflow-auto font-sans antialiased selection:bg-primary/20">
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Content Container: scroll and max-width */}
@@ -25,20 +26,54 @@ export default function App() {
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-size-[20px_20px] pointer-events-none" />
 
             {/* Core View Switching */}
-            {isChatting ? <ChatArea /> : <Welcome />}
+            {!isChatting ? (
+              <Welcome />
+            ) : (
+              <div className="flex w-full h-full relative z-10">
+                {/* CDP Webview Split Pane (Left Side) */}
+                {showCdpView && (
+                  <div className="w-1/2 shrink-0 flex flex-col border-r border-border/10 bg-background/50 shadow-2xl relative animate-in slide-in-from-left duration-300">
+                    <div className="h-10 border-b border-border/10 flex items-center justify-between px-4 bg-muted/20 backdrop-blur-md shrink-0">
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        Live Task Execution
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleCdpView(false)}
+                        className="p-1 hover:bg-muted text-muted-foreground rounded transition-colors"
+                        title="Close View"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {/* The actual web content is drawn here natively by Electron's WebContentsView via IPC */}
+                    <div className="w-full h-full flex-1" />
+                  </div>
+                )}
+
+                {/* Main Chat Area (Right Side if Split) */}
+                <div
+                  id="chat-viewport"
+                  className={`flex-1 h-full flex flex-col relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
+                >
+                  <ChatArea />
+
+                  {/* Sidebar: App controls visibility, Logic internal */}
+                  <div className="absolute right-0 top-0 bottom-0 z-40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+                    <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Input Area: Fixed at bottom */}
-        <BottomBar />
-      </main>
-
-      {/* Sidebar: App controls visibility, Logic internal */}
-      {isChatting && (
-        <div className="absolute right-0 top-0 bottom-0 z-40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl" />
+        <div className={`transition-all duration-300 ${showCdpView ? "pl-[50%]" : ""}`}>
+          <BottomBar />
         </div>
-      )}
+      </main>
 
       {/* Global Modals */}
       <Settings isOpen={isSettingsOpen} />

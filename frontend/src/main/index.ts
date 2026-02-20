@@ -1,9 +1,8 @@
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, session, shell, WebContentsView } from "electron";
 
 function createWindow() {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 960,
     height: 720,
@@ -13,20 +12,19 @@ function createWindow() {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
+      webviewTag: true,
     },
   });
 
-  mainWindow.on("ready-to-show", () => {
-    mainWindow.show();
-  });
+  mainWindow.on("ready-to-show", () => mainWindow.show());
 
+  // Intercept external links and open them in the default system browser
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: "deny" };
   });
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // Load the dev server URL or local static file based on the environment
   if (is.dev && process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
@@ -34,40 +32,117 @@ function createWindow() {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// Enable remote debugging protocol
+app.commandLine.appendSwitch("remote-debugging-port", "9222");
+
 app.whenReady().then(() => {
-  // Set app user model id for windows
   electronApp.setAppUserModelId("com.electron");
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // Default open/close DevTools by F12 in development
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
 
-  // IPC test
   ipcMain.on("ping", () => console.log("pong"));
+
+  let cdpView: WebContentsView | null = null;
+  let unexpandedBounds: Electron.Rectangle | null = null;
+
+  // Handle expanding, collapsing, and destroying the CDP view
+  ipcMain.handle(
+    "resize-cdp-window",
+    async (event, expand: boolean, headless: boolean = false, userDataDir: string = "") => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window) return false;
+
+      const bounds = window.getBounds();
+
+      if (expand) {
+        if (!cdpView) {
+          const ses = userDataDir
+            ? session.fromPath(resolve(app.getPath("userData"), userDataDir))
+            : session.defaultSession;
+
+          cdpView = new WebContentsView({
+            webPreferences: { session: ses, devTools: !headless },
+          });
+
+          if (!headless) {
+            unexpandedBounds = window.getBounds();
+            const widthPerPane = unexpandedBounds.width;
+            const expandedWidth = widthPerPane * 2;
+
+            // Expand the main window
+            window.setBounds(
+              {
+                x: unexpandedBounds.x - Math.floor(widthPerPane / 2),
+                y: unexpandedBounds.y,
+                width: expandedWidth,
+                height: unexpandedBounds.height,
+              },
+              true
+            );
+
+            window.contentView.addChildView(cdpView);
+            cdpView.setBounds({ x: 0, y: 0, width: widthPerPane, height: unexpandedBounds.height });
+
+            // Ensure the CDP view height and width adjusts with the main window
+            window.on("resize", () => {
+              if (cdpView && !window.isDestroyed()) {
+                const curBounds = window.getBounds();
+                cdpView.setBounds({ x: 0, y: 0, width: Math.floor(curBounds.width / 2), height: curBounds.height });
+              }
+            });
+          }
+
+          // Initialize the CDP page and inject the Playwright marker
+          await cdpView.webContents.loadURL("about:blank");
+          await cdpView.webContents.executeJavaScript("window.__IS_AGENT_VIEW__ = true;");
+
+          window.on("closed", () => {
+            cdpView = null;
+            unexpandedBounds = null;
+          });
+        }
+      } else {
+        // Remove and destroy the CDP view
+        if (cdpView) {
+          try {
+            window.contentView.removeChildView(cdpView);
+            // Destroy the WebContents to ensure the page is actually closed, not just hidden
+            if (cdpView.webContents && !cdpView.webContents.isDestroyed()) {
+              cdpView.webContents.close();
+            }
+          } catch {}
+          cdpView = null;
+        }
+
+        // Restore the main window bounds
+        if (!headless) {
+          if (unexpandedBounds) {
+            window.setBounds(unexpandedBounds, true);
+            unexpandedBounds = null;
+          } else if (bounds.width > 1080) {
+            window.setBounds(
+              { x: bounds.x + Math.floor(bounds.width / 4), y: bounds.y, width: 1080, height: bounds.height },
+              true
+            );
+          }
+        }
+      }
+      return true;
+    }
+  );
 
   createWindow();
 
+  // Recreate the window on macOS activate if no windows exist
   app.on("activate", () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed, except on macOS
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

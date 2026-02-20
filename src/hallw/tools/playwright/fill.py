@@ -7,7 +7,7 @@ from .playwright_mgr import get_page
 
 
 @tool
-async def browser_fill(page_index: int, element_id: str, text: str, submit_on_enter: bool = False) -> str:
+async def browser_fill(element_id: str, text: str, submit_on_enter: bool = False) -> str:
     """
     Fill a text input.
 
@@ -16,9 +16,9 @@ async def browser_fill(page_index: int, element_id: str, text: str, submit_on_en
         text: The text to fill.
         submit_on_enter: If True, press 'Enter' after filling. Useful for search bars.
     """
-    page = await get_page(page_index)
+    page = await get_page()
     if page is None:
-        return build_tool_response(False, "Launch browser first or page index is invalid.")
+        return build_tool_response(False, "Please launch browser first.")
 
     # CSS Selector: "id='foo' OR data-hallw-id='foo'"
     selector = f"[id='{element_id}'], [data-hallw-id='{element_id}']"
