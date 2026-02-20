@@ -10,6 +10,7 @@ const ALL_PROVIDERS = [
   { key: "google_api_key", label: "Google", placeholder: "AIza..." },
   { key: "anthropic_api_key", label: "Anthropic", placeholder: "sk-ant-..." },
   { key: "openrouter_api_key", label: "OpenRouter", placeholder: "sk-or-..." },
+  { key: "nvidia_nim_api_key", label: "NVIDIA NIM", placeholder: "nvapi-..." },
   { key: "deepseek_api_key", label: "DeepSeek", placeholder: "sk-..." },
   { key: "zai_api_key", label: "ZAI", placeholder: "..." },
   { key: "moonshot_api_key", label: "Moonshot", placeholder: "sk-..." },
