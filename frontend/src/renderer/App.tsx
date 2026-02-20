@@ -20,7 +20,7 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Content Container: scroll and max-width */}
         <section className="flex-1 overflow-hidden relative">
-          <div className="max-w-300 mx-auto w-full h-full flex flex-col">
+          <div className="w-full h-full flex flex-col">
             {/* Background Pattern */}
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-size-[20px_20px] pointer-events-none" />
 
@@ -34,7 +34,11 @@ export default function App() {
       </main>
 
       {/* Sidebar: App controls visibility, Logic internal */}
-      {isChatting && <Sidebar className="shrink-0 border-l border-white/5" />}
+      {isChatting && (
+        <div className="absolute right-0 top-0 bottom-0 z-40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+          <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl" />
+        </div>
+      )}
 
       {/* Global Modals */}
       <Settings isOpen={isSettingsOpen} />

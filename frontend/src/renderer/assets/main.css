@@ -41,7 +41,6 @@
 
   --animate-hero-drift: hero-drift 6s ease-in-out infinite;
   --animate-hero-spin-y: hero-spin-y 850ms cubic-bezier(0.22, 0.61, 0.36, 1) 1;
-  --animate-stellar-halo: stellar-halo 6.2s ease-in-out infinite;
   --animate-stellar-flare: stellar-flare 4.8s ease-in-out infinite;
   --animate-gradient-wave: gradient-wave 3s ease infinite;
 
@@ -67,17 +66,6 @@
 
     100% {
       transform: rotateY(360deg);
-    }
-  }
-
-  @keyframes stellar-halo {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-
-    50% {
-      transform: scale(1.16);
     }
   }
 
@@ -154,7 +142,11 @@
     --ring: 240 4.9% 83.9%;
   }
 
-  *, ::after, ::before, ::backdrop, ::file-selector-button {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
     border-color: transparent;
   }
 

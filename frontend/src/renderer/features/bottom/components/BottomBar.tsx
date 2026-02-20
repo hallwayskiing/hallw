@@ -30,7 +30,7 @@ export function BottomBar() {
 
   return (
     <div className="p-4 border-t border-border bg-background">
-      <div className="max-w-full mx-auto flex items-center gap-3">
+      <div className="w-full max-w-5xl mx-auto flex items-center gap-3">
         {/* Back / Settings Button */}
         <ActionButton
           onClick={isChatting ? resetSession : toggleSettings}

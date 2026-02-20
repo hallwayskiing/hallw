@@ -62,62 +62,64 @@ export function ChatArea() {
 
   return (
     <div className="relative h-full w-full">
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex flex-col h-full overflow-y-auto p-4 space-y-6 scroll-smooth"
-      >
-        {processedMessages.map((msg: Message) => (
-          <div key={msg.id} className="space-y-4">
-            {renderMessage(msg)}
-          </div>
-        ))}
+      <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col h-full overflow-y-auto p-4 scroll-smooth">
+        <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
+          {processedMessages.map((msg: Message) => (
+            <div key={msg.id} className="space-y-4">
+              {renderMessage(msg)}
+            </div>
+          ))}
 
-        {pendingConfirmation && (
-          <div
-            key={`pending-confirmation-${pendingConfirmation.requestId}`}
-            className="animate-in slide-in-from-bottom-2 duration-300"
-          >
-            <Confirmation
-              requestId={pendingConfirmation.requestId}
-              message={pendingConfirmation.message}
-              timeout={pendingConfirmation.timeout}
-              onDecision={handleConfirmationDecision}
-            />
-          </div>
-        )}
+          {pendingConfirmation && (
+            <div
+              key={`pending-confirmation-${pendingConfirmation.requestId}`}
+              className="animate-in slide-in-from-bottom-2 duration-300"
+            >
+              <Confirmation
+                requestId={pendingConfirmation.requestId}
+                message={pendingConfirmation.message}
+                timeout={pendingConfirmation.timeout}
+                onDecision={handleConfirmationDecision}
+              />
+            </div>
+          )}
 
-        {pendingDecision && (
-          <div
-            key={`pending-decision-${pendingDecision.requestId}`}
-            className="animate-in slide-in-from-bottom-2 duration-300"
-          >
-            <Decision
-              requestId={pendingDecision.requestId}
-              message={pendingDecision.message}
-              options={pendingDecision.options}
-              timeout={pendingDecision.timeout}
-              onDecision={handleDecision}
-            />
-          </div>
-        )}
+          {pendingDecision && (
+            <div
+              key={`pending-decision-${pendingDecision.requestId}`}
+              className="animate-in slide-in-from-bottom-2 duration-300"
+            >
+              <Decision
+                requestId={pendingDecision.requestId}
+                message={pendingDecision.message}
+                options={pendingDecision.options}
+                timeout={pendingDecision.timeout}
+                onDecision={handleDecision}
+              />
+            </div>
+          )}
 
-        {isRunning && !streamingContent && !streamingReasoning && !pendingConfirmation && !pendingDecision && (
-          <ThinkingIndicator key="thinking-indicator" />
-        )}
+          {isRunning && !streamingContent && !streamingReasoning && !pendingConfirmation && !pendingDecision && (
+            <ThinkingIndicator key="thinking-indicator" />
+          )}
 
-        <div key="chat-bottom-spacer" className="h-4 w-full shrink-0" />
+          <div key="chat-bottom-spacer" className="h-4 w-full shrink-0" />
+        </div>
       </div>
 
       {showScrollButton && (
-        <button
-          type="button"
-          onClick={scrollToBottom}
-          className="absolute bottom-6 right-6 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in zoom-in duration-300 z-10"
-          aria-label="Scroll to bottom"
-        >
-          <ArrowDown className="w-5 h-5" />
-        </button>
+        <div className="absolute inset-x-0 bottom-6 z-10 pointer-events-none flex justify-center">
+          <div className="w-full max-w-5xl flex justify-end px-12">
+            <button
+              type="button"
+              onClick={scrollToBottom}
+              className="p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in zoom-in duration-300 pointer-events-auto"
+              aria-label="Scroll to bottom"
+            >
+              <ArrowDown className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

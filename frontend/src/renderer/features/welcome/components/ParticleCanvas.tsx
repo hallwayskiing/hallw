@@ -51,7 +51,7 @@ export function ParticleCanvas() {
           vy: (Math.random() - 0.5) * 0.06,
           size: Math.random() * 1.6 + 0.5,
           alpha: Math.random() * 0.55 + 0.25,
-          twinkleSpeed: Math.random() * 0.03 + 0.01,
+          twinkleSpeed: Math.random() * 0.015 + 0.005,
           depth: Math.random() * 0.85 + 0.15,
         });
       }
@@ -64,13 +64,17 @@ export function ParticleCanvas() {
 
       sizeRef.current = { width: rect.width, height: rect.height };
 
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      if (
+        starsRef.current.length === 0 ||
+        ctx.canvas.width !== rect.width * dpr ||
+        ctx.canvas.height !== rect.height * dpr
+      ) {
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
 
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
 
-      if (starsRef.current.length === 0) {
         initStars(rect.width, rect.height);
       }
     };
@@ -158,6 +162,10 @@ export function ParticleCanvas() {
       const mouse = mouseRef.current;
 
       const mouseInCanvas = mouse.x >= 0 && mouse.x <= width && mouse.y >= 0 && mouse.y <= height;
+      const scale = Math.max(width, height) / 1000;
+      const attractRadius = 150 * scale;
+      const maxAttractForce = 0.003;
+      const forceCore = 36 * scale * scale;
 
       for (const star of stars) {
         if (mouseInCanvas) {
@@ -166,9 +174,9 @@ export function ParticleCanvas() {
           const distSq = dx * dx + dy * dy;
           const dist = Math.sqrt(distSq);
 
-          if (dist < 150 && dist > 0) {
-            const inverseSquareForce = 36 / Math.max(distSq, 36);
-            const cappedForce = Math.min(inverseSquareForce, 0.01);
+          if (dist < attractRadius && dist > 0) {
+            const inverseSquareForce = forceCore / Math.max(distSq, forceCore);
+            const cappedForce = Math.min(inverseSquareForce, maxAttractForce);
             star.vx += (dx / dist) * cappedForce * star.depth;
             star.vy += (dy / dist) * cappedForce * star.depth;
           }
@@ -241,16 +249,20 @@ export function ParticleCanvas() {
       const rect = canvas.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const clickY = e.clientY - rect.top;
+      const { width, height } = sizeRef.current;
+      const scale = Math.max(width, height) / 1000;
+      const repelRadius = 150 * scale;
+      const repelForce = 5;
 
       for (const star of starsRef.current) {
         const dx = star.x - clickX;
         const dy = star.y - clickY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 150 && dist > 0) {
-          const force = (150 - dist) / 150;
-          star.vx += (dx / dist) * force * 5 * star.depth;
-          star.vy += (dy / dist) * force * 5 * star.depth;
+        if (dist < repelRadius && dist > 0) {
+          const force = (repelRadius - dist) / repelRadius;
+          star.vx += (dx / dist) * force * repelForce * star.depth;
+          star.vy += (dy / dist) * force * repelForce * star.depth;
         }
       }
     };
@@ -259,12 +271,26 @@ export function ParticleCanvas() {
     window.addEventListener("resize", resize);
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("click", handleClick);
+
+    // Use ResizeObserver for more robust dimension tracking, especially for fullscreen transitions
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(resize, 50);
+    });
+    const container = canvasRef.current?.parentElement;
+    if (container) {
+      resizeObserver.observe(container);
+    }
+
     animate();
 
     return () => {
       window.removeEventListener("resize", resize);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("click", handleClick);
+      if (container) {
+        resizeObserver.unobserve(container);
+      }
+      resizeObserver.disconnect();
       cancelAnimationFrame(animationRef.current);
     };
   }, []);

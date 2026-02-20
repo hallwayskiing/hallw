@@ -30,13 +30,6 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
               isDark && "animate-hero-drift"
             )}
           >
-            {isDark && (
-              <>
-                <div className="absolute w-40 h-40 rounded-full bg-sky-400/12 blur-3xl animate-stellar-halo" />
-                <div className="absolute w-24 h-24 rounded-full bg-cyan-300/16 blur-2xl animate-stellar-halo" />
-              </>
-            )}
-
             {/* Stable Gradient Definition */}
             <svg className="absolute w-0 h-0" aria-hidden="true">
               <defs>
@@ -66,16 +59,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
               onClick={() => setSpinTick((v) => v + 1)}
               className="relative w-18 h-18 pointer-events-auto cursor-pointer animate-hero-spin-y"
             >
-              <svg
-                viewBox="0 0 100 100"
-                className="relative w-18 h-18"
-                aria-hidden="true"
-                style={{
-                  filter: isDark
-                    ? "drop-shadow(0 0 20px rgba(124, 58, 237, 0.4)) drop-shadow(0 0 40px rgba(5, 182, 255, 0.2))"
-                    : "drop-shadow(0 0 15px rgba(124, 58, 237, 0.2))",
-                }}
-              >
+              <svg viewBox="0 0 100 100" className="relative w-18 h-18" aria-hidden="true">
                 <path
                   d="M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z"
                   fill="url(#hero-gradient)"
