@@ -54,7 +54,10 @@ export function ToolsPanel({ isExpanded, onToolClick }: Omit<ToolsPanelProps, "t
 
   return (
     <div
-      className={cn("flex-1 overflow-y-auto bg-background/50 transition-all duration-300", isExpanded ? "p-4" : "p-2")}
+      className={cn(
+        "flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background/50 transition-all duration-300",
+        isExpanded ? "p-4" : "p-2"
+      )}
     >
       <h2
         className={cn(

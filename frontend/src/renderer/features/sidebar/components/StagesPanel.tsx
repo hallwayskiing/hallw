@@ -37,7 +37,7 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
   return (
     <div
       className={cn(
-        "flex-1 overflow-y-auto border-b border-border transition-all duration-300",
+        "flex-1 min-h-0 overflow-y-auto overflow-x-hidden border-b border-border transition-all duration-300",
         isExpanded ? "p-4" : "p-2"
       )}
     >
