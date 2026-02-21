@@ -25,11 +25,11 @@ async def browser_init(headless: bool = False, config: RunnableConfig = None) ->
                 timeout=30, headless=headless, user_data_dir=app_config.chrome_user_data_dir
             )
             if status != "success":
-                return build_tool_response(False, f"Frontend failed to open CDP page: {status}")
+                return build_tool_response(False, f"Frontend failed to open CDP page: {status}.")
         else:
-            return build_tool_response(False, "Renderer not found in config")
+            return build_tool_response(False, "Renderer not found in config.")
 
         await browser_launch()
-        return build_tool_response(True, "Browser initialized successfully via CDP")
+        return build_tool_response(True, "Connected to Electron Chrome instance via CDP.")
     except Exception as e:
-        return build_tool_response(False, f"Browser initialization failed: {str(e)}")
+        return build_tool_response(False, f"Browser initialization failed: {str(e)}.")

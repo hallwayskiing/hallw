@@ -5,7 +5,7 @@ import time
 from typing import Optional
 
 from langchain_core.tools import ToolException
-from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
+from playwright.async_api import BrowserContext, Page, Playwright, async_playwright
 from playwright_stealth.stealth import Stealth
 
 from hallw.utils import config
@@ -28,16 +28,12 @@ class PlaywrightManager:
         self._initialized = True
 
         self.pw: Optional[Playwright] = None
-        self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
         self.main_app_page: Optional[Page] = None
         self.target_view: Optional[Page] = None
 
     def reset(self) -> None:
         """Reset all state variables to initial values."""
         self.pw = None
-        self.browser = None
-        self.context = None
         self.main_app_page = None
         self.target_view = None
 
@@ -53,7 +49,7 @@ class PlaywrightManager:
     # Browser Lifecycle
     # -------------------------
 
-    async def launch(self) -> str:
+    async def launch(self):
         """Connect to the Electron frontend via CDP.
 
         Returns:
@@ -66,21 +62,20 @@ class PlaywrightManager:
 
         # Wait for port to be available (Electron CDP initialization might take a moment)
         if not _wait_for_port("127.0.0.1", cdp_port, timeout=cdp_timeout):
-            raise ToolException(f"Failed to connect to Electron CDP on port {cdp_port}")
+            raise ToolException(f"Failed to connect via CDP on port {cdp_port}")
 
         self.pw = await async_playwright().start()
 
         try:
             browser = await self.pw.chromium.connect_over_cdp(endpoint)
-            self.browser = browser
 
             # The newly opened blank window will be in the default context
-            self.context = browser.contexts[0] if len(browser.contexts) > 0 else await browser.new_context()
+            context = browser.contexts[0] if len(browser.contexts) > 0 else await browser.new_context()
 
-            await _apply_stealth(self.context)
+            await _apply_stealth(context)
 
             # Identify the specific Agent View by checking the injected JS variable
-            for page in self.context.pages:
+            for page in context.pages:
                 try:
                     is_agent_view = await page.evaluate("() => window.__IS_AGENT_VIEW__ === true")
                 except Exception:
@@ -91,24 +86,16 @@ class PlaywrightManager:
                 elif is_agent_view:
                     self.target_view = page
 
-            # If target view not found, try to use the first non-main page
-            if not self.target_view:
-                for page in self.context.pages:
-                    if page != self.main_app_page:
-                        self.target_view = page
-                        break
-
-            return "Connected to Electron Chrome instance via CDP."
-
         except Exception as e:
             raise ToolException(f"Failed to connect via CDP: {e}")
 
     async def disconnect(self) -> None:
         """Disconnect from CDP without closing the browser."""
-        try:
-            await self.pw.stop()
-        except Exception:
-            pass
+        if self.pw:
+            try:
+                await self.pw.stop()
+            except Exception:
+                pass
         self.reset()
 
 
@@ -146,7 +133,7 @@ async def get_page() -> Optional[Page]:
     return await pw_manager.get_page()
 
 
-async def browser_launch() -> str:
+async def browser_launch():
     """Launch browser."""
     return await pw_manager.launch()
 
