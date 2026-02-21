@@ -12,7 +12,10 @@ import { useAppInitialization } from "./hooks/useAppInitialization";
 export default function App() {
   useAppInitialization();
 
-  const { isChatting, isSettingsOpen, showCdpView, toggleCdpView } = useAppStore();
+  const isChatting = useAppStore((s) => s.isChatting);
+  const isSettingsOpen = useAppStore((s) => s.isSettingsOpen);
+  const showCdpView = useAppStore((s) => s.showCdpView);
+  const toggleCdpView = useAppStore((s) => s.toggleCdpView);
 
   return (
     // Root container: global font, background, overflow control

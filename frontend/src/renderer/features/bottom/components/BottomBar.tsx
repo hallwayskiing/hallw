@@ -7,18 +7,16 @@ import { ChatInput } from "./ChatInput";
 import { SubmitButton } from "./SubmitButton";
 
 export function BottomBar() {
-  const {
-    input,
-    isChatting,
-    isRunning,
-    isHistoryOpen,
-    setInput,
-    submitInput,
-    stopTask,
-    resetSession,
-    toggleSettings,
-    toggleHistory,
-  } = useAppStore();
+  const input = useAppStore((s) => s.input);
+  const isChatting = useAppStore((s) => s.isChatting);
+  const isRunning = useAppStore((s) => s.isRunning);
+  const isHistoryOpen = useAppStore((s) => s.isHistoryOpen);
+  const setInput = useAppStore((s) => s.setInput);
+  const submitInput = useAppStore((s) => s.submitInput);
+  const stopTask = useAppStore((s) => s.stopTask);
+  const resetSession = useAppStore((s) => s.resetSession);
+  const toggleSettings = useAppStore((s) => s.toggleSettings);
+  const toggleHistory = useAppStore((s) => s.toggleHistory);
 
   const [isFocused, setIsFocused] = useState(false);
 

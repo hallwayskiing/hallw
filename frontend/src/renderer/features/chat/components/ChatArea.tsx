@@ -11,18 +11,16 @@ import { ThinkingIndicator } from "./Indicators";
 import { MessageBubble } from "./MessageBubble";
 
 export function ChatArea() {
-  const {
-    messages,
-    streamingContent,
-    streamingReasoning,
-    _streamingMessageId,
-    isRunning,
-    pendingConfirmation,
-    pendingDecision,
-    handleConfirmationDecision,
-    handleDecision,
-    getProcessedMessages,
-  } = useAppStore();
+  const messages = useAppStore((s) => s.messages);
+  const streamingContent = useAppStore((s) => s.streamingContent);
+  const streamingReasoning = useAppStore((s) => s.streamingReasoning);
+  const _streamingMessageId = useAppStore((s) => s._streamingMessageId);
+  const isRunning = useAppStore((s) => s.isRunning);
+  const pendingConfirmation = useAppStore((s) => s.pendingConfirmation);
+  const pendingDecision = useAppStore((s) => s.pendingDecision);
+  const handleConfirmationDecision = useAppStore((s) => s.handleConfirmationDecision);
+  const handleDecision = useAppStore((s) => s.handleDecision);
+  const getProcessedMessages = useAppStore((s) => s.getProcessedMessages);
 
   // 1. Data Processing Logic (Memoized)
   const processedMessages = useMemo(() => {

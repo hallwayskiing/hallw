@@ -3,7 +3,9 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 export function SaveStatusIndicator() {
-  const { saveStatus, statusMsg, setSaveStatus } = useAppStore();
+  const saveStatus = useAppStore((s) => s.saveStatus);
+  const statusMsg = useAppStore((s) => s.statusMsg);
+  const setSaveStatus = useAppStore((s) => s.setSaveStatus);
 
   // Auto-clear success status
   useEffect(() => {

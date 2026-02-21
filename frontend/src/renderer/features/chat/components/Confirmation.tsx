@@ -6,7 +6,7 @@ import { useCountdown } from "../hooks/useCountdown";
 import type { ConfirmationProps, ConfirmationStatus } from "../types";
 
 export const Confirmation = memo(({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) => {
-  const { handleConfirmationDecision } = useAppStore();
+  const handleConfirmationDecision = useAppStore((s) => s.handleConfirmationDecision);
   const [status, setStatus] = useState<ConfirmationStatus>(initialStatus || "pending");
 
   const handleTimeout = () => {

@@ -11,7 +11,8 @@ import { QuickStartList } from "./QuickStartList";
 import { WelcomeHeaders } from "./WelcomeHeaders";
 
 export function Welcome() {
-  const { theme, startTask } = useAppStore();
+  const theme = useAppStore((s) => s.theme);
+  const startTask = useAppStore((s) => s.startTask);
   const [isLoaded, setIsLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(1);
 

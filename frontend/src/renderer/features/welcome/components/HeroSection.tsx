@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { HeroSectionProps } from "../types";
 
 export function HeroSection({ isLoaded }: HeroSectionProps) {
-  const { theme } = useAppStore();
+  const theme = useAppStore((s) => s.theme);
   const [spinTick, setSpinTick] = useState(0);
   const isDark = theme === "dark";
 
