@@ -109,7 +109,7 @@ export function ChatArea() {
 
       {showScrollButton && (
         <div className="absolute inset-x-0 bottom-6 z-10 pointer-events-none flex justify-center">
-          <div className="w-full max-w-5xl flex justify-end px-12">
+          <div className="w-full max-w-5xl flex justify-end px-20">
             <button
               type="button"
               onClick={scrollToBottom}

@@ -55,14 +55,14 @@ export default function App() {
                 {/* Main Chat Area (Right Side if Split) */}
                 <div
                   id="chat-viewport"
-                  className={`flex-1 h-full flex flex-col relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
+                  className={`flex-1 h-full flex flex-row relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
                 >
-                  <ChatArea />
+                  <div className="flex-1 min-w-0 h-full">
+                    <ChatArea />
+                  </div>
 
                   {/* Sidebar: App controls visibility, Logic internal */}
-                  <div className="absolute right-0 top-0 bottom-0 z-40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-                    <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl" />
-                  </div>
+                  <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl bg-secondary/30" />
                 </div>
               </div>
             )}
