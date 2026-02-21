@@ -73,7 +73,7 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
   return (
     <div
       key={requestId}
-      className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-bottom-2"
+      className="flex flex-col gap-4 max-w-3xl mx-auto w-full min-w-0 p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-bottom-2"
     >
       <div className="flex items-center gap-3 text-amber-500">
         <AlertTriangle className="w-5 h-5" />

@@ -28,7 +28,7 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
   }, [content]);
 
   return (
-    <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[90%]">
+    <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -36,7 +36,7 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
           "flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-all text-left group",
           isStreaming
             ? "bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
-            : "bg-linear-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5"
+            : "bg-purple-500/5"
         )}
       >
         {isOpen ? (

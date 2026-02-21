@@ -108,7 +108,7 @@ export const Decision = memo(
     return (
       <div
         id={requestId}
-        className="flex flex-col gap-4 max-w-3xl mx-auto w-full p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2"
+        className="flex flex-col gap-4 max-w-3xl mx-auto w-full min-w-0 p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2"
       >
         <div className="flex items-center gap-3 text-blue-500">
           <MessageSquare className="w-5 h-5" />

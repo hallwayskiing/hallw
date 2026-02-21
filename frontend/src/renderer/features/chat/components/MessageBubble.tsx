@@ -44,10 +44,10 @@ export const MessageBubble = memo(
           {(isStreamingContent || content) && (
             <div
               className={cn(
-                "inline-block rounded-2xl max-w-[90%] text-left",
+                "rounded-2xl text-left",
                 isUser
-                  ? "bg-linear-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
-                  : "bg-white/2 border border-white/4 text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
+                  ? "inline-block max-w-[90%] bg-linear-to-br from-indigo-500/15 to-indigo-600/5 border border-indigo-500/15 text-foreground/95 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
+                  : "block max-w-[85%] bg-white/2 border border-white/4 text-foreground/90 px-5 py-3 shadow-lg shadow-black/5",
                 isStreamingContent && "min-h-[40px]"
               )}
             >

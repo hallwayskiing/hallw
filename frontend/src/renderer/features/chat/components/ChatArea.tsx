@@ -14,6 +14,7 @@ export function ChatArea() {
   const messages = useAppStore((s) => s.messages);
   const streamingContent = useAppStore((s) => s.streamingContent);
   const streamingReasoning = useAppStore((s) => s.streamingReasoning);
+  const isStreamingReasoning = useAppStore((s) => s.isStreamingReasoning);
   const _streamingMessageId = useAppStore((s) => s._streamingMessageId);
   const isRunning = useAppStore((s) => s.isRunning);
   const pendingConfirmation = useAppStore((s) => s.pendingConfirmation);
@@ -32,12 +33,12 @@ export function ChatArea() {
         msgRole: "assistant",
         content: streamingContent,
         reasoning: streamingReasoning,
-        isStreamingReasoning: !!streamingReasoning && !streamingContent,
+        isStreamingReasoning: isStreamingReasoning,
         isStreamingContent: !!streamingContent,
       });
     }
     return result;
-  }, [messages, streamingContent, streamingReasoning, _streamingMessageId, getProcessedMessages]);
+  }, [messages, streamingContent, streamingReasoning, isStreamingReasoning, _streamingMessageId, getProcessedMessages]);
 
   // 2. Custom Scroll Hook
   const { scrollRef, handleScroll, scrollToBottom, showScrollButton } = useAutoScroll([
@@ -60,7 +61,11 @@ export function ChatArea() {
 
   return (
     <div className="relative h-full w-full">
-      <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col h-full overflow-auto p-4 scroll-smooth">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex flex-col h-full overflow-auto px-1 py-4 scroll-smooth"
+      >
         <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
           {processedMessages.map((msg: Message) => (
             <div key={msg.id} className="space-y-4">
@@ -100,8 +105,6 @@ export function ChatArea() {
           {isRunning && !streamingContent && !streamingReasoning && !pendingConfirmation && !pendingDecision && (
             <ThinkingIndicator key="thinking-indicator" />
           )}
-
-          <div key="chat-bottom-spacer" className="h-4 w-full shrink-0" />
         </div>
       </div>
 

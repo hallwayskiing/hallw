@@ -5,6 +5,7 @@ import type { ConfirmationRequest, ConfirmationStatus, DecisionRequest, Decision
 export interface ChatSlice {
   messages: Message[];
   isRunning: boolean;
+  isStreamingReasoning: boolean;
   streamingContent: string;
   streamingReasoning: string;
   pendingConfirmation: ConfirmationRequest | null;
@@ -35,6 +36,7 @@ export interface ChatSlice {
 export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, get) => ({
   messages: [],
   isRunning: false,
+  isStreamingReasoning: false,
   streamingContent: "",
   streamingReasoning: "",
   pendingConfirmation: null,
@@ -108,6 +110,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       messages: [...state.messages, { id: crypto.randomUUID(), type: "text", msgRole: "user", content: task }],
       isChatting: true,
       isRunning: true,
+      isStreamingReasoning: false,
       streamingContent: "",
       streamingReasoning: "",
       pendingConfirmation: null,
@@ -131,6 +134,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     _socket.emit("reset_session");
     set({
       isRunning: false,
+      isStreamingReasoning: false,
       messages: [],
       streamingContent: "",
       streamingReasoning: "",
@@ -201,6 +205,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
   _onChatNewReasoning: (reasoning) => {
     set((state) => ({
       streamingReasoning: state.streamingReasoning + reasoning,
+      isStreamingReasoning: true,
     }));
   },
 
@@ -210,6 +215,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       return {
         streamingContent: newContent,
         _streamingContentRef: newContent,
+        isStreamingReasoning: false,
       };
     });
   },
@@ -252,6 +258,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         _streamingContentRef: "",
         _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
+        isStreamingReasoning: false,
       };
     });
   },
@@ -291,6 +298,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         _streamingContentRef: "",
         _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
+        isStreamingReasoning: false,
         pendingConfirmation: null,
         pendingDecision: null,
       };
@@ -332,6 +340,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         _streamingContentRef: "",
         _streamingMessageId: crypto.randomUUID(),
         isRunning: false,
+        isStreamingReasoning: false,
       };
     });
   },
@@ -343,6 +352,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       _streamingContentRef: "",
       _streamingMessageId: crypto.randomUUID(),
       isRunning: false,
+      isStreamingReasoning: false,
       pendingConfirmation: null,
       pendingDecision: null,
     });
@@ -352,6 +362,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     set({
       messages: data.messages,
       isRunning: false,
+      isStreamingReasoning: false,
       streamingContent: "",
       streamingReasoning: "",
       _streamingContentRef: "",
@@ -389,6 +400,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingReasoning: "",
         _streamingContentRef: "",
         _streamingMessageId: crypto.randomUUID(),
+        isStreamingReasoning: false,
         pendingConfirmation: {
           requestId: data.requestId,
           message: data.message,
@@ -428,6 +440,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         streamingReasoning: "",
         _streamingContentRef: "",
         _streamingMessageId: crypto.randomUUID(),
+        isStreamingReasoning: false,
         pendingDecision: {
           requestId: data.requestId,
           message: data.message,

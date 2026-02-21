@@ -58,9 +58,9 @@ export default function App() {
                 {/* Main Chat Area (Right Side if Split) */}
                 <div
                   id="chat-viewport"
-                  className={`flex-1 h-full flex flex-row relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
+                  className={`flex-1 min-w-0 h-full flex flex-row relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
                 >
-                  <div className="flex-1 min-w-0 h-full">
+                  <div className="flex-1 min-w-0 h-full overflow-hidden">
                     <ChatArea />
                   </div>
 
