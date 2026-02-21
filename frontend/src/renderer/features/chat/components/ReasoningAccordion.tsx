@@ -34,22 +34,44 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-all text-left group",
-          !isOpen &&
-            isStreaming &&
-            "bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
+          isStreaming
+            ? "bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
+            : "bg-linear-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5"
         )}
       >
         {isOpen ? (
-          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors",
+              isStreaming ? "text-muted-foreground" : "text-foreground/70"
+            )}
+          />
         ) : (
-          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          <ChevronRight
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors",
+              isStreaming ? "text-muted-foreground" : "text-foreground/70"
+            )}
+          />
         )}
-        <Brain className={cn("w-4 h-4 text-purple-400 shrink-0", isStreaming && "animate-pulse")} />
-        <div className="flex-1 min-w-0">
+        <Brain
+          className={cn(
+            "w-4 h-4 shrink-0 transition-colors",
+            isStreaming ? "text-purple-400 animate-pulse" : "text-purple-500"
+          )}
+        />
+        <div className="flex-1 min-w-0 flex items-center">
           {!isOpen && isStreaming && summary ? (
-            <span className="text-xs text-muted-foreground/80 truncate block font-mono">{summary.slice(0, 100)}</span>
+            <span className="text-xs text-muted-foreground/80 truncate block font-mono leading-none">
+              {summary.slice(0, 100)}
+            </span>
           ) : (
-            <span className="text-xs font-medium text-muted-foreground">
+            <span
+              className={cn(
+                "text-xs font-medium leading-none transition-colors",
+                isStreaming ? "text-muted-foreground" : "text-foreground/70"
+              )}
+            >
               {isStreaming ? "Thinking..." : "Thought Process"}
             </span>
           )}
@@ -59,7 +81,10 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="px-4 py-3 bg-muted/20 border-t border-border/30 text-xs text-foreground/80 animate-in slide-in-from-top-1 max-h-80 overflow-y-auto custom-scrollbar"
+          className={cn(
+            "px-4 py-3 bg-muted/20 border-t border-border/30 text-xs animate-in slide-in-from-top-1 max-h-80 overflow-y-auto custom-scrollbar transition-colors",
+            isStreaming ? "text-foreground/80" : "text-foreground"
+          )}
         >
           <MarkdownContent content={isStreaming ? smoothContent : content} isStreaming={isStreaming} />
         </div>
