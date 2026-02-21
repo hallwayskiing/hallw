@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.14.0 (2026-02-20)
+
+### Feat
+
+- **ui**: support deletion on recent used models
+- **ui**: configure NVIDIA NIM in the settings
+- **core**: manager browser through Electron instead of chromium or local chrome
+- **tools**: support pdf, xlsx, docx, pptx reading
+
+### Fix
+
+- **ui**: fix ReasoningAccordion visibility
+- **core**: fix TypedDict Python3.14 errors
+- **ui**: fix sidebar ui
+- **ui**: change input indicator location to end of line instead of a new line
+- **ui**: reduce ui flashing and improve stability
+- **ui**: fix ui latency
+- **server**: fix none type error
+
 ## v0.13.0 (2026-02-18)
 
 ### Feat
