@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import json
-from typing import Any, Dict, Optional, TypedDict
+from typing import Any, Dict, NotRequired, Optional, TypedDict
 
 
-class ToolResult(TypedDict, total=False):
+class ToolResult(TypedDict):
     """Result structure for tool responses."""
 
     success: bool
     message: str
-    data: Dict[str, Any]
+    data: NotRequired[Dict[str, Any]]
 
 
 def build_tool_response(success: bool, message: str, data: Optional[Dict[str, Any]] = None) -> str:

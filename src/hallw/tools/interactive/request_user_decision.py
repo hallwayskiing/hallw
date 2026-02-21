@@ -5,14 +5,14 @@ from hallw.tools import build_tool_response
 
 
 @tool
-async def request_user_decision(prompt: str, options: list[str] = None, config: RunnableConfig = None) -> str:
+async def request_user_decision(prompt: str, options: list[str] = [], config: RunnableConfig = None) -> str:
     """
     Pause execution and ask the user for a decision or input at runtime.
     Use this when you need clarification, additional information, or user decisions between stages.
 
     Args:
         prompt: The message to display to the user explaining what input is needed.
-        options: A list of options for the user to choose from. If None, the user can input free text.
+        options: A list of options for the user to choose from. If empty list, the user can input free text.
 
     Returns:
         The user's input response as a string.
