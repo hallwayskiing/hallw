@@ -9,6 +9,7 @@ from hallw.tools import build_stages, build_tool_response, dummy_for_missed_tool
 from hallw.tools.edit_stages import edit_stages
 from hallw.tools.end_stage import end_current_stage
 from hallw.utils import config as hallw_config
+from hallw.utils import get_system_prompt
 
 from .agent_state import AgentState
 
@@ -19,24 +20,24 @@ def build_graph(model, checkpointer) -> StateGraph:
     """
 
     tools_dict = load_tools()
+    system_prompt = get_system_prompt()
 
     # --- Nodes ---
 
     async def build_node(state: AgentState, config: RunnableConfig):
-        builder_msg = SystemMessage(
-            content="""
+        append_prompt = """
             Now build the stages for the user request.
             <rules>
-            CRITICAL INSTRUCTIONS:
             1. You MUST call the `build_stages` tool exactly once.
             2. The `stages` list you provide must be clear, actionable, and in the correct order.
             3. Do NOT call any other tools. Only call `build_stages`.
             4. If the user request is simple, create only one stage to finish it quickly.
             </rules>
         """
-        )
+        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+
         response = await model.bind_tools([build_stages], tool_choice="required").ainvoke(
-            state["messages"] + [builder_msg], config=config
+            [system_msg] + state["messages"], config=config
         )
 
         return {
@@ -45,9 +46,13 @@ def build_graph(model, checkpointer) -> StateGraph:
         }
 
     async def model_node(state: AgentState, config: RunnableConfig):
-        messages = state["messages"]
+        append_prompt = f"""
+            Current stage: {state["stage_names"][state["current_stage"]]}
+        """
+        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+
         response = await model.bind_tools(list(tools_dict.values()), tool_choice="auto").ainvoke(
-            messages, config=config
+            [system_msg] + state["messages"], config=config
         )
 
         return {
@@ -67,18 +72,18 @@ def build_graph(model, checkpointer) -> StateGraph:
         total_stages = state["total_stages"]
         remaining_stages = [state["stage_names"][i] for i in range(curr_stage, total_stages)]
 
-        hint = SystemMessage(
-            content=(
-                "Stages not completed. Remaining stages: "
-                f"{', '.join(remaining_stages)}"
-                "You must now either:\n"
-                "1. Call `end_current_stage` to advance to the next stage (or finish the task).\n"
-                "2. Call `edit_stages` to replace all remaining stages with a new plan.\n"
-                "You MUST call one of these tools."
-            )
-        )
+        append_prompt = f"""
+            Stages are not finished yet.
+            Remaining stages: {", ".join(remaining_stages)}
+            You must now either:
+            1. Call `end_current_stage` to advance to the next stage (or finish the task).
+            2. Call `edit_stages` to replace all remaining stages with a new plan.
+            You MUST call one of these tools.
+        """
+        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+
         response = await model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
-            state["messages"] + [hint], config=config
+            [system_msg] + state["messages"], config=config
         )
 
         return {
@@ -110,11 +115,12 @@ def build_graph(model, checkpointer) -> StateGraph:
                 output = await tool.ainvoke(args, config=config)
 
                 if name == "build_stages":
-                    stage_names, total, curr_idx = _handle_build_stages(output, new_messages, config)
+                    stage_names, total = _handle_build_stages(output, config)
+                    curr_idx = 0
                 elif name == "end_current_stage":
-                    curr_idx, is_done = _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config)
+                    curr_idx, is_done = _handle_end_stage(args, curr_idx, total, stage_names, config)
                 elif name == "edit_stages":
-                    stage_names, total = _handle_edit_stages(output, curr_idx, stage_names, new_messages, config)
+                    stage_names, total = _handle_edit_stages(output, curr_idx, stage_names, config)
 
             except Exception as e:
                 output = build_tool_response(success=False, message=f"Tool error: {e}")
@@ -137,15 +143,18 @@ def build_graph(model, checkpointer) -> StateGraph:
 
     async def reflection_node(state: AgentState, config: RunnableConfig):
         fail_count = state["stats"]["failures_since_last_reflection"]
-        reflection_prompt = f"""
-        You have accumulated {fail_count} failures in the previous steps.
-        Please reflect on the failures and adjust your plan.
-        Use your reasoning.
+        append_prompt = f"""
+            You have accumulated {fail_count} failures in the previous steps.
+            Please reflect on the failures and adjust your plan.
+            Find out what went wrong and how to fix it.
+            Recover from the failures and continue with the task.
         """
-        hint = SystemMessage(content=reflection_prompt)
-        response = await model.ainvoke(state["messages"] + [hint], config=config)
+        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+
+        response = await model.ainvoke([system_msg] + state["messages"], config=config)
+
         return {
-            "messages": [hint, response],
+            "messages": [response],
             "stats": {**_extract_usage(response), "failures_since_last_reflection": -fail_count},
         }
 
@@ -211,16 +220,14 @@ def build_graph(model, checkpointer) -> StateGraph:
 # --- Helper Functions ---
 
 
-def _handle_build_stages(output, new_messages, config):
-    """Handle build_stages tool result. Returns (stage_names, total, curr_idx)."""
+def _handle_build_stages(output, config):
+    """Handle build_stages tool result. Returns (stage_names, stage_count)."""
     parsed = parse_tool_response(output)
     stages = parsed.get("data", {}).get("stage_names", [])
     if not stages:
-        new_messages.append(SystemMessage(content="Please build solid stages first."))
         return [], 0, 0
 
     total = len(stages)
-    curr_idx = 0
 
     dispatch_custom_event("stages_built", {"stages": stages}, config=config)
     dispatch_custom_event(
@@ -232,11 +239,10 @@ def _handle_build_stages(output, new_messages, config):
         },
         config=config,
     )
-    new_messages.append(SystemMessage(content=f"Stage 1/{total} started: {stages[0]}"))
-    return stages, total, curr_idx
+    return stages, total
 
 
-def _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config):
+def _handle_end_stage(args, curr_idx, total, stage_names, config):
     """Handle end_current_stage tool result. Returns (curr_idx, is_done)."""
     stage_count = args.get("stage_count", 1)
 
@@ -259,11 +265,10 @@ def _handle_end_stage(args, curr_idx, total, stage_names, new_messages, config):
         {"stage_index": curr_idx, "total_stages": total, "stage_name": stage_names[curr_idx]},
         config=config,
     )
-    new_messages.append(SystemMessage(content=f"Stage {curr_idx + 1}/{total}: {stage_names[curr_idx]}"))
     return curr_idx, False
 
 
-def _handle_edit_stages(output, curr_idx, stage_names, new_messages, config):
+def _handle_edit_stages(output, curr_idx, stage_names, config):
     """Handle edit_stages tool result. Returns (stage_names, total)."""
     parsed_edit = parse_tool_response(output)
     new_stages = parsed_edit.get("data", {}).get("new_stages", [])
@@ -278,7 +283,6 @@ def _handle_edit_stages(output, curr_idx, stage_names, new_messages, config):
         {"stages": stage_names, "current_index": curr_idx},
         config=config,
     )
-    new_messages.append(SystemMessage(content=f"Stages updated. Stage {curr_idx + 1}/{total}: {stage_names[curr_idx]}"))
     return stage_names, total
 
 

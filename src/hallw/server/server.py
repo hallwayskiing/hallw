@@ -1,10 +1,10 @@
 import asyncio
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 import socketio
 import uvicorn
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from pydantic import SecretStr
@@ -12,7 +12,7 @@ from pydantic import SecretStr
 from hallw.core import AgentEventDispatcher, AgentState, AgentTask
 from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools.playwright.playwright_mgr import browser_disconnect
-from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
+from hallw.utils import config, history_mgr, init_logger, logger, save_config_to_env
 
 # --- Global State ---
 active_task: Optional[AgentTask] = None
@@ -22,7 +22,7 @@ class Session:
     def __init__(self, sid: str, task_id: Optional[str] = None):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.renderer = SocketAgentRenderer(sio, sid)
-        self.history = [SystemMessage(content=get_system_prompt())]
+        self.history: List[BaseMessage] = []
         self.input_tokens = 0
         self.output_tokens = 0
 
@@ -41,11 +41,9 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
     else:
         current_session.renderer.sid = sid
 
-    # Always prepare the current message stack from history
     messages = current_session.history.copy()
-
     # Append the new user request
-    user_msg = HumanMessage(content=f"User: {user_task}")
+    user_msg = HumanMessage(content=user_task)
     messages.append(user_msg)
     current_session.history.append(user_msg)
     logger.info(f"User: {user_task}")
