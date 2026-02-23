@@ -61,9 +61,6 @@ def run_frontend() -> subprocess.Popen | None:
 
 
 def main():
-    from hallw.server.server import main as server_main
-    from hallw.utils import logger
-
     _patch_windows_asyncio()
 
     server_port = 8000
@@ -81,7 +78,10 @@ def main():
     monitor_thread = threading.Thread(target=monitor_frontend, daemon=True)
     monitor_thread.start()
 
-    # 2. Start Backend (runs in main thread)
+    # 3. Start Backend (runs in main thread)
+    from hallw.server.server import main as server_main
+    from hallw.utils import logger
+
     try:
         server_main()
     except KeyboardInterrupt:
