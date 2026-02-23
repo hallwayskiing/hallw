@@ -1,7 +1,6 @@
 import asyncio
 import threading
 import uuid
-from typing import List, Optional
 
 import socketio
 from langchain_core.messages import BaseMessage
@@ -12,14 +11,14 @@ from hallw.server.socket_renderer import SocketAgentRenderer
 
 class Session:
     def __init__(
-        self, sid: str, sio: socketio.AsyncServer, main_loop: asyncio.AbstractEventLoop, thread_id: Optional[str] = None
+        self, sid: str, sio: socketio.AsyncServer, main_loop: asyncio.AbstractEventLoop, thread_id: str | None = None
     ):
         self.thread_id = thread_id if thread_id else str(uuid.uuid4())
         self.renderer = SocketAgentRenderer(sio, sid, main_loop)
-        self.history: List[BaseMessage] = []
+        self.history: list[BaseMessage] = []
         self.input_tokens = 0
         self.output_tokens = 0
-        self.active_task: Optional[AgentTask] = None
+        self.active_task: AgentTask | None = None
 
         # --- Persistent Event Loop & Thread ---
         self.session_loop = asyncio.new_event_loop()

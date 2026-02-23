@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable
 
 from hallw.tools import ToolResult, parse_tool_response
 
@@ -7,7 +7,7 @@ from hallw.tools import ToolResult, parse_tool_response
 class AgentEventDispatcher:
     def __init__(self, renderer: Any):
         self.renderer = renderer
-        self._handlers: Dict[Tuple[str, Optional[str]], Callable] = {}
+        self._handlers: dict[tuple[str, str | None], Callable] = {}
         self._setup_default_handlers()
 
     def _setup_default_handlers(self):
@@ -38,14 +38,14 @@ class AgentEventDispatcher:
         )
         self.register("on_custom_event", name="stages_edited")(lambda r, ev: r.on_stages_edited(ev.get("data", {})))
 
-    def register(self, event_kind: str, name: Optional[str] = None):
+    def register(self, event_kind: str, name: str | None = None):
         def decorator(func: Callable):
             self._handlers[(event_kind, name)] = func
             return func
 
         return decorator
 
-    async def dispatch(self, event: Dict[str, Any]):
+    async def dispatch(self, event: dict[str, Any]):
         kind, name = event.get("event"), event.get("name")
         handler = self._handlers.get((kind, name)) or self._handlers.get((kind, None))
         if handler:

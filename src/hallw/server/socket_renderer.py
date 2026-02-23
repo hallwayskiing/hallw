@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Optional
+from typing import Any
 
 import socketio
 
@@ -13,7 +13,7 @@ class SocketAgentRenderer(AgentRenderer):
         super().__init__()
         self.sio, self.sid, self.main_loop = sio, sid, main_loop
         self._current_response = ""
-        self._pending_confirmation: Optional[dict] = None
+        self._pending_confirmation: dict | None = None
 
     async def emit(self, event: str, data: Any = None):
         try:

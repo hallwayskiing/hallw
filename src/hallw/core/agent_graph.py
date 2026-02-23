@@ -1,20 +1,25 @@
-from typing import Dict, List
-
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from hallw.tools import build_stages, build_tool_response, dummy_for_missed_tool, load_tools, parse_tool_response
-from hallw.tools.edit_stages import edit_stages
-from hallw.tools.end_stage import end_current_stage
-from hallw.utils import config as hallw_config
+from hallw.core import AgentStats
+from hallw.tools import (
+    build_stages,
+    build_tool_response,
+    dummy_for_missed_tool,
+    edit_stages,
+    end_current_stage,
+    load_tools,
+    parse_tool_response,
+)
+from hallw.utils import config as app_config
 from hallw.utils import get_system_prompt
 
 from .agent_state import AgentState
 
 
-def build_graph(model, checkpointer) -> StateGraph:
+def build_graph(model, checkpointer) -> StateGraph[AgentState]:
     """
     Builds the LangGraph workflow
     """
@@ -93,7 +98,7 @@ def build_graph(model, checkpointer) -> StateGraph:
 
     async def tools_node(state: AgentState, config: RunnableConfig):
         ai_msg = state["messages"][-1]
-        new_messages: List[BaseMessage] = []
+        new_messages: list[BaseMessage] = []
         stats_inc = {"tool_call_counts": 0, "failures": 0, "failures_since_last_reflection": 0}
         curr_idx = state["current_stage"]
         stage_names = list(state["stage_names"])
@@ -170,7 +175,7 @@ def build_graph(model, checkpointer) -> StateGraph:
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
             return "tools"
         fails = state["stats"].get("failures_since_last_reflection", 0)
-        if fails > 0 and fails % hallw_config.model_reflection_threshold == 0:
+        if fails > 0 and fails % app_config.model_reflection_threshold == 0:
             return "reflection"
         # Route to proceed node if no tool calls
         return "proceed"
@@ -190,7 +195,7 @@ def build_graph(model, checkpointer) -> StateGraph:
             return "build"
         # If reflection threshold is reached, return reflection
         fails = state["stats"].get("failures_since_last_reflection", 0)
-        if fails > 0 and fails % hallw_config.model_reflection_threshold == 0:
+        if fails > 0 and fails % app_config.model_reflection_threshold == 0:
             return "reflection"
         return "model"
 
@@ -286,7 +291,7 @@ def _handle_edit_stages(output, curr_idx, stage_names, config):
     return stage_names, total
 
 
-def _extract_usage(response: AIMessage, tool_calls: int = 0) -> Dict:
+def _extract_usage(response: AIMessage, tool_calls: int = 0) -> AgentStats:
     meta = getattr(response, "usage_metadata", {}) or {}
     return {
         "input_tokens": meta.get("input_tokens", 0),

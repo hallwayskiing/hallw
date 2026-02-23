@@ -1,12 +1,10 @@
-from typing import List
-
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
 
 
 @tool
-def edit_stages(new_stages: List[str]) -> str:
+def edit_stages(new_stages: list[str]) -> str:
     """
     Replace all remaining (uncompleted) stages with a brand-new list.
 
@@ -15,8 +13,7 @@ def edit_stages(new_stages: List[str]) -> str:
     was not in the original plan.
 
     Args:
-        new_stages (List[str]): A non-empty list of new stage names that will replace the
-                    remaining stages.
+        new_stages (list[str]): A list of new stage names to replace the remaining stages.
 
     Returns:
         A confirmation message.

@@ -1,5 +1,3 @@
-from typing import List
-
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
@@ -7,7 +5,7 @@ from hallw.tools import build_tool_response
 
 
 @tool
-async def request_user_decision(prompt: str, options: List[str] = None, config: RunnableConfig = None) -> str:
+async def request_user_decision(prompt: str, options: list[str] = None, config: RunnableConfig = None) -> str:
     """
     Pause execution and ask the user for a decision or input at runtime.
     Use this when you need clarification, additional information, or user decisions between stages.
@@ -15,7 +13,7 @@ async def request_user_decision(prompt: str, options: List[str] = None, config: 
 
     Args:
         prompt (str): The message to display to the user explaining what input is needed.
-        options (List[str]): A list of options for the user to choose from.
+        options (list[str]): A list of options for the user to choose from.
 
     Returns:
         The user's input response as a string.

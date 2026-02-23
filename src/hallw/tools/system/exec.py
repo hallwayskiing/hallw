@@ -4,7 +4,6 @@ import os
 import platform
 import shlex
 import uuid
-from typing import List, Optional
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -158,7 +157,7 @@ def _decode_output(raw: bytes) -> str:
     return "\n".join(compact).strip()
 
 
-def _extract_commands(command: str) -> List[str]:
+def _extract_commands(command: str) -> list[str]:
     separators = {"&&", "||", "|", ";"}
 
     posix = not platform.system().lower().startswith("win")
@@ -186,7 +185,7 @@ def _extract_commands(command: str) -> List[str]:
     return cmds
 
 
-def _get_command_name(command: str) -> Optional[str]:
+def _get_command_name(command: str) -> str | None:
     if any(x in command for x in ("&&", ";", "|", "\n", "\r")):
         return None
 
@@ -209,7 +208,7 @@ def _get_command_name(command: str) -> Optional[str]:
     return cmd.lower()
 
 
-def _is_command_blacklisted(command: str, blacklist: List[str]) -> bool:
+def _is_command_blacklisted(command: str, blacklist: list[str]) -> bool:
     _blacklist = {b.lower() for b in blacklist}
 
     for cmd in _extract_commands(command):

@@ -1,9 +1,9 @@
 import asyncio
-from typing import Dict
 
 import socketio
 import uvicorn
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from pydantic import SecretStr
@@ -15,7 +15,7 @@ from hallw.utils import config, history_mgr, init_logger, logger, save_config_to
 from .session import Session
 
 # --- Global State ---
-sessions: Dict[str, Session] = {}
+sessions: dict[str, Session] = {}
 
 
 def create_agent_task(user_task: str, session: Session, checkpointer: BaseCheckpointSaver) -> AgentTask:
@@ -55,7 +55,7 @@ def create_agent_task(user_task: str, session: Session, checkpointer: BaseCheckp
         "task_completed": False,
     }
 
-    invocation_config = {
+    invocation_config: RunnableConfig = {
         "recursion_limit": config.model_max_recursion,
         "configurable": {
             "thread_id": session.thread_id,

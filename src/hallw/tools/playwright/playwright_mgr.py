@@ -3,7 +3,6 @@
 import socket
 import threading
 import time
-from typing import Optional
 
 from langchain_core.tools import ToolException
 from playwright.async_api import BrowserContext, Page, Playwright, async_playwright
@@ -21,9 +20,9 @@ class PlaywrightManager(threading.local):
             return
         self._initialized = True
 
-        self.pw: Optional[Playwright] = None
-        self.main_app_page: Optional[Page] = None
-        self.target_view: Optional[Page] = None
+        self.pw: Playwright | None = None
+        self.main_app_page: Page | None = None
+        self.target_view: Page | None = None
 
     def reset(self) -> None:
         """Reset all state variables to initial values."""
@@ -35,7 +34,7 @@ class PlaywrightManager(threading.local):
     # Page Management
     # -------------------------
 
-    async def get_page(self) -> Optional[Page]:
+    async def get_page(self) -> Page | None:
         """Get the primary Agent View page."""
         return self.target_view
 
@@ -122,7 +121,7 @@ def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
 pw_manager = PlaywrightManager()
 
 
-async def get_page() -> Optional[Page]:
+async def get_page() -> Page | None:
     """Get the primary page."""
     return await pw_manager.get_page()
 

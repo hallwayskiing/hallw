@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,27 +16,27 @@ class Settings(BaseSettings):
     model_reasoning_effort: str = "low"  # low, medium, high
     model_reflection_threshold: int = 3
     model_max_recursion: int = 99
-    model_recent_used: List[str] = []
+    model_recent_used: list[str] = []
 
     # =================================================
     # 2. Provider API Keys
     # =================================================
-    openai_api_key: Optional[SecretStr] = None
-    google_api_key: Optional[SecretStr] = None
-    anthropic_api_key: Optional[SecretStr] = None
-    openrouter_api_key: Optional[SecretStr] = None
-    nvidia_nim_api_key: Optional[SecretStr] = None
-    deepseek_api_key: Optional[SecretStr] = None
-    zai_api_key: Optional[SecretStr] = None
-    moonshot_api_key: Optional[SecretStr] = None
-    xiaomi_mimo_api_key: Optional[SecretStr] = None
+    openai_api_key: SecretStr | None = None
+    google_api_key: SecretStr | None = None
+    anthropic_api_key: SecretStr | None = None
+    openrouter_api_key: SecretStr | None = None
+    nvidia_nim_api_key: SecretStr | None = None
+    deepseek_api_key: SecretStr | None = None
+    zai_api_key: SecretStr | None = None
+    moonshot_api_key: SecretStr | None = None
+    xiaomi_mimo_api_key: SecretStr | None = None
 
     # =================================================
     # 3. LangSmith (Tracing)
     # =================================================
     langsmith_tracing: bool = False
     langsmith_endpoint: str = "https://api.smith.langchain.com"
-    langsmith_api_key: Optional[SecretStr] = None
+    langsmith_api_key: SecretStr | None = None
     langsmith_project: str = "HALLW"
 
     # =================================================
@@ -52,16 +50,16 @@ class Settings(BaseSettings):
     # 5. Exec & Search
     # =================================================
     auto_allow_exec: bool = False
-    auto_allow_blacklist: List[str] = []
+    auto_allow_blacklist: list[str] = []
     search_engine: str = "brave"  # "brave" or "bocha"
     search_result_count: int = 5
-    brave_search_api_key: Optional[SecretStr] = None
-    bocha_api_key: Optional[SecretStr] = None
+    brave_search_api_key: SecretStr | None = None
+    bocha_api_key: SecretStr | None = None
 
     # =================================================
     # 6. Playwright & Browser
     # =================================================
-    chrome_user_data_dir: Optional[str] = None
+    chrome_user_data_dir: str | None = None
     # Playwright timeouts (in milliseconds)
     pw_goto_timeout: int = 10000
     pw_click_timeout: int = 6000

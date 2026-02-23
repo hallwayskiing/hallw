@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, NotRequired, Optional, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
 class ToolResult(TypedDict):
@@ -9,12 +9,12 @@ class ToolResult(TypedDict):
 
     success: bool
     message: str
-    data: NotRequired[Dict[str, Any]]
+    data: NotRequired[dict[str, Any]]
 
 
-def build_tool_response(success: bool, message: str, data: Optional[Dict[str, Any]] = None) -> str:
+def build_tool_response(success: bool, message: str, data: dict[str, Any] | None = None) -> str:
     """Serialize tool results into a JSON string with a success flag."""
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "success": success,
         "message": message,
     }

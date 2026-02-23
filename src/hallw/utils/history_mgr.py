@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiosqlite
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -19,7 +19,7 @@ async def create_local_checkpointer() -> tuple[aiosqlite.Connection, AsyncSqlite
     return local_conn, local_cp
 
 
-async def get_all_threads() -> List[Dict[str, Any]]:
+async def get_all_threads() -> list[dict[str, Any]]:
     """Fetches a summary list of all conversation threads."""
     local_conn, cp = await create_local_checkpointer()
 
@@ -65,7 +65,7 @@ async def get_all_threads() -> List[Dict[str, Any]]:
         await local_conn.close()
 
 
-async def load_thread(thread_id: str) -> Optional[Dict[str, Any]]:
+async def load_thread(thread_id: str) -> dict[str, Any] | None:
     """Loads state for a specific thread."""
     local_conn, cp = await create_local_checkpointer()
     try:
@@ -100,14 +100,14 @@ async def delete_thread(thread_id: str) -> None:
         await local_conn.close()
 
 
-def serialize_messages(messages: List[Any]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Serializes LangChain messages for the frontend and reconstructs tool states.
     Returns (serialized_msgs, restored_tool_states)
     """
     serialized_msgs = []
     restored_tool_states = []
-    local_tool_map: Dict[str, Any] = {}
+    local_tool_map: dict[str, Any] = {}
 
     for msg in messages:
         role = ""

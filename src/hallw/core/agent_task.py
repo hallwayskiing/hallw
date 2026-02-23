@@ -1,7 +1,7 @@
 import asyncio
-from typing import Any, Dict, Optional, cast
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 
 from .agent_event_dispatcher import AgentEventDispatcher
@@ -22,7 +22,7 @@ class AgentTask:
         dispatcher: AgentEventDispatcher,
         initial_state: AgentState,
         checkpointer: BaseCheckpointSaver,
-        invocation_config: Dict[str, Any],
+        invocation_config: RunnableConfig,
     ):
         self.task_id = task_id
         self.llm = llm
@@ -30,7 +30,7 @@ class AgentTask:
         self.initial_state = initial_state
         self.checkpointer = checkpointer
         self.invocation_config = invocation_config
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
 
     def start(self) -> asyncio.Task:
         """
@@ -50,7 +50,7 @@ class AgentTask:
         """Check if the task is still running."""
         return self._task is not None and not self._task.done()
 
-    async def _run(self) -> AgentState:
+    async def _run(self) -> AgentState | None:
         """Internal async execution of the agent workflow. Returns the final agent state."""
         workflow = build_graph(self.llm, self.checkpointer)
         event = None
@@ -65,8 +65,8 @@ class AgentTask:
                 await self.dispatcher.dispatch(event)
 
             # Get the final state after stream processing is complete
-            final_state = await workflow.aget_state(self.invocation_config)
-            return cast(AgentState, final_state.values)
+            final_state: AgentState = (await workflow.aget_state(self.invocation_config)).values
+            return final_state
 
         except asyncio.CancelledError:
             # Task was cancelled, this is expected behavior
@@ -82,7 +82,7 @@ class AgentTask:
             )
             # Try to get final state even if error
             try:
-                final_state = await workflow.aget_state(self.invocation_config)
-                return cast(AgentState, final_state.values)
+                except_state: AgentState = (await workflow.aget_state(self.invocation_config)).values
+                return except_state
             except Exception:
                 return None

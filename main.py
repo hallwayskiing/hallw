@@ -4,7 +4,6 @@ import subprocess
 import sys
 import threading
 import warnings
-from typing import Optional
 
 import psutil
 
@@ -46,7 +45,7 @@ def kill_process_on_port(port: int):
         pass
 
 
-def run_frontend() -> Optional[subprocess.Popen]:
+def run_frontend() -> subprocess.Popen | None:
     """Run npm run dev in the frontend directory."""
     frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 

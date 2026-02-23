@@ -2,10 +2,11 @@ import importlib
 import inspect
 import pkgutil
 import sys
-from typing import List
 
 from langchain_core.tools import BaseTool, tool
 
+from .edit_stages import edit_stages
+from .end_stage import end_current_stage
 from .tool_response import ToolResult, build_tool_response, parse_tool_response
 
 
@@ -57,12 +58,12 @@ def dummy_for_missed_tool(name: str) -> str:
 
 
 @tool
-def build_stages(stage_names: List[str]) -> str:
+def build_stages(stage_names: list[str]) -> str:
     """
     Analyze the task and provide a list of stages with their corresponding names.
 
     Args:
-        stage_names: A list of stage names.
+        stage_names (list[str]): A list of stage names.
     Returns:
         A formatted string listing the stages.
     """
@@ -84,4 +85,5 @@ __all__ = [
     "ToolResult",
     "build_stages",
     "edit_stages",
+    "end_current_stage",
 ]
