@@ -3,7 +3,6 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolM
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from hallw.core import AgentStats
 from hallw.tools import (
     build_stages,
     build_tool_response,
@@ -16,7 +15,7 @@ from hallw.tools import (
 from hallw.utils import config as app_config
 from hallw.utils import get_system_prompt
 
-from .agent_state import AgentState
+from .agent_state import AgentState, AgentStats
 
 
 def build_graph(model, checkpointer) -> StateGraph[AgentState]:

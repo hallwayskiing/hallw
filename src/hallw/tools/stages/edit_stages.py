@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 
-from hallw.tools import build_tool_response
+from ..utils.tool_response import build_tool_response
 
 
 @tool

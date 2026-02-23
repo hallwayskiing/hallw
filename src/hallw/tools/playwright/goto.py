@@ -1,9 +1,9 @@
 from langchain_core.tools import tool
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from hallw.tools import build_tool_response
 from hallw.utils import config
 
+from ..utils.tool_response import build_tool_response
 from .helpers import auto_consent, remove_overlays
 from .playwright_mgr import get_page
 

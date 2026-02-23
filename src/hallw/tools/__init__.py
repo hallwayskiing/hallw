@@ -1,80 +1,43 @@
 import importlib
 import inspect
 import pkgutil
-import sys
 
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import BaseTool
 
-from .edit_stages import edit_stages
-from .end_stage import end_current_stage
-from .tool_response import ToolResult, build_tool_response, parse_tool_response
+from .excludes.build_stages import build_stages
+from .excludes.dummy_tool import dummy_for_missed_tool
+from .stages.edit_stages import edit_stages
+from .stages.end_stage import end_current_stage
+from .utils.tool_response import ToolResult, build_tool_response, parse_tool_response
+
+EXCLUDE_DIRS = ["excludes"]
 
 
-def _import_package_modules(package_name: str):
+def _import_package_modules(package_name: str, tools_dict: dict[str, BaseTool]):
     """Recursively import all modules in a package so @tool decorators run."""
     package = importlib.import_module(package_name)
     if not hasattr(package, "__path__"):
         return
-    for finder, name, ispkg in pkgutil.walk_packages(package.__path__, prefix=package_name + "."):
+
+    for info in pkgutil.walk_packages(package.__path__, prefix=package_name + "."):
+        parts = info.name.split(".")
+        if any(ex in parts for ex in EXCLUDE_DIRS):
+            continue
+
         try:
-            importlib.import_module(name)
+            module = importlib.import_module(info.name)
+            for _, obj in inspect.getmembers(module):
+                if isinstance(obj, BaseTool):
+                    if obj.name and obj.name not in tools_dict:
+                        tools_dict[obj.name] = obj
         except Exception:
-            pass
+            continue
 
 
 def load_tools() -> dict[str, BaseTool]:
     tools_dict: dict[str, BaseTool] = {}
-    tools_package_name = __name__
-    # Import top-level modules and subpackages under tools
-    _import_package_modules(tools_package_name)
-
-    # Scan loaded modules for BaseTool instances
-    for module_name, module in list(sys.modules.items()):
-        if not module_name.startswith(tools_package_name + "."):
-            continue
-        try:
-            for _, obj in inspect.getmembers(module):
-                if isinstance(obj, BaseTool):
-                    if obj.name in tools_dict:
-                        pass
-                    tools_dict[obj.name] = obj
-        except Exception:
-            pass
+    _import_package_modules(__name__, tools_dict)
     return tools_dict
-
-
-@tool
-def dummy_for_missed_tool(name: str) -> str:
-    """
-    A dummy tool function that returns a "Tool Not Found" response.
-
-    Args:
-        name (str): The name of the missing tool.
-
-    Returns:
-        str: A standardized tool response indicating the tool was not found.
-    """
-    return build_tool_response(success=False, message=f"Tool {name} Not Found")
-
-
-@tool
-def build_stages(stage_names: list[str]) -> str:
-    """
-    Analyze the task and provide a list of stages with their corresponding names.
-
-    Args:
-        stage_names (list[str]): A list of stage names.
-    Returns:
-        A formatted string listing the stages.
-    """
-
-    return build_tool_response(
-        True,
-        "Stages built successfully.",
-        {
-            "stage_names": stage_names,
-        },
-    )
 
 
 __all__ = [

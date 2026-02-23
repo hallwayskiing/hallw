@@ -3,8 +3,9 @@ from urllib.parse import quote
 import httpx
 from langchain_core.tools import tool
 
-from hallw.tools import build_tool_response
 from hallw.utils.config_mgr import config
+
+from ..utils.tool_response import build_tool_response
 
 BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 BRAVE_SUMMARY_ENDPOINT = "https://api.search.brave.com/res/v1/summarizer/search"

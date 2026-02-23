@@ -1,9 +1,9 @@
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from hallw.tools import build_tool_response
 from hallw.utils import config as app_config
 
+from ..utils.tool_response import build_tool_response
 from .playwright_mgr import browser_launch
 
 
