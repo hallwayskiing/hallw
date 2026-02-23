@@ -5,7 +5,12 @@ import sys
 import threading
 import warnings
 
+import litellm
 import psutil
+
+# Disable all debug info and provider suggestions
+litellm.suppress_debug_info = True
+litellm.set_verbose = False
 
 # Ignore specific warnings from LangSmith about UUID v7
 warnings.filterwarnings("ignore", message=".*LangSmith now uses UUID v7.*")
