@@ -9,9 +9,9 @@ from hallw.utils import config, logger
 
 
 class SocketAgentRenderer(AgentRenderer):
-    def __init__(self, sio: socketio.AsyncServer, sid: str) -> None:
+    def __init__(self, sio: socketio.AsyncServer, sid: str, main_loop: asyncio.AbstractEventLoop) -> None:
         super().__init__()
-        self.sio, self.sid = sio, sid
+        self.sio, self.sid, self.main_loop = sio, sid, main_loop
         self._current_response = ""
         self._pending_confirmation: Optional[dict] = None
 
@@ -23,9 +23,9 @@ class SocketAgentRenderer(AgentRenderer):
 
     def _fire(self, event: str, data: Any = None):
         try:
-            asyncio.create_task(self.emit(event, data))
+            asyncio.run_coroutine_threadsafe(self.emit(event, data), self.main_loop)
         except RuntimeError:
-            logger.warning(f"No loop for {event}")
+            logger.warning(f"No main loop for {event}")
 
     def on_task_started(self):
         self._fire("task_started")
@@ -99,7 +99,7 @@ class SocketAgentRenderer(AgentRenderer):
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
         loop = asyncio.get_running_loop()
         future = loop.create_future()
-        self._pending_confirmation = {"request_id": request_id, "future": future}
+        self._pending_confirmation = {"request_id": request_id, "future": future, "loop": loop}
         self._fire("request_confirmation", {"request_id": request_id, "message": message, "timeout": timeout})
         try:
             return await asyncio.wait_for(future, timeout)
@@ -110,15 +110,20 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_resolve_confirmation(self, request_id: str, status: str):
         if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
-            if not self._pending_confirmation["future"].done():
-                self._pending_confirmation["future"].set_result(status)
+            future = self._pending_confirmation["future"]
+            loop = self._pending_confirmation.get("loop")
+            if not future.done():
+                if loop:
+                    loop.call_soon_threadsafe(future.set_result, status)
+                else:
+                    future.set_result(status)
 
     async def on_request_user_decision(self, prompt: str, options: list[str] = None, timeout: int = 300) -> str:
         """Trigger the RuntimeInput modal in the UI and wait for result."""
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         request_id = f"input_{id(future)}"
-        self._pending_confirmation = {"request_id": request_id, "future": future}
+        self._pending_confirmation = {"request_id": request_id, "future": future, "loop": loop}
 
         self._fire(
             "request_user_decision",
@@ -142,15 +147,20 @@ class SocketAgentRenderer(AgentRenderer):
         """Resolve a pending user input request from the frontend."""
         if self._pending_confirmation and self._pending_confirmation["request_id"] == request_id:
             future = self._pending_confirmation["future"]
+            loop = self._pending_confirmation.get("loop")
             if not future.done():
-                future.set_result(value if status == "submitted" and value is not None else status)
+                res_val = value if status == "submitted" and value is not None else status
+                if loop:
+                    loop.call_soon_threadsafe(future.set_result, res_val)
+                else:
+                    future.set_result(res_val)
 
     async def on_request_cdp_page(self, timeout: int = 30, headless: bool = True, user_data_dir: str = None) -> str:
         """Ask the frontend to open a new BrowserWindow for CDP, wait for success."""
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         request_id = f"cdp_{id(future)}"
-        self._pending_confirmation = {"request_id": request_id, "future": future}
+        self._pending_confirmation = {"request_id": request_id, "future": future, "loop": loop}
         self._fire("request_cdp_page", {"request_id": request_id, "headless": headless, "userDataDir": user_data_dir})
         try:
             return await asyncio.wait_for(future, timeout)
@@ -161,5 +171,10 @@ class SocketAgentRenderer(AgentRenderer):
 
     def on_resolve_cdp_page(self, status: str):
         if self._pending_confirmation and self._pending_confirmation["request_id"].startswith("cdp_"):
-            if not self._pending_confirmation["future"].done():
-                self._pending_confirmation["future"].set_result(status)
+            future = self._pending_confirmation["future"]
+            loop = self._pending_confirmation.get("loop")
+            if not future.done():
+                if loop:
+                    loop.call_soon_threadsafe(future.set_result, status)
+                else:
+                    future.set_result(status)

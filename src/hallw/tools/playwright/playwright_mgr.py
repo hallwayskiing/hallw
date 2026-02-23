@@ -1,6 +1,7 @@
 """Playwright browser manager with singleton pattern."""
 
 import socket
+import threading
 import time
 from typing import Optional
 
@@ -11,15 +12,8 @@ from playwright_stealth.stealth import Stealth
 from hallw.utils import config
 
 
-class PlaywrightManager:
-    """Singleton manager for Playwright browser state and operations."""
-
-    _instance: Optional["PlaywrightManager"] = None
-
-    def __new__(cls) -> "PlaywrightManager":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+class PlaywrightManager(threading.local):
+    """Thread-local manager for Playwright browser state and operations."""
 
     def __init__(self) -> None:
         """Initialize all state variables."""

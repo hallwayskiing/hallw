@@ -15,7 +15,7 @@ Call `end_current_stage` after each phase.
 1.  **Game Setup**:
     *   Select a script based on user preference.
     *   Distribute the player's private character script (found in the script file).
-    *   **Interaction**: Use `request_user_input(prompt="请确认您已准备好开始游戏。")`.
+    *   **Interaction**: Use `request_user_decision`.
 
 2.  **Facilitating Investigation**:
     *   When the player searches a location, provide clues listed in the "Clues" section of the script.

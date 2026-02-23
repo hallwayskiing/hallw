@@ -10,89 +10,94 @@ from hallw.tools import parse_tool_response
 
 logger = logging.getLogger("hallw")
 
-# --- Global Persistence State ---
-conn: Optional[aiosqlite.Connection] = None
-checkpointer: Optional[AsyncSqliteSaver] = None
 
-
-async def get_checkpointer() -> AsyncSqliteSaver:
-    global conn, checkpointer
-    if checkpointer is None:
-        conn = await aiosqlite.connect("checkpoints.db", check_same_thread=False)
-        checkpointer = AsyncSqliteSaver(conn)
-        await checkpointer.setup()
-    return checkpointer
+async def create_local_checkpointer() -> tuple[aiosqlite.Connection, AsyncSqliteSaver]:
+    """Creates a new db connection and checkpointer bound to the current asyncio loop."""
+    local_conn = await aiosqlite.connect("checkpoints.db", check_same_thread=False)
+    local_cp = AsyncSqliteSaver(local_conn)
+    await local_cp.setup()
+    return local_conn, local_cp
 
 
 async def get_all_threads() -> List[Dict[str, Any]]:
     """Fetches a summary list of all conversation threads."""
-    cp = await get_checkpointer()
-    async with conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
-        rows = await cursor.fetchall()
-        thread_ids = [row[0] for row in rows]
+    local_conn, cp = await create_local_checkpointer()
 
-    threads = []
-    for tid in thread_ids:
-        # Get latest checkpoint for this thread to find some metadata
-        latest = await cp.aget_tuple({"configurable": {"thread_id": tid}})
-        if latest:
-            # Extract Title from first HumanMessage
-            title = "New Conversation"
-            created_at = None
+    try:
+        async with local_conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
+            rows = await cursor.fetchall()
+            thread_ids = [row[0] for row in rows]
 
-            # Check messages in channel values
-            if latest.checkpoint and "channel_values" in latest.checkpoint:
-                messages = latest.checkpoint["channel_values"].get("messages", [])
-                for msg in messages:
-                    if isinstance(msg, HumanMessage):
-                        content = str(msg.content)
-                        if content.startswith("User: "):
-                            content = content[6:]
-                        title = content.strip()
-                        break
+        threads = []
+        for tid in thread_ids:
+            # Get latest checkpoint for this thread to find some metadata
+            latest = await cp.aget_tuple({"configurable": {"thread_id": tid}})
+            if latest:
+                # Extract Title from first HumanMessage
+                title = "New Conversation"
+                created_at = None
 
-            # Extract Timestamp
-            if latest.metadata:
-                created_at = latest.metadata.get("created_at") or latest.metadata.get("ts")
+                # Check messages in channel values
+                if latest.checkpoint and "channel_values" in latest.checkpoint:
+                    messages = latest.checkpoint["channel_values"].get("messages", [])
+                    for msg in messages:
+                        if isinstance(msg, HumanMessage):
+                            content = str(msg.content)
+                            if content.startswith("User: "):
+                                content = content[6:]
+                            title = content.strip()
+                            break
 
-            # Fallback to checkpoint timestamp
-            if not created_at and latest.checkpoint:
-                created_at = latest.checkpoint.get("ts")
+                # Extract Timestamp
+                if latest.metadata:
+                    created_at = latest.metadata.get("created_at") or latest.metadata.get("ts")
 
-            threads.append({"id": tid, "title": title, "created_at": created_at, "metadata": latest.metadata})
+                # Fallback to checkpoint timestamp
+                if not created_at and latest.checkpoint:
+                    created_at = latest.checkpoint.get("ts")
 
-    # Sort by created_at desc
-    threads.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
-    return threads
+                threads.append({"id": tid, "title": title, "created_at": created_at, "metadata": latest.metadata})
+
+        # Sort by created_at desc
+        threads.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+        return threads
+    finally:
+        await local_conn.close()
 
 
 async def load_thread(thread_id: str) -> Optional[Dict[str, Any]]:
     """Loads state for a specific thread."""
-    cp = await get_checkpointer()
-    checkpoint_tuple = await cp.aget_tuple({"configurable": {"thread_id": thread_id}})
-    if not checkpoint_tuple:
-        return None
+    local_conn, cp = await create_local_checkpointer()
+    try:
+        checkpoint_tuple = await cp.aget_tuple({"configurable": {"thread_id": thread_id}})
+        if not checkpoint_tuple:
+            return None
 
-    state = checkpoint_tuple.checkpoint["channel_values"]
-    messages = state.get("messages", [])
-    stats = state.get("stats", {})
+        state = checkpoint_tuple.checkpoint["channel_values"]
+        messages = state.get("messages", [])
+        stats = state.get("stats", {})
 
-    serialized_msgs, tool_states = serialize_messages(messages)
+        serialized_msgs, tool_states = serialize_messages(messages)
 
-    return {
-        "messages": messages,  # Raw messages for backend session
-        "stats": stats,
-        "serialized_msgs": serialized_msgs,  # For frontend
-        "tool_states": tool_states,  # For frontend
-    }
+        return {
+            "messages": messages,  # Raw messages for backend session
+            "stats": stats,
+            "serialized_msgs": serialized_msgs,  # For frontend
+            "tool_states": tool_states,  # For frontend
+        }
+    finally:
+        await local_conn.close()
 
 
 async def delete_thread(thread_id: str) -> None:
     """Deletes a thread and all associated checkpoints."""
-    await get_checkpointer()  # Ensure conn is active
-    await conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
-    await conn.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
-    await conn.commit()
+    local_conn, _ = await create_local_checkpointer()
+    try:
+        await local_conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
+        await local_conn.execute("DELETE FROM writes WHERE thread_id = ?", (thread_id,))
+        await local_conn.commit()
+    finally:
+        await local_conn.close()
 
 
 def serialize_messages(messages: List[Any]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:

@@ -1,51 +1,29 @@
 import asyncio
-import uuid
-from typing import List, Optional
+from typing import Dict
 
 import socketio
 import uvicorn
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from pydantic import SecretStr
 
 from hallw.core import AgentEventDispatcher, AgentState, AgentTask
-from hallw.server.socket_renderer import SocketAgentRenderer
 from hallw.tools.playwright.playwright_mgr import browser_disconnect
 from hallw.utils import config, history_mgr, init_logger, logger, save_config_to_env
 
+from .session import Session
+
 # --- Global State ---
-active_task: Optional[AgentTask] = None
+sessions: Dict[str, Session] = {}
 
 
-class Session:
-    def __init__(self, sid: str, task_id: Optional[str] = None):
-        self.task_id = task_id if task_id else str(uuid.uuid4())
-        self.renderer = SocketAgentRenderer(sio, sid)
-        self.history: List[BaseMessage] = []
-        self.input_tokens = 0
-        self.output_tokens = 0
-
-
-current_session: Optional[Session] = None
-
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
-app = socketio.ASGIApp(sio)
-
-
-def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSaver) -> AgentTask:
-    global current_session
-
-    if not current_session:
-        current_session = Session(sid)
-    else:
-        current_session.renderer.sid = sid
-
-    messages = current_session.history.copy()
+def create_agent_task(user_task: str, session: Session, checkpointer: BaseCheckpointSaver) -> AgentTask:
+    messages = session.history.copy()
     # Append the new user request
     user_msg = HumanMessage(content=user_task)
     messages.append(user_msg)
-    current_session.history.append(user_msg)
+    session.history.append(user_msg)
     logger.info(f"User: {user_task}")
 
     # LLM Configuration
@@ -80,15 +58,15 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
     invocation_config = {
         "recursion_limit": config.model_max_recursion,
         "configurable": {
-            "thread_id": current_session.task_id,
-            "renderer": current_session.renderer,
+            "thread_id": session.thread_id,
+            "renderer": session.renderer,
         },
     }
 
     return AgentTask(
-        task_id=current_session.task_id,
+        task_id=session.thread_id,
         llm=llm,
-        dispatcher=AgentEventDispatcher(current_session.renderer),
+        dispatcher=AgentEventDispatcher(session.renderer),
         initial_state=initial_state,
         checkpointer=checkpointer,
         invocation_config=invocation_config,
@@ -96,21 +74,29 @@ def create_agent_task(user_task: str, sid: str, checkpointer: BaseCheckpointSave
 
 
 # --- SocketIO Events ---
+
+sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+
+
 @sio.event
 async def start_task(sid, data):
-    global active_task, current_session
     task_text = data.get("task")
     if not task_text:
         return
 
-    # Instantiate the new task
-    cp = await history_mgr.get_checkpointer()
-    agent_task = create_agent_task(task_text, sid, cp)
+    main_loop = asyncio.get_running_loop()
+
+    # Get or create session
+    if sid not in sessions:
+        sessions[sid] = Session(sid, sio, main_loop)
+    else:
+        sessions[sid].renderer.sid = sid
+        sessions[sid].renderer.main_loop = main_loop
+
+    session = sessions[sid]
 
     # Initialize logger for this task execution
-    init_logger(current_session.task_id)
-
-    active_task = agent_task
+    init_logger(session.thread_id)
 
     # Immediately echo the user's message back to the UI
     await sio.emit("user_message", task_text, room=sid)
@@ -119,53 +105,72 @@ async def start_task(sid, data):
     _save_recent_model()
 
     async def run_wrapper():
-        global active_task, current_session
+        local_conn = None
         try:
-            final_state = await agent_task._run()
-            if final_state and current_session:
-                initial_count = len(current_session.history)
-                new_messages = final_state["messages"][initial_count:]
-                current_session.history.extend(new_messages)
+            # CREATE LOOP-BOUND CHECKPOINTER
+            local_conn, cp = await history_mgr.create_local_checkpointer()
 
-                current_session.input_tokens += final_state["stats"].get("input_tokens", 0)
-                current_session.output_tokens += final_state["stats"].get("output_tokens", 0)
+            # Instantiate the new task inside the target loop
+            agent_task = create_agent_task(task_text, session, cp)
+            session.active_task = agent_task
+
+            agent_task._task = asyncio.current_task()
+            final_state = await agent_task._run()
+            if final_state and session:
+                initial_count = len(session.history)
+                new_messages = final_state["messages"][initial_count:]
+                session.history.extend(new_messages)
+
+                session.input_tokens += final_state["stats"].get("input_tokens", 0)
+                session.output_tokens += final_state["stats"].get("output_tokens", 0)
             else:
                 logger.error("Task failed or session lost.")
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
-            await sio.emit("task_cancelled", {}, room=sid)
-            if active_task:
-                await active_task.cancel()
+            asyncio.run_coroutine_threadsafe(sio.emit("task_cancelled", {}, room=sid), main_loop)
+            if session.active_task and hasattr(session.active_task, "cancel"):
+                await session.active_task.cancel()
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
-            await sio.emit("fatal_error", {"message": str(e)}, room=sid)
+            asyncio.run_coroutine_threadsafe(sio.emit("fatal_error", {"message": str(e)}, room=sid), main_loop)
         finally:
-            active_task = None
+            session.active_task = None
+            if local_conn:
+                try:
+                    await local_conn.close()
+                except Exception as db_e:
+                    logger.error(f"Error closing DB connection: {db_e}")
 
-    # Start the agent task as a background asyncio Task
-    agent_task._task = asyncio.create_task(run_wrapper())
+    # Dispatch to the persistent session thread
+    asyncio.run_coroutine_threadsafe(run_wrapper(), session.session_loop)
 
 
 @sio.event
 async def reset_session(sid):
-    global current_session, active_task
+    session = sessions.get(sid)
+    if not session:
+        return
 
-    await browser_disconnect()
+    # Properly shutdown playwright on the session string
+    future = asyncio.run_coroutine_threadsafe(browser_disconnect(), session.session_loop)
+    try:
+        future.result(timeout=5.0)
+    except Exception as e:
+        logger.error(f"Browser disconnect failed: {e}")
 
-    if active_task and active_task.is_running:
+    if session.active_task and session.active_task.is_running and getattr(session.active_task, "_task", None):
         try:
-            await active_task.cancel()
+            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
         except Exception:
             pass
 
-    if current_session:
-        if current_session.input_tokens > 0 and current_session.output_tokens > 0:
-            logger.info(f"Input tokens: {current_session.input_tokens}")
-            logger.info(f"Output tokens: {current_session.output_tokens}")
+    if session.input_tokens > 0 and session.output_tokens > 0:
+        logger.info(f"Input tokens: {session.input_tokens}")
+        logger.info(f"Output tokens: {session.output_tokens}")
+    session.close()
 
-    # Reset session related globals
-    current_session = None
-    active_task = None
+    # Complete tear down
+    del sessions[sid]
 
     await sio.emit("reset", room=sid)
 
@@ -214,15 +219,17 @@ async def get_history(sid):
 @sio.event
 async def load_history(sid, data):
     """Loads a specific conversation thread."""
-    global current_session, active_task
     thread_id = data.get("thread_id")
     if not thread_id:
         return
 
+    # Check for active session existing first
+    session = sessions.get(sid)
+
     try:
         # 1. Stop current task if running
-        if active_task and active_task.is_running:
-            await active_task.cancel()
+        if session and session.active_task and session.active_task.is_running:
+            await session.active_task.cancel()
 
         # 2. Load thread via manager
         thread_data = await history_mgr.load_thread(thread_id)
@@ -232,13 +239,21 @@ async def load_history(sid, data):
             return
 
         # 3. Re-hydrate session
-        current_session = Session(sid, task_id=thread_id)
-        current_session.history = thread_data["messages"]
+        main_loop = asyncio.get_running_loop()
+
+        # If a session exists, shut it down fully and wipe it to refresh it clean
+        if session:
+            session.close()
+
+        session = Session(sid, sio, main_loop, thread_id=thread_id)
+        sessions[sid] = session
+
+        session.history = thread_data["messages"]
 
         # Restore stats
         stats = thread_data["stats"]
-        current_session.input_tokens = stats.get("input_tokens", 0)
-        current_session.output_tokens = stats.get("output_tokens", 0)
+        session.input_tokens = stats.get("input_tokens", 0)
+        session.output_tokens = stats.get("output_tokens", 0)
 
         # 4. Emit loaded data
         await sio.emit(
@@ -274,36 +289,51 @@ async def delete_history(sid, data):
 @sio.event
 async def stop_task(sid):
     """Signals the agent to stop current execution immediately."""
-    if active_task:
-        await active_task.cancel()
+    session = sessions.get(sid)
+    if session and session.active_task:
+        await session.active_task.cancel()
 
 
 @sio.event
 async def resolve_confirmation(sid, data):
-    if current_session:
-        current_session.renderer.on_resolve_confirmation(data["request_id"], data["status"])
+    session = sessions.get(sid)
+    if session:
+        session.renderer.on_resolve_confirmation(data["request_id"], data["status"])
 
 
 @sio.event
 async def resolve_user_decision(sid, data):
-    if current_session:
-        current_session.renderer.on_resolve_user_decision(data["request_id"], data["status"], data["value"])
+    session = sessions.get(sid)
+    if session:
+        session.renderer.on_resolve_user_decision(data["request_id"], data["status"], data["value"])
 
 
 @sio.event
 async def resolve_cdp_page(sid, data):
-    if current_session:
-        current_session.renderer.on_resolve_cdp_page(data.get("status", "error"))
+    session = sessions.get(sid)
+    if session:
+        session.renderer.on_resolve_cdp_page(data.get("status", "error"))
 
 
 @sio.event
 async def disconnect(sid):
     """Handles the socket disconnect event."""
-    global active_task
     print(f"Client disconnected: {sid}")
-    if active_task:
-        await active_task.cancel()
-        active_task = None
+
+    session = sessions.get(sid)
+    if session:
+        if session.active_task:
+            await session.active_task.cancel()
+
+        # Shutdown browser
+        try:
+            future = asyncio.run_coroutine_threadsafe(browser_disconnect(), session.session_loop)
+            future.result(timeout=5.0)
+        except Exception as e:
+            logger.error(f"Browser disconnect failed during disconnect: {e}")
+
+        session.close()
+        del sessions[sid]
 
 
 # --- Helper Functions ---
@@ -323,6 +353,7 @@ def _save_recent_model():
 # --- Main ---
 def main():
     """Main entry point for the Uvicorn server."""
+    app = socketio.ASGIApp(sio)
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

@@ -12,7 +12,7 @@ from .agent_state import AgentState
 class AgentTask:
     """
     Represents a single agent task execution.
-    Now runs directly in the main event loop without a separate thread.
+    Runs inside a Session-specific Event Loop on a background thread.
     """
 
     def __init__(

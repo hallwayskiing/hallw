@@ -7,7 +7,7 @@ from hallw.utils import config
 logger = logging.getLogger("hallw")
 
 
-def init_logger(task_id: str) -> None:
+def init_logger(thread_id: str) -> None:
     """Initialize the HALLW logger configuration."""
 
     # If logger already has handlers, clear them
@@ -23,15 +23,15 @@ def init_logger(task_id: str) -> None:
     day_log_dir = log_dir / date_str
     day_log_dir.mkdir(parents=True, exist_ok=True)
 
-    short_id = str(task_id)[:8]
+    short_id = str(thread_id)[:8]
 
-    # Try to find existing log file for this task_id in today's folder
+    # Try to find existing log file for this thread_id in today's folder
     # Pattern: *_{short_id}.log
     existing_files = list(day_log_dir.glob(f"*_{short_id}.log"))
 
     if existing_files:
         # Sort by creation time (although likely only one) and pick the latest
-        # actually picking the first match is probably fine if we assume 1 log per task per day
+        # actually picking the first match is probably fine if we assume 1 log per thread per day
         log_file_path = sorted(existing_files)[-1]
         mode = "a"
         is_appending = True
@@ -58,6 +58,6 @@ def init_logger(task_id: str) -> None:
     logging.getLogger("langchain_core.callbacks.manager").disabled = True
 
     if is_appending:
-        logger.info(f"{'='*20} RESUMING SESSION {'='*20}")
+        logger.info(f"{'=' * 20} RESUMING SESSION {'=' * 20}")
     else:
-        logger.info(f"Task ID: {task_id}")
+        logger.info(f"Thread ID: {thread_id}")

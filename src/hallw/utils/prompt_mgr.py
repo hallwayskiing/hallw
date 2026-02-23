@@ -91,7 +91,7 @@ def get_system_prompt() -> str:
     - At the beginning of the task, you **MUST** call the `build_stages` tool to analyze the task and create stages.
     - If you completed multiple stages at once, pass the number of completed stages to `end_current_stage` tool.
     - If your plan needs adjustment mid-task, call `edit_stages` to replace all remaining stages with a new plan.
-    - During stages, you can only receive from user by `request_user_input` tool.
+    - During stages, you can only receive from user by `request_user_decision` tool.
     </stages>
 
     <exec>
