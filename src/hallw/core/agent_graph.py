@@ -1,5 +1,7 @@
+import asyncio
+
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -109,47 +111,53 @@ class AgentGraphBuilder:
 
     async def tools_node(self, state: AgentState, config: RunnableConfig):
         ai_msg = state["messages"][-1]
-        new_messages: list[BaseMessage] = []
+        tool_messages: list[ToolMessage] = []
         stats_inc = {"tool_call_counts": 0, "failures": 0, "failures_since_last_reflection": 0}
         curr_idx = state["current_stage"]
         stage_names = list(state["stage_names"])
         total = state["total_stages"]
         is_done = False
 
-        for call in ai_msg.tool_calls:
-            name, args, call_id = call["name"], call["args"], call["id"]
+        async def _run_tool(call):
+            name, args = call["name"], call["args"]
             if name in self.tools_dict:
                 tool = self.tools_dict[name]
             elif name == "build_stages":
                 tool = build_stages
             else:
                 tool = dummy_for_missed_tool
-                tool.name = name
                 args = {"name": name}
 
             try:
                 output = await tool.ainvoke(args, config=config)
-
-                if name == "build_stages":
-                    stage_names, total = _handle_build_stages(output, config)
-                    curr_idx = 0
-                elif name == "end_current_stage":
-                    curr_idx, is_done = _handle_end_stage(args, curr_idx, total, stage_names, config)
-                elif name == "edit_stages":
-                    stage_names, total = _handle_edit_stages(output, curr_idx, stage_names, config)
-
+                return call, output
             except Exception as e:
-                output = build_tool_response(success=False, message=f"Tool error: {e}")
+                output = build_tool_response(success=False, message=f"Tool error: {str(e)}")
+                return call, output
+
+        results = await asyncio.gather(*[_run_tool(call) for call in ai_msg.tool_calls])
+
+        for call, output in results:
+            name, args, call_id = call["name"], call["args"], call["id"]
+
+            if name == "build_stages":
+                stage_names, total = _handle_build_stages(output, config)
+                curr_idx = 0
+            elif name == "end_current_stage":
+                curr_idx, is_done = _handle_end_stage(args, curr_idx, total, stage_names, config)
+            elif name == "edit_stages":
+                stage_names, total = _handle_edit_stages(output, curr_idx, stage_names, config)
+
+            tool_messages.append(ToolMessage(content=output, tool_call_id=call_id, name=name))
 
             if not parse_tool_response(output).get("success"):
                 stats_inc["failures"] += 1
                 stats_inc["failures_since_last_reflection"] += 1
 
             stats_inc["tool_call_counts"] += 1
-            new_messages.append(ToolMessage(content=output, tool_call_id=call_id, name=name))
 
         return {
-            "messages": new_messages,
+            "messages": tool_messages,
             "current_stage": curr_idx,
             "stage_names": stage_names,
             "total_stages": total,
