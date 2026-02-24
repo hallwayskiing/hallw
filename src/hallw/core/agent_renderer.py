@@ -71,7 +71,7 @@ class AgentRenderer(ABC):
         """Called when agent resolves user confirmation."""
 
     @abstractmethod
-    async def on_request_user_decision(self, prompt: str, options: list[str] = None, timeout: int = 300) -> str:
+    async def on_request_user_decision(self, prompt: str, choices: list[str] = None, timeout: int = 300) -> str:
         """Called when agent needs arbitrary user input or decision."""
 
     @abstractmethod

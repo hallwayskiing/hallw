@@ -6,7 +6,7 @@ import type { DecisionRequest, DecisionStatus } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 
 export const Decision = memo(
-  ({ requestId, message, options, timeout, initialStatus, initialValue, onDecision }: DecisionRequest) => {
+  ({ requestId, message, choices, timeout, initialStatus, initialValue, onDecision }: DecisionRequest) => {
     const [status, setStatus] = useState<DecisionStatus>(initialStatus || "pending");
     const [input, setInput] = useState(initialValue || "");
 
@@ -52,19 +52,19 @@ export const Decision = memo(
         default:
           return (
             <div className="space-y-4 pt-1">
-              {options && options.length > 0 && (
+              {choices && choices.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  {options.map((option, index) => (
+                  {choices.map((choice, index) => (
                     <button
                       type="button"
-                      key={option}
-                      onClick={() => handleDecision("submitted", option)}
+                      key={`${choice}`}
+                      onClick={() => handleDecision("submitted", choice)}
                       className="w-full text-left px-4 py-3 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 group"
                     >
                       <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold group-hover:bg-blue-500/20 transition-colors">
                         {index + 1}
                       </span>
-                      {option}
+                      {choice}
                     </button>
                   ))}
                 </div>
@@ -80,7 +80,7 @@ export const Decision = memo(
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={options?.length ? "Or type your own response..." : "Type your response..."}
+                  placeholder={choices?.length ? "Or type your own response..." : "Type your response..."}
                   className="flex-1 bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
                 <button

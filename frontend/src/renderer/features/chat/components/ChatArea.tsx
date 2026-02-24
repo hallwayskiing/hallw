@@ -95,7 +95,7 @@ export function ChatArea() {
               <Decision
                 requestId={pendingDecision.requestId}
                 message={pendingDecision.message}
-                options={pendingDecision.options}
+                choices={pendingDecision.choices}
                 timeout={pendingDecision.timeout}
                 onDecision={handleDecision}
               />
@@ -135,7 +135,7 @@ function renderMessage(msg: Message) {
         <Decision
           requestId={msg.requestId}
           message={msg.prompt}
-          options={msg.options}
+          choices={msg.choices}
           initialStatus={msg.status}
           initialValue={msg.result}
         />

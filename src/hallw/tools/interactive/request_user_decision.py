@@ -5,7 +5,7 @@ from hallw.tools import build_tool_response
 
 
 @tool
-async def request_user_decision(prompt: str, options: list[str] = None, config: RunnableConfig = None) -> str:
+async def request_user_decision(prompt: str, choices: list[str] | str = None, config: RunnableConfig = None) -> str:
     """
     Pause execution and ask the user for a decision or input at runtime.
     Use this when you need clarification, additional information, or user decisions between stages.
@@ -13,7 +13,7 @@ async def request_user_decision(prompt: str, options: list[str] = None, config: 
 
     Args:
         prompt (str): The message to display to the user explaining what input is needed.
-        options (list[str]): A list of options for the user to choose from.
+        choices (list[str]): A list of choices for the user to choose from.
 
     Returns:
         The user's input response as a string.
@@ -26,11 +26,29 @@ async def request_user_decision(prompt: str, options: list[str] = None, config: 
             message="No renderer available to request user decision.",
         )
 
+    # Defensive parsing: if model returns a stringified list, attempt to parse it back into a Python list
+    if isinstance(choices, str):
+        import ast
+        import json
+
+        try:
+            # 1. Try standard JSON parsing for '["A", "B"]'
+            choices = json.loads(choices)
+        except json.JSONDecodeError:
+            try:
+                # 2. Try Python literal eval for "['A', 'B']" (single quotes)
+                choices = ast.literal_eval(str(choices))
+            except Exception:
+                pass
+
+    if choices is not None and not isinstance(choices, list):
+        choices = [str(choices)]
+
     try:
         # Request user input through the renderer (timeout: 5 minutes)
         response = await renderer.on_request_user_decision(
             prompt=prompt,
-            options=options,
+            choices=choices,
             timeout=300,
         )
 

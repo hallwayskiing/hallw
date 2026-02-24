@@ -118,7 +118,7 @@ class SocketRenderer(AgentRenderer):
                 else:
                     future.set_result(status)
 
-    async def on_request_user_decision(self, prompt: str, options: list[str] = None, timeout: int = 300) -> str:
+    async def on_request_user_decision(self, prompt: str, choices: list[str] = None, timeout: int = 300) -> str:
         """Trigger the RuntimeInput modal in the UI and wait for result."""
         loop = asyncio.get_running_loop()
         future = loop.create_future()
@@ -130,7 +130,7 @@ class SocketRenderer(AgentRenderer):
             {
                 "request_id": request_id,
                 "message": prompt,
-                "options": options,
+                "choices": choices,
                 "timeout": timeout,
             },
         )

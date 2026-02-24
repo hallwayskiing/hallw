@@ -32,7 +32,7 @@ export interface DecisionMessage extends BaseMessage {
   type: "decision";
   requestId: string;
   prompt: string;
-  options?: string[];
+  choices?: string[];
   result: string;
   status: DecisionStatus;
 }
@@ -48,7 +48,7 @@ export interface ConfirmationRequest {
 export interface DecisionRequest {
   requestId: string;
   message: string;
-  options?: string[];
+  choices?: string[];
   timeout?: number;
   initialStatus?: DecisionStatus;
   initialValue?: string;
