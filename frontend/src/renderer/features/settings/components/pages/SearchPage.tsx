@@ -22,24 +22,24 @@ export function SearchPage({
     >
       <InputGroup label="Search Engine" desc="Preferred search provider">
         <Combobox
-          value={(config.search_engine as string) || "Brave"}
+          value={(config.search_engine as string) || "Tavily"}
           onChange={(val) => handleChange("search_engine", val)}
-          options={["Brave", "Bocha"]}
+          options={["Tavily", "Bocha"]}
           placeholder="Select search engine"
         />
       </InputGroup>
-      {(config.search_engine || "Brave") === "Brave" && (
-        <InputGroup label="Brave Search API Key" desc="Brave API Key">
+      {(config.search_engine || "Tavily") === "Tavily" && (
+        <InputGroup label="Tavily API Key" desc="Tavily API Key">
           <Input
-            name="brave_search_api_key"
+            name="tavily_api_key"
             type="password"
-            value={(config.brave_search_api_key as string) || ""}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("brave_search_api_key", e.target.value)}
-            placeholder="BSA..."
+            value={(config.tavily_api_key as string) || ""}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("tavily_api_key", e.target.value)}
+            placeholder="tvly-..."
           />
         </InputGroup>
       )}
-      {(config.search_engine || "Brave") === "Bocha" && (
+      {(config.search_engine || "Tavily") === "Bocha" && (
         <InputGroup label="Bocha API Key" desc="Bocha API Key">
           <Input
             name="bocha_api_key"

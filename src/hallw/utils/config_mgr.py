@@ -51,9 +51,9 @@ class Settings(BaseSettings):
     # =================================================
     auto_allow_exec: bool = False
     auto_allow_blacklist: list[str] = []
-    search_engine: str = "brave"  # "brave" or "bocha"
+    search_engine: str = "tavily"  # "tavily" or "bocha"
     search_result_count: int = 5
-    brave_search_api_key: SecretStr | None = None
+    tavily_api_key: SecretStr | None = None
     bocha_api_key: SecretStr | None = None
 
     # =================================================
