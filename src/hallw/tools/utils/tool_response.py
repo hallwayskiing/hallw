@@ -55,7 +55,7 @@ def parse_tool_response(raw_response: str) -> ToolResult:
 
     message = str(parsed.get("message", ""))
 
-    result: ToolResult = {"success": is_success, "message": message, "data": None}
+    result: ToolResult = {"success": is_success, "message": message}
 
     # Normalize data field if present
     if "data" in parsed:

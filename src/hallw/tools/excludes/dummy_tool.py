@@ -12,6 +12,6 @@ def dummy_for_missed_tool(name: str) -> str:
         name (str): The name of the missing tool.
 
     Returns:
-        str: A standardized tool response indicating the tool was not found.
+        Message indicating the tool was not found.
     """
     return build_tool_response(success=False, message=f"Tool {name} Not Found")

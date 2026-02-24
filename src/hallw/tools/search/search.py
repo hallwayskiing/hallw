@@ -63,7 +63,7 @@ async def _tavily_search(query: str) -> str:
 
     return build_tool_response(
         True,
-        f"Tavily search completed for '{query}'.",
+        f"Search completed for '{query}'.",
         {
             "query": query,
             "sources": sources,
@@ -123,7 +123,7 @@ async def _bocha_search(query: str) -> str:
 
     return build_tool_response(
         True,
-        f"Bocha search completed for '{query}'.",
+        f"Search completed for '{query}'.",
         {
             "query": query,
             "summary": summary_text,
@@ -135,7 +135,13 @@ async def _bocha_search(query: str) -> str:
 @tool
 async def search(query: str) -> str:
     """
-    Web search using the configured search engine (Tavily or Bocha).
+    Web search based on given query.
+
+    Args:
+        query (str): The search query.
+
+    Returns:
+        The search results.
     """
     engine = config.search_engine or "tavily"
 

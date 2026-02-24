@@ -12,10 +12,10 @@ async def browser_click(element_id: str) -> str:
     """Click an element by ID.
 
     Args:
-        element_id: The ID of the element to click.
+        element_id (str): The ID of the element to click.
 
     Returns:
-        str: The result of the click operation.
+        The result of the click operation.
     """
     page = await get_page()
     if page is None:

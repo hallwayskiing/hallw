@@ -12,11 +12,11 @@ async def browser_init(headless: bool = False, config: RunnableConfig = None) ->
     """Initialize the browser. Call this tool before using any other browser tools.
 
     Args:
-        headless: Whether to run the browser in headless mode.
+        headless (bool): Whether to run the browser in headless mode.
         Default to False. Set to True if user's task does not require visual interaction.
 
     Returns:
-        str: Status message.
+        Status message.
     """
     try:
         if config and "configurable" in config and "renderer" in config["configurable"]:

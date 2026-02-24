@@ -10,12 +10,12 @@ async def write_file(file_path: str, content: str, mode: str = "w") -> str:
     """Write content to a file. Creates parent directories if they don't exist.
 
     Args:
-        file_path: The absolute path to the file to write.
-        content: The content to write to the file.
-        mode: The mode to open the file. "w" for write, "a" for append.
+        file_path (str): The absolute path to the file to write.
+        content (str): The content to write to the file.
+        mode (str): The mode to open the file. "w" for write, "a" for append.
 
     Returns:
-        str: A success or error message.
+        The content of the file or an error message.
     """
     # Normalize path
     file_path = os.path.normpath(file_path)

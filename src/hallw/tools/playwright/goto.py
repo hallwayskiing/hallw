@@ -12,7 +12,7 @@ from .playwright_mgr import get_page
 async def browser_goto(url: str) -> str:
     """Navigate the page to a URL.
     Args:
-        url: Target URL
+        url (str): Target URL
 
     Returns:
         Status message with the final page title.

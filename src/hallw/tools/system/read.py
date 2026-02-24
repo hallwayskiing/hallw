@@ -17,12 +17,12 @@ def read_file(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
     Support [pdf, xlsx, xls, doc, docx, pptx] and all text files.
 
     Args:
-        file_path: The absolute path to the file to read.
-        start_line: The starting line number (inclusive).
-        end_line: The ending line number (exclusive). Use -1 to read until the end.
+        file_path (str): The absolute path to the file to read.
+        start_line (int): The starting line number (inclusive).
+        end_line (int): The ending line number (exclusive). Use -1 to read until the end.
 
     Returns:
-        str: The content of the file or an error message.
+        The content of the file or an error message.
     """
     # Normalize path
     file_path = os.path.normpath(file_path)

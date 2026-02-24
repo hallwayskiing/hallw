@@ -4,8 +4,6 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from hallw.tools import load_tools
-
 
 def get_skills_desc() -> str:
     """
@@ -42,22 +40,6 @@ def get_skills_desc() -> str:
     return "\n\n".join(skills) if skills else "No skills found."
 
 
-def get_tools_desc() -> str:
-    """
-    Dynamically generates a formatted description string listing all available tools
-    and their docstrings based on the tools_dic dictionary.
-    """
-    tools_dict = load_tools()
-    descs = []
-    for tool_name, tool_obj in tools_dict.items():
-        if hasattr(tool_obj, "args") and tool_obj.args:
-            args_list = ", ".join(tool_obj.args.keys())
-        else:
-            args_list = ""
-        descs.append(f"- {tool_name}({args_list}): {tool_obj.description}")
-    return "\n".join(descs)
-
-
 def get_user_profile() -> str:
     """
     Generates the user profile for the automation agent based on the USER.md file.
@@ -88,7 +70,7 @@ def get_system_prompt() -> str:
     </identity>
 
     <stages>
-    - At the beginning of the task, you **MUST** call the `build_stages` tool to analyze the task and create stages.
+    - For every user input, you **MUST** call the `build_stages` tool to analyze the task and create stages.
     - If you completed multiple stages at once, pass the number of completed stages to `end_current_stage` tool.
     - If your plan needs adjustment mid-task, call `edit_stages` to replace all remaining stages with a new plan.
     - During stages, you can only receive from user by `request_user_decision` tool.
@@ -100,11 +82,8 @@ def get_system_prompt() -> str:
     - In PowerShell, don't use `cmd` grammar like `cd` or `dir`. It causes mistakes.
     - Current backend is {"PowerShell" if platform.system() == "Windows" else "sh"}.
     - When listing recursively, always exclude junk files like .git, .venv, node_modules, .DS_Store, etc.
+    - Don't call `write_file` unless clearly instructed by the user.
     </exec>
-
-    <available_tools>
-    {get_tools_desc()}
-    </available_tools>
 
     <available_skills>
     {get_skills_desc()}

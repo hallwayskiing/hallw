@@ -13,6 +13,12 @@ async def extract_page(url: str) -> str:
     """
     Fetch the content of a specific web page URL and convert it to clean Markdown.
     Best used when you already have a specific URL and need to read its full content.
+
+    Args:
+        url (str): The URL of the page to extract.
+
+    Returns:
+        The main text content of the page.
     """
     api_key = config.tavily_api_key
     if not api_key:

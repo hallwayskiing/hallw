@@ -12,9 +12,9 @@ async def browser_fill(element_id: str, text: str, submit_on_enter: bool = False
     Fill a text input.
 
     Args:
-        element_id: The ID of the element.
-        text: The text to fill.
-        submit_on_enter: If True, press 'Enter' after filling. Useful for search bars.
+        element_id (str): The ID of the element.
+        text (str): The text to fill.
+        submit_on_enter (bool): If True, press 'Enter' after filling. Useful for search bars.
     """
     page = await get_page()
     if page is None:

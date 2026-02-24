@@ -9,7 +9,7 @@ def end_current_stage(stage_count: int = 1) -> str:
     Call this tool to explicit advance to the next stage or completion.
 
     Args:
-        stage_count: The number of stages to complete. Defaults to 1.
+        stage_count (int): The number of stages to complete. Defaults to 1.
                      If set to 0, stages remain unchanged.
                      If set to -1, it will complete all remaining stages and finish the task.
 

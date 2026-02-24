@@ -112,7 +112,12 @@ SCRIPT = """
 
 @tool
 async def browser_get_structure() -> str:
-    """Get the robust structure of the page (Viewport independent)."""
+    """Get the DOM structure of the page.
+
+    Returns:
+        The DOM structure of the page.
+    """
+
     page = await get_page()
     if page is None:
         return build_tool_response(False, "Please launch browser first.")

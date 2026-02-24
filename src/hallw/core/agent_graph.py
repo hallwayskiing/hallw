@@ -32,13 +32,16 @@ class AgentGraphBuilder:
 
     async def build_node(self, state: AgentState, config: RunnableConfig):
         append_prompt = """
-            Now build the stages for the user request.
-            <rules>
-            1. You MUST call the `build_stages` tool exactly once.
-            2. The `stages` list you provide must be clear, actionable, and in the correct order.
-            3. Do NOT call any other tools. Only call `build_stages`.
-            4. If the user request is simple, create only one stage to finish it quickly.
-            </rules>
+            [NEW TASK] A new user request has been received.
+            You must now build the stages for the LATEST user input.
+            <build_rules>
+            - **CRITICAL**: Even if you have already built stages in the previous conversation history,
+              you MUST ignore those and call the `build_stages` tool AGAIN for the new user request.
+            - Call the `build_stages` tool exactly once.
+            - **DO NOT** output any text. **DO NOT** call any other tools.
+            - If the user request is simple, create only one stage to finish it quickly.
+            - For complex requests, break the task into stages that are clear and actionable.
+            </build_rules>
         """
         system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
@@ -49,11 +52,18 @@ class AgentGraphBuilder:
         return {
             "messages": [response],
             "stats": _extract_usage(response),
+            "current_stage": 0,
+            "total_stages": 0,
+            "stage_names": [],
+            "task_completed": False,
         }
 
     async def model_node(self, state: AgentState, config: RunnableConfig):
+        curr_stage = state["current_stage"]
+        total_stages = state["total_stages"]
+        stage_names = state["stage_names"]
         append_prompt = f"""
-            Current stage: {state["stage_names"][state["current_stage"]]}
+            Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
         """
         system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
@@ -211,14 +221,10 @@ class AgentGraphBuilder:
         builder.add_node("reflection", self.reflection_node)
 
         builder.add_edge(START, "build")
-        builder.add_conditional_edges("build", self.route_build, {"model": "model", "build": "build", "tools": "tools"})
-        builder.add_conditional_edges(
-            "model", self.route_model, {"tools": "tools", "proceed": "proceed", "reflection": "reflection"}
-        )
-        builder.add_conditional_edges("proceed", self.route_proceed, {"tools": "tools", "proceed": "proceed"})
-        builder.add_conditional_edges(
-            "tools", self.route_tools, {"model": "model", "reflection": "reflection", "build": "build", END: END}
-        )
+        builder.add_conditional_edges("build", self.route_build)
+        builder.add_conditional_edges("model", self.route_model)
+        builder.add_conditional_edges("proceed", self.route_proceed)
+        builder.add_conditional_edges("tools", self.route_tools)
         builder.add_edge("reflection", "model")
 
         return builder.compile(checkpointer=self.checkpointer)
@@ -240,7 +246,7 @@ def _handle_build_stages(output, config):
     parsed = parse_tool_response(output)
     stages = parsed.get("data", {}).get("stage_names", [])
     if not stages:
-        return [], 0, 0
+        return [], 0
 
     total = len(stages)
 
@@ -259,7 +265,7 @@ def _handle_build_stages(output, config):
 
 def _handle_end_stage(args, curr_idx, total, stage_names, config):
     """Handle end_current_stage tool result. Returns (curr_idx, is_done)."""
-    stage_count = args.get("stage_count", 1)
+    stage_count = int(args.get("stage_count", 1))
 
     if stage_count == 0:
         return curr_idx, False

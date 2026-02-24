@@ -21,10 +21,10 @@ async def exec(command: str, config: RunnableConfig) -> str:
     """Execute a system command. Use **PowerShell** in Windows and **sh** in Linux.
 
     Args:
-        command: The direct command to execute.
+        command (str): The direct command to execute.
 
     Returns:
-        str: The result of the command execution or error message.
+        The result of the command execution or error message.
     """
     auto_allow = app_config.auto_allow_exec
     blacklist = app_config.auto_allow_blacklist
