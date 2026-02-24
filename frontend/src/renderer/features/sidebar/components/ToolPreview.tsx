@@ -92,19 +92,19 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {activeTab === "result" && (
-            <div className="p-4 space-y-4 overflow-y-auto">
+            <div className="p-4 flex-1 flex flex-col gap-4 overflow-hidden">
               {/* Message Section */}
-              <div className="space-y-1">
+              <div className="space-y-1 shrink-0">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</span>
-                <div className="text-sm p-3 bg-muted/30 rounded-md border border-border/50 min-h-[40px]">
+                <div className="text-sm p-3 bg-muted/30 rounded-md border border-border/50 min-h-[40px] max-h-[150px] overflow-y-auto">
                   {resultMessage || <span className="text-muted-foreground italic">No message recorded.</span>}
                 </div>
               </div>
 
               {/* Data Section */}
               {!!resultData && (
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-1 flex-1 flex flex-col min-h-0">
+                  <div className="flex items-center justify-between shrink-0">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data</span>
                     <button
                       type="button"
@@ -115,7 +115,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                       {copied ? "Copied" : "Copy"}
                     </button>
                   </div>
-                  <pre className="text-xs font-mono p-4 bg-muted/50 rounded-md border border-border overflow-x-auto">
+                  <pre className="text-xs font-mono p-4 bg-muted/50 rounded-md border border-border overflow-auto flex-1 min-h-0">
                     {JSON.stringify(resultData, null, 2)}
                   </pre>
                 </div>
