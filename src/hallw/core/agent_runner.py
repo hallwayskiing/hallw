@@ -1,11 +1,17 @@
 import asyncio
+from typing import Self
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from langchain_core.runnables.config import RunnableConfig
-from langgraph.checkpoint.memory import BaseCheckpointSaver
+from langchain_litellm import ChatLiteLLM
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
+from hallw.utils import config
 
 from .agent_event_dispatcher import AgentEventDispatcher
 from .agent_graph import build_graph
+from .agent_renderer import AgentRenderer
 from .agent_state import AgentState
 
 
@@ -83,3 +89,58 @@ class AgentRunner:
                 return except_state
             except Exception:
                 return None
+
+    @classmethod
+    def create(
+        cls,
+        messages: list[BaseMessage],
+        thread_id: str,
+        renderer: AgentRenderer,
+        checkpointer: BaseCheckpointSaver,
+    ) -> Self:
+        """Factory method to create and initialize a new AgentRunner instance."""
+        # LLM Configuration
+        llm = ChatLiteLLM(
+            model=config.model_name,
+            temperature=config.model_temperature,
+            max_tokens=config.model_max_output_tokens,
+            streaming=True,
+            stream_usage=True,
+            stream_options={"include_usage": True},
+            model_kwargs={
+                "reasoning_effort": config.model_reasoning_effort,
+            },
+        )
+
+        # Build initial state
+        initial_state: AgentState = {
+            "messages": messages,
+            "stats": {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "tool_call_counts": 0,
+                "failures": 0,
+                "failures_since_last_reflection": 0,
+            },
+            "current_stage": 0,
+            "total_stages": 0,
+            "stage_names": [],
+            "task_completed": False,
+        }
+
+        invocation_config: RunnableConfig = {
+            "recursion_limit": config.model_max_recursion,
+            "configurable": {
+                "thread_id": thread_id,
+                "renderer": renderer,
+            },
+        }
+
+        return cls(
+            task_id=thread_id,
+            llm=llm,
+            dispatcher=AgentEventDispatcher(renderer),
+            initial_state=initial_state,
+            checkpointer=checkpointer,
+            invocation_config=invocation_config,
+        )
