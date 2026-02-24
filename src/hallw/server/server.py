@@ -128,8 +128,8 @@ async def start_task(sid, data):
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             asyncio.run_coroutine_threadsafe(sio.emit("task_cancelled", {}, room=sid), main_loop)
-            if session.active_task and hasattr(session.active_task, "cancel"):
-                await session.active_task.cancel()
+            if session.active_task and getattr(session.active_task, "_task", None):
+                session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
             asyncio.run_coroutine_threadsafe(sio.emit("fatal_error", {"message": str(e)}, room=sid), main_loop)
@@ -228,8 +228,13 @@ async def load_history(sid, data):
 
     try:
         # 1. Stop current task if running
-        if session and session.active_task and session.active_task.is_running:
-            await session.active_task.cancel()
+        if (
+            session
+            and session.active_task
+            and session.active_task.is_running
+            and getattr(session.active_task, "_task", None)
+        ):
+            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
 
         # 2. Load thread via manager
         thread_data = await history_mgr.load_thread(thread_id)
@@ -290,8 +295,8 @@ async def delete_history(sid, data):
 async def stop_task(sid):
     """Signals the agent to stop current execution immediately."""
     session = sessions.get(sid)
-    if session and session.active_task:
-        await session.active_task.cancel()
+    if session and session.active_task and getattr(session.active_task, "_task", None):
+        session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
 
 
 @sio.event
@@ -322,8 +327,8 @@ async def disconnect(sid):
 
     session = sessions.get(sid)
     if session:
-        if session.active_task:
-            await session.active_task.cancel()
+        if session.active_task and getattr(session.active_task, "_task", None):
+            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
 
         # Shutdown browser
         try:

@@ -40,10 +40,15 @@ class AgentTask:
         self._task = asyncio.create_task(self._run())
         return self._task
 
-    async def cancel(self) -> None:
-        """Request cancellation of the running task."""
+    def cancel(self) -> None:
+        """Request cancellation of the running task thread-safely."""
         if self._task and not self._task.done():
-            self._task.cancel()
+            try:
+                loop = self._task.get_loop()
+                loop.call_soon_threadsafe(self._task.cancel)
+            except AttributeError:
+                # Fallback for older asyncio or custom loops
+                self._task.cancel()
 
     @property
     def is_running(self) -> bool:
