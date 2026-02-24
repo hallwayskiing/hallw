@@ -5,8 +5,8 @@ import uuid
 import socketio
 from langchain_core.messages import BaseMessage
 
-from hallw.core import AgentTask
-from hallw.server.socket_renderer import SocketAgentRenderer
+from hallw.core import AgentRunner
+from hallw.server.socket_renderer import SocketRenderer
 
 
 class Session:
@@ -14,11 +14,11 @@ class Session:
         self, sid: str, sio: socketio.AsyncServer, main_loop: asyncio.AbstractEventLoop, thread_id: str | None = None
     ):
         self.thread_id = thread_id if thread_id else str(uuid.uuid4())
-        self.renderer = SocketAgentRenderer(sio, sid, main_loop)
+        self.renderer = SocketRenderer(sio, sid, main_loop)
         self.history: list[BaseMessage] = []
         self.input_tokens = 0
         self.output_tokens = 0
-        self.active_task: AgentTask | None = None
+        self.active_runner: AgentRunner | None = None
 
         # --- Persistent Event Loop & Thread ---
         self.session_loop = asyncio.new_event_loop()

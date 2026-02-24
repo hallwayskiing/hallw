@@ -9,7 +9,7 @@ from .agent_graph import build_graph
 from .agent_state import AgentState
 
 
-class AgentTask:
+class AgentRunner:
     """
     Represents a single agent task execution.
     Runs inside a Session-specific Event Loop on a background thread.
@@ -25,37 +25,29 @@ class AgentTask:
         invocation_config: RunnableConfig,
     ):
         self.task_id = task_id
+        self.task: asyncio.Task | None = None
         self.llm = llm
         self.dispatcher = dispatcher
         self.initial_state = initial_state
         self.checkpointer = checkpointer
         self.invocation_config = invocation_config
-        self._task: asyncio.Task | None = None
-
-    def start(self) -> asyncio.Task:
-        """
-        Start the agent task as an asyncio Task in the current event loop.
-        Returns the Task object for tracking/cancellation.
-        """
-        self._task = asyncio.create_task(self._run())
-        return self._task
-
-    def cancel(self) -> None:
-        """Request cancellation of the running task thread-safely."""
-        if self._task and not self._task.done():
-            try:
-                loop = self._task.get_loop()
-                loop.call_soon_threadsafe(self._task.cancel)
-            except AttributeError:
-                # Fallback for older asyncio or custom loops
-                self._task.cancel()
 
     @property
     def is_running(self) -> bool:
         """Check if the task is still running."""
-        return self._task is not None and not self._task.done()
+        return self.task is not None and not self.task.done()
 
-    async def _run(self) -> AgentState | None:
+    def cancel(self) -> None:
+        """Request cancellation of the running task thread-safely."""
+        if self.task and not self.task.done():
+            try:
+                loop = self.task.get_loop()
+                loop.call_soon_threadsafe(self.task.cancel)
+            except AttributeError:
+                # Fallback for older asyncio or custom loops
+                self.task.cancel()
+
+    async def run(self) -> AgentState | None:
         """Internal async execution of the agent workflow. Returns the final agent state."""
         workflow = build_graph(self.llm, self.checkpointer)
         event = None

@@ -8,7 +8,7 @@ from hallw.core import AgentRenderer
 from hallw.utils import config, logger
 
 
-class SocketAgentRenderer(AgentRenderer):
+class SocketRenderer(AgentRenderer):
     def __init__(self, sio: socketio.AsyncServer, sid: str, main_loop: asyncio.AbstractEventLoop) -> None:
         super().__init__()
         self.sio, self.sid, self.main_loop = sio, sid, main_loop

@@ -8,7 +8,7 @@ from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from pydantic import SecretStr
 
-from hallw.core import AgentEventDispatcher, AgentState, AgentTask
+from hallw.core import AgentEventDispatcher, AgentRunner, AgentState
 from hallw.tools.playwright.playwright_mgr import browser_disconnect
 from hallw.utils import config, history_mgr, init_logger, logger, save_config_to_env
 
@@ -18,7 +18,7 @@ from .session import Session
 sessions: dict[str, Session] = {}
 
 
-def create_agent_task(user_task: str, session: Session, checkpointer: BaseCheckpointSaver) -> AgentTask:
+def create_agent_runner(user_task: str, session: Session, checkpointer: BaseCheckpointSaver) -> AgentRunner:
     messages = session.history.copy()
     # Append the new user request
     user_msg = HumanMessage(content=user_task)
@@ -63,7 +63,7 @@ def create_agent_task(user_task: str, session: Session, checkpointer: BaseCheckp
         },
     }
 
-    return AgentTask(
+    return AgentRunner(
         task_id=session.thread_id,
         llm=llm,
         dispatcher=AgentEventDispatcher(session.renderer),
@@ -111,11 +111,11 @@ async def start_task(sid, data):
             local_conn, cp = await history_mgr.create_local_checkpointer()
 
             # Instantiate the new task inside the target loop
-            agent_task = create_agent_task(task_text, session, cp)
-            session.active_task = agent_task
+            agent_runner = create_agent_runner(task_text, session, cp)
+            session.active_runner = agent_runner
 
-            agent_task._task = asyncio.current_task()
-            final_state = await agent_task._run()
+            agent_runner.task = asyncio.current_task()
+            final_state = await agent_runner.run()
             if final_state and session:
                 initial_count = len(session.history)
                 new_messages = final_state["messages"][initial_count:]
@@ -128,13 +128,13 @@ async def start_task(sid, data):
         except asyncio.CancelledError:
             logger.info("Task was cancelled.")
             asyncio.run_coroutine_threadsafe(sio.emit("task_cancelled", {}, room=sid), main_loop)
-            if session.active_task and getattr(session.active_task, "_task", None):
-                session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
+            if session.active_runner and getattr(session.active_runner, "task", None):
+                session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
         except Exception as e:
             logger.error(f"Task error encountered: {e}")
             asyncio.run_coroutine_threadsafe(sio.emit("fatal_error", {"message": str(e)}, room=sid), main_loop)
         finally:
-            session.active_task = None
+            session.active_runner = None
             if local_conn:
                 try:
                     await local_conn.close()
@@ -158,9 +158,9 @@ async def reset_session(sid):
     except Exception as e:
         logger.error(f"Browser disconnect failed: {e}")
 
-    if session.active_task and session.active_task.is_running and getattr(session.active_task, "_task", None):
+    if session.active_runner and session.active_runner.is_running and getattr(session.active_runner, "task", None):
         try:
-            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
+            session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
         except Exception:
             pass
 
@@ -230,11 +230,11 @@ async def load_history(sid, data):
         # 1. Stop current task if running
         if (
             session
-            and session.active_task
-            and session.active_task.is_running
-            and getattr(session.active_task, "_task", None)
+            and session.active_runner
+            and session.active_runner.is_running
+            and getattr(session.active_runner, "task", None)
         ):
-            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
+            session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
 
         # 2. Load thread via manager
         thread_data = await history_mgr.load_thread(thread_id)
@@ -295,8 +295,8 @@ async def delete_history(sid, data):
 async def stop_task(sid):
     """Signals the agent to stop current execution immediately."""
     session = sessions.get(sid)
-    if session and session.active_task and getattr(session.active_task, "_task", None):
-        session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
+    if session and session.active_runner and getattr(session.active_runner, "task", None):
+        session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
 
 
 @sio.event
@@ -327,8 +327,8 @@ async def disconnect(sid):
 
     session = sessions.get(sid)
     if session:
-        if session.active_task and getattr(session.active_task, "_task", None):
-            session.session_loop.call_soon_threadsafe(session.active_task._task.cancel)
+        if session.active_runner and getattr(session.active_runner, "task", None):
+            session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
 
         # Shutdown browser
         try:
