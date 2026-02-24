@@ -2,6 +2,7 @@ from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from hallw.tools import (
     build_stages,
@@ -18,17 +19,18 @@ from hallw.utils import get_system_prompt
 from .agent_state import AgentState, AgentStats
 
 
-def build_graph(model, checkpointer) -> StateGraph[AgentState]:
-    """
-    Builds the LangGraph workflow
-    """
+class AgentGraphBuilder:
+    """Encapsulates the construction of the LangGraph workflow to avoid deep function nesting."""
 
-    tools_dict = load_tools()
-    system_prompt = get_system_prompt()
+    def __init__(self, model, checkpointer):
+        self.model = model
+        self.checkpointer = checkpointer
+        self.tools_dict = load_tools()
+        self.system_prompt = get_system_prompt()
 
     # --- Nodes ---
 
-    async def build_node(state: AgentState, config: RunnableConfig):
+    async def build_node(self, state: AgentState, config: RunnableConfig):
         append_prompt = """
             Now build the stages for the user request.
             <rules>
@@ -38,9 +40,9 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             4. If the user request is simple, create only one stage to finish it quickly.
             </rules>
         """
-        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
-        response = await model.bind_tools([build_stages], tool_choice="required").ainvoke(
+        response = await self.model.bind_tools([build_stages], tool_choice="required").ainvoke(
             [system_msg] + state["messages"], config=config
         )
 
@@ -49,13 +51,13 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             "stats": _extract_usage(response),
         }
 
-    async def model_node(state: AgentState, config: RunnableConfig):
+    async def model_node(self, state: AgentState, config: RunnableConfig):
         append_prompt = f"""
             Current stage: {state["stage_names"][state["current_stage"]]}
         """
-        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
-        response = await model.bind_tools(list(tools_dict.values()), tool_choice="auto").ainvoke(
+        response = await self.model.bind_tools(list(self.tools_dict.values()), tool_choice="auto").ainvoke(
             [system_msg] + state["messages"], config=config
         )
 
@@ -64,7 +66,7 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             "stats": _extract_usage(response),
         }
 
-    async def proceed_node(state: AgentState, config: RunnableConfig):
+    async def proceed_node(self, state: AgentState, config: RunnableConfig):
         """
         Called when model responded without tool calls.
         Forces the agent to either advance stages or edit them.
@@ -84,9 +86,9 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             2. Call `edit_stages` to replace all remaining stages with a new plan.
             You MUST call one of these tools.
         """
-        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
-        response = await model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
+        response = await self.model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
             [system_msg] + state["messages"], config=config
         )
 
@@ -95,7 +97,7 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             "stats": _extract_usage(response),
         }
 
-    async def tools_node(state: AgentState, config: RunnableConfig):
+    async def tools_node(self, state: AgentState, config: RunnableConfig):
         ai_msg = state["messages"][-1]
         new_messages: list[BaseMessage] = []
         stats_inc = {"tool_call_counts": 0, "failures": 0, "failures_since_last_reflection": 0}
@@ -106,8 +108,8 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
 
         for call in ai_msg.tool_calls:
             name, args, call_id = call["name"], call["args"], call["id"]
-            if name in tools_dict:
-                tool = tools_dict[name]
+            if name in self.tools_dict:
+                tool = self.tools_dict[name]
             elif name == "build_stages":
                 tool = build_stages
             else:
@@ -145,7 +147,7 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             "stats": stats_inc,
         }
 
-    async def reflection_node(state: AgentState, config: RunnableConfig):
+    async def reflection_node(self, state: AgentState, config: RunnableConfig):
         fail_count = state["stats"]["failures_since_last_reflection"]
         append_prompt = f"""
             You have accumulated {fail_count} failures in the previous steps.
@@ -153,9 +155,9 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
             Find out what went wrong and how to fix it.
             Recover from the failures and continue with the task.
         """
-        system_msg = SystemMessage(content=f"{system_prompt}\n\n{append_prompt}")
+        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
 
-        response = await model.ainvoke([system_msg] + state["messages"], config=config)
+        response = await self.model.ainvoke([system_msg] + state["messages"], config=config)
 
         return {
             "messages": [response],
@@ -164,13 +166,13 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
 
     # --- Routing Logic ---
 
-    def route_build(state: AgentState):
+    def route_build(self, state: AgentState):
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
             return "tools"
         # Retry
         return "build"
 
-    def route_model(state: AgentState):
+    def route_model(self, state: AgentState):
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
             return "tools"
         fails = state["stats"].get("failures_since_last_reflection", 0)
@@ -179,13 +181,13 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
         # Route to proceed node if no tool calls
         return "proceed"
 
-    def route_proceed(state: AgentState):
+    def route_proceed(self, state: AgentState):
         if isinstance(state["messages"][-1], AIMessage) and state["messages"][-1].tool_calls:
             return "tools"
         # Retry
         return "proceed"
 
-    def route_tools(state: AgentState):
+    def route_tools(self, state: AgentState):
         # If task is completed, return END
         if state.get("task_completed"):
             return END
@@ -200,25 +202,34 @@ def build_graph(model, checkpointer) -> StateGraph[AgentState]:
 
     # --- Build Graph ---
 
-    builder = StateGraph(AgentState)
-    builder.add_node("build", build_node)
-    builder.add_node("model", model_node)
-    builder.add_node("proceed", proceed_node)
-    builder.add_node("tools", tools_node)
-    builder.add_node("reflection", reflection_node)
+    def build(self) -> CompiledStateGraph[AgentState]:
+        builder = StateGraph(AgentState)
+        builder.add_node("build", self.build_node)
+        builder.add_node("model", self.model_node)
+        builder.add_node("proceed", self.proceed_node)
+        builder.add_node("tools", self.tools_node)
+        builder.add_node("reflection", self.reflection_node)
 
-    builder.add_edge(START, "build")
-    builder.add_conditional_edges("build", route_build, {"model": "model", "build": "build", "tools": "tools"})
-    builder.add_conditional_edges(
-        "model", route_model, {"tools": "tools", "proceed": "proceed", "reflection": "reflection"}
-    )
-    builder.add_conditional_edges("proceed", route_proceed, {"tools": "tools", "proceed": "proceed"})
-    builder.add_conditional_edges(
-        "tools", route_tools, {"model": "model", "reflection": "reflection", "build": "build", END: END}
-    )
-    builder.add_edge("reflection", "model")
+        builder.add_edge(START, "build")
+        builder.add_conditional_edges("build", self.route_build, {"model": "model", "build": "build", "tools": "tools"})
+        builder.add_conditional_edges(
+            "model", self.route_model, {"tools": "tools", "proceed": "proceed", "reflection": "reflection"}
+        )
+        builder.add_conditional_edges("proceed", self.route_proceed, {"tools": "tools", "proceed": "proceed"})
+        builder.add_conditional_edges(
+            "tools", self.route_tools, {"model": "model", "reflection": "reflection", "build": "build", END: END}
+        )
+        builder.add_edge("reflection", "model")
 
-    return builder.compile(checkpointer=checkpointer)
+        return builder.compile(checkpointer=self.checkpointer)
+
+
+def build_graph(model, checkpointer) -> CompiledStateGraph[AgentState]:
+    """
+    Builds the LangGraph workflow.
+    Delegates to AgentGraphBuilder for modular construction.
+    """
+    return AgentGraphBuilder(model, checkpointer).build()
 
 
 # --- Helper Functions ---
