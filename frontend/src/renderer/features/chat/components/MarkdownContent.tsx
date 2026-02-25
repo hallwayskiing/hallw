@@ -27,10 +27,19 @@ export const MarkdownContent = memo(({ content, isStreaming }: { content: string
         {content}
       </ReactMarkdown>
       {isStreaming && (
-        <span className="inline-flex gap-1 items-baseline ml-1.5 align-middle mix-blend-screen opacity-80">
-          <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
-          <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />
-          <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
+        <span className="inline-flex gap-1.5 items-center ml-2 align-middle opacity-60 h-4 overflow-hidden">
+          <span
+            className="rounded-full bg-current animate-[bounce-dot_1s_ease-in-out_infinite_-0.3s]"
+            style={{ width: 4, height: 4, minWidth: 4, minHeight: 4 }}
+          />
+          <span
+            className="rounded-full bg-current animate-[bounce-dot_1s_ease-in-out_infinite_-0.15s]"
+            style={{ width: 4, height: 4, minWidth: 4, minHeight: 4 }}
+          />
+          <span
+            className="rounded-full bg-current animate-[bounce-dot_1s_ease-in-out_infinite]"
+            style={{ width: 4, height: 4, minWidth: 4, minHeight: 4 }}
+          />
         </span>
       )}
     </div>

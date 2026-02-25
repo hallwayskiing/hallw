@@ -95,6 +95,17 @@
   }
 }
 
+@keyframes bounce-dot {
+  0%,
+  100% {
+    transform: translateY(1px);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
 @layer base {
   :root {
     font-size: 15px;
