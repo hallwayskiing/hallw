@@ -3,6 +3,7 @@ import re
 import shutil
 from datetime import datetime
 from pathlib import Path
+from textwrap import dedent
 
 
 def get_skills_desc() -> str:
@@ -20,7 +21,7 @@ def get_skills_desc() -> str:
     ]
 
     skills = []
-    yaml_pattern = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
+    yaml_pattern = re.compile(r"\A\s*---\s*\n(.*?)\n---", re.DOTALL)
 
     for search_dir in search_dirs:
         if not search_dir.exists():
@@ -53,13 +54,9 @@ def get_user_profile() -> str:
 
 def get_system_prompt() -> str:
     """
-    Generates the system prompt for the automation agent based on the task and grid size.
-
-    Args:
-        user_task(str): The specific task the agent needs to accomplish.
+    Generates the general system prompt for HALLW.
     """
-
-    return f"""
+    return dedent(f"""
     <identity>
     You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
     You need to complete user's task by appropriate use of the available tools.
@@ -109,5 +106,5 @@ def get_system_prompt() -> str:
     - Prefer markdown to save files and structure them gracefully for better readability.
     </formats>
 
-    **Now analyze the task, arrange your plan, and take actions.
-    """
+    **Now analyze the task, arrange your plan, and take actions.**
+    """).strip()

@@ -124,6 +124,7 @@ class AgentGraphBuilder:
                 tool = build_stages
             else:
                 tool = dummy_for_missed_tool
+                tool.name = name
                 args = {"name": name}
 
             try:
