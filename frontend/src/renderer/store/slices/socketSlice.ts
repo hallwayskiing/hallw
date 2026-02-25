@@ -110,6 +110,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
         ...data,
         messages: data.messages.map((msg: RawMessage) => ({
           ...msg,
+          id: crypto.randomUUID(),
           msgRole: msg.role,
         })),
       };
