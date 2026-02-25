@@ -1,12 +1,12 @@
 import asyncio
 
 import socketio
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import SecretStr
 
 from hallw.core import AgentRunner
 from hallw.tools.playwright.playwright_mgr import browser_disconnect
-from hallw.utils import config, history_mgr, init_logger, logger, save_config_to_env
+from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
 
 from .session import Session
 
@@ -34,6 +34,10 @@ async def start_task(sid, data):
         sessions[sid].renderer.main_loop = main_loop
 
     session = sessions[sid]
+
+    # Init system message if not exists
+    if not session.history:
+        session.history.append(SystemMessage(content=get_system_prompt()))
 
     # Append the new user request
     user_msg = HumanMessage(content=task_text)

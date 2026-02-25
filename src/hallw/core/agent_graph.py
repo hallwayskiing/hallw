@@ -1,7 +1,7 @@
 import asyncio
 
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -16,7 +16,6 @@ from hallw.tools import (
     parse_tool_response,
 )
 from hallw.utils import config as app_config
-from hallw.utils import get_system_prompt
 
 from .agent_state import AgentState, AgentStats
 
@@ -28,7 +27,6 @@ class AgentGraphBuilder:
         self.model = model
         self.checkpointer = checkpointer
         self.tools_dict = load_tools()
-        self.system_prompt = get_system_prompt()
 
     # --- Nodes ---
 
@@ -45,10 +43,10 @@ class AgentGraphBuilder:
             - For complex requests, break the task into stages that are clear and actionable.
             </build_rules>
         """
-        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
+        append_msg = HumanMessage(content=append_prompt)
 
         response = await self.model.bind_tools([build_stages], tool_choice="required").ainvoke(
-            [system_msg] + state["messages"], config=config
+            state["messages"] + [append_msg], config=config
         )
 
         return {
@@ -67,10 +65,10 @@ class AgentGraphBuilder:
         append_prompt = f"""
             Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
         """
-        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
+        append_msg = HumanMessage(content=append_prompt)
 
         response = await self.model.bind_tools(list(self.tools_dict.values()), tool_choice="auto").ainvoke(
-            [system_msg] + state["messages"], config=config
+            state["messages"] + [append_msg], config=config
         )
 
         return {
@@ -98,10 +96,10 @@ class AgentGraphBuilder:
             2. Call `edit_stages` to replace all remaining stages with a new plan.
             You MUST call one of these tools.
         """
-        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
+        append_msg = HumanMessage(content=append_prompt)
 
         response = await self.model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
-            [system_msg] + state["messages"], config=config
+            state["messages"] + [append_msg], config=config
         )
 
         return {
@@ -173,9 +171,9 @@ class AgentGraphBuilder:
             Find out what went wrong and how to fix it.
             Recover from the failures and continue with the task.
         """
-        system_msg = SystemMessage(content=f"{self.system_prompt}\n\n{append_prompt}")
+        append_msg = HumanMessage(content=append_prompt)
 
-        response = await self.model.ainvoke([system_msg] + state["messages"], config=config)
+        response = await self.model.ainvoke(state["messages"] + [append_msg], config=config)
 
         return {
             "messages": [response],
