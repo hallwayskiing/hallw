@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.15.0 (2026-02-25)
+
+### Feat
+
+- **core**: deal with parallel tool calls with `asyncio.gather`
+- **core**: optimize prompts
+- **tools**: add `extract_page` tool via Tavily API and change `search` api to Tavily
+- **core**: implement concurrent multi-session architecture with thread-isolated event loops
+- **core**: turn to single system message logic
+- **ui**: chat input has memories now
+
+### Fix
+
+- **ui**: improve tool previews
+- **server**: fix task cancel cross-thread call issues
+- **tools**: improve decision tool description
+- **ui**: optimize reasoning streaming state management
+- **ui**: fix scrollbar overlay
+
+### Refactor
+
+- **core**: change appended prompt to the trailing of list
+- **tools**: rename `options` to `choices` and add defensive parsing in `request_user_decision`
+- **core**: change `agent_graph` to a class
+- **server**: decouple server entrypoint and component responsibilities
+- **core**: rename core files to better align with concerns
+- **tools**: reconstruct `tools` package for better duties
+- **core**: migrate from `typing` to native types
+
+### Perf
+
+- **ui**: use Zustand subscription mode
+
 ## v0.14.0 (2026-02-20)
 
 ### Feat
