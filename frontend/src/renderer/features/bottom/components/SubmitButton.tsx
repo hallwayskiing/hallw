@@ -1,6 +1,6 @@
 import { cn } from "@lib/utils";
 import { Send, Square } from "lucide-react";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
 import type { SubmitButtonProps } from "../types";
 
 export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitButtonProps) {
@@ -20,7 +20,7 @@ export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitBu
   return (
     <button
       type="button"
-      onClick={isRunning ? onStop : (e) => onSubmit(e as unknown as FormEvent)}
+      onClick={isRunning ? onStop : (e) => onSubmit(e as unknown as SubmitEvent)}
       className={cn(
         "group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 overflow-hidden select-none",
         isRunning && "bg-destructive/90 text-white hover:bg-destructive",

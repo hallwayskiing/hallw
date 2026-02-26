@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 
 export interface ActionButtonProps {
   onClick: () => void;
@@ -25,6 +25,6 @@ export interface SubmitButtonProps {
   isRunning: boolean;
   hasInput: boolean;
   onStop: () => void;
-  onSubmit: (e?: FormEvent) => void;
+  onSubmit: (e?: SubmitEvent) => void;
   className?: string;
 }

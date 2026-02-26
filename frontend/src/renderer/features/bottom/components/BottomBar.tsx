@@ -1,6 +1,6 @@
 import { useAppStore } from "@store/store";
 import { ArrowLeft, Clock, Settings, Zap } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 
 import { useInputHistory } from "../hooks/useInputHistory";
 import { ActionButton } from "./ActionButton";
@@ -22,7 +22,7 @@ export function BottomBar() {
   const [isFocused, setIsFocused] = useState(false);
   const { handleHistoryNavigation, pushHistory } = useInputHistory();
 
-  const onSubmit = (e?: FormEvent) => {
+  const onSubmit = (e?: SubmitEvent) => {
     e?.preventDefault();
     if (!input.trim() || isRunning) return;
     pushHistory(input);
