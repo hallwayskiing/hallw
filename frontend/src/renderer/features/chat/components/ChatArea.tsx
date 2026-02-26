@@ -64,7 +64,7 @@ export function ChatArea() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex flex-col h-full overflow-auto px-1 py-4 scroll-smooth"
+        className="flex flex-col h-full overflow-auto px-1 pt-12 pb-4 scroll-smooth"
       >
         <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
           {processedMessages.map((msg: Message) => (

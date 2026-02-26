@@ -37,8 +37,8 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
   return (
     <div
       className={cn(
-        "flex-1 min-h-0 overflow-y-auto overflow-x-hidden border-b border-border transition-all duration-300",
-        isExpanded ? "p-4" : "p-2"
+        "flex-1 basis-0 min-h-0 overflow-y-auto overflow-x-hidden transition-all duration-300 py-3",
+        isExpanded ? "px-4 overflow-y-auto" : "px-2 overflow-y-hidden"
       )}
     >
       <h2
@@ -47,7 +47,7 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
           !isExpanded && "justify-center"
         )}
       >
-        <Clock className="w-3 h-3 shrink-0" />
+        <Clock className="w-4 h-4 shrink-0" />
         {isExpanded && <span>Stages</span>}
       </h2>
       <div className="space-y-4">

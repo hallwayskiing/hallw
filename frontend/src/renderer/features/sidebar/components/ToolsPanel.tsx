@@ -19,7 +19,7 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
     error: "border-red-500",
   }[status];
 
-  const StatusIcon = status === "running" ? <Loader2 className="w-3 h-3 animate-spin text-blue-500" /> : null;
+  const StatusIcon = status === "running" ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : null;
 
   if (!isExpanded) {
     return (
@@ -55,8 +55,8 @@ export function ToolsPanel({ isExpanded, onToolClick }: Omit<ToolsPanelProps, "t
   return (
     <div
       className={cn(
-        "flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background/50 transition-all duration-300",
-        isExpanded ? "p-4" : "p-2"
+        "flex-1 basis-0 min-h-0 overflow-x-hidden transition-all duration-300 py-3",
+        isExpanded ? "px-4 overflow-y-auto" : "px-2 overflow-hidden"
       )}
     >
       <h2
@@ -65,7 +65,7 @@ export function ToolsPanel({ isExpanded, onToolClick }: Omit<ToolsPanelProps, "t
           !isExpanded && "justify-center"
         )}
       >
-        <Activity className="w-3 h-3 shrink-0" />
+        <Activity className="w-4 h-4 shrink-0" />
         {isExpanded && <span>Execution</span>}
       </h2>
       <div className="space-y-3">

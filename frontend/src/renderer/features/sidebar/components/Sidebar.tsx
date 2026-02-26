@@ -1,7 +1,7 @@
 import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useRef, useState } from "react";
 
 import type { SidebarProps } from "../types";
@@ -44,11 +44,9 @@ export function Sidebar({ className }: SidebarProps) {
       onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center justify-center h-10 border-b border-border shrink-0">
-        {isExpanded ? (
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-        )}
+        <ChevronLeft
+          className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isExpanded && "rotate-180")}
+        />
       </div>
 
       <StagesPanel
@@ -58,6 +56,8 @@ export function Sidebar({ className }: SidebarProps) {
         errorStageIndex={errorStageIndex}
         isExpanded={isExpanded}
       />
+
+      <div className="mx-1 my-1 h-px shrink-0 bg-linear-to-r from-transparent via-muted-foreground/20 to-transparent" />
 
       <ToolsPanel isExpanded={isExpanded} onToolClick={(tool) => setSelectedRunId(tool.run_id)} />
 
