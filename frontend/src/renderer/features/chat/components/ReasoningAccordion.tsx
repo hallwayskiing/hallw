@@ -28,36 +28,41 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
   }, [content]);
 
   return (
-    <div className="border border-border/50 rounded-lg overflow-hidden bg-background/50 max-w-[85%]">
+    <div
+      className={cn(
+        "border rounded-lg overflow-hidden max-w-[85%] transition-colors",
+        isStreaming ? "border-cyan-500/15 bg-background/30" : "border-teal-500/10 bg-teal-500/3"
+      )}
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 px-3 py-2 w-full hover:bg-muted/30 transition-all text-left group",
-          isStreaming
-            ? "bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 animate-gradient-wave"
-            : "bg-purple-500/5"
+          "flex items-center gap-2 px-3 py-2 w-full transition-all text-left group",
+          isStreaming ? "animate-gradient-wave" : "bg-teal-500/5 hover:bg-teal-500/8"
         )}
+        style={
+          isStreaming
+            ? {
+                background: "linear-gradient(100deg, #10b98120, #06b6d420, #3b82f620, #10b98120, #06b6d420)",
+                backgroundSize: "300% 100%",
+              }
+            : undefined
+        }
       >
         {isOpen ? (
           <ChevronDown
-            className={cn(
-              "w-4 h-4 shrink-0 transition-colors",
-              isStreaming ? "text-muted-foreground" : "text-foreground/70"
-            )}
+            className={cn("w-4 h-4 shrink-0 transition-colors", isStreaming ? "text-cyan-400/70" : "text-teal-400/70")}
           />
         ) : (
           <ChevronRight
-            className={cn(
-              "w-4 h-4 shrink-0 transition-colors",
-              isStreaming ? "text-muted-foreground" : "text-foreground/70"
-            )}
+            className={cn("w-4 h-4 shrink-0 transition-colors", isStreaming ? "text-cyan-400/70" : "text-teal-400/70")}
           />
         )}
         <Brain
           className={cn(
             "w-4 h-4 shrink-0 transition-colors",
-            isStreaming ? "text-purple-400 animate-pulse" : "text-purple-500"
+            isStreaming ? "text-cyan-400 animate-pulse" : "text-teal-400"
           )}
         />
         <div className="flex-1 min-w-0 flex items-center">
@@ -69,7 +74,7 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
             <span
               className={cn(
                 "text-xs font-medium leading-none transition-colors",
-                isStreaming ? "text-muted-foreground" : "text-foreground/70"
+                isStreaming ? "text-cyan-400/80" : "text-teal-400/80"
               )}
             >
               {isStreaming ? "Thinking..." : "Thought Process"}
