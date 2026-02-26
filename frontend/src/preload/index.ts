@@ -7,6 +7,9 @@ const api = {
   openCdpPage: () => ipcRenderer.invoke("open-cdp-page"),
   resizeCdpWindow: (expand: boolean, headless: boolean = false, userDataDir: string = "") =>
     ipcRenderer.invoke("resize-cdp-window", expand, headless, userDataDir),
+  windowMinimize: () => ipcRenderer.send("window-minimize"),
+  windowMaximize: () => ipcRenderer.send("window-maximize"),
+  windowClose: () => ipcRenderer.send("window-close"),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

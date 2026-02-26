@@ -8,6 +8,7 @@ function createWindow() {
     height: 720,
     icon: join(__dirname, "../../resources/hallw.png"),
     show: false,
+    frame: false,
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
@@ -44,6 +45,18 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on("ping", () => console.log("pong"));
+
+  // Window control IPC handlers for custom title bar
+  ipcMain.on("window-minimize", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+  ipcMain.on("window-maximize", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.isMaximized() ? win.unmaximize() : win.maximize();
+  });
+  ipcMain.on("window-close", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
+  });
 
   let cdpView: WebContentsView | null = null;
   let unexpandedBounds: Electron.Rectangle | null = null;
@@ -84,13 +97,25 @@ app.whenReady().then(() => {
             );
 
             window.contentView.addChildView(cdpView);
-            cdpView.setBounds({ x: 0, y: 0, width: widthPerPane, height: unexpandedBounds.height });
+            const titleBarHeight = 32;
+            cdpView.setBounds({
+              x: 0,
+              y: titleBarHeight,
+              width: widthPerPane,
+              height: unexpandedBounds.height - titleBarHeight,
+            });
 
             // Ensure the CDP view height and width adjusts with the main window
             window.on("resize", () => {
               if (cdpView && !window.isDestroyed()) {
                 const curBounds = window.getBounds();
-                cdpView.setBounds({ x: 0, y: 0, width: Math.floor(curBounds.width / 2), height: curBounds.height });
+                const tbH = 32;
+                cdpView.setBounds({
+                  x: 0,
+                  y: tbH,
+                  width: Math.floor(curBounds.width / 2),
+                  height: curBounds.height - tbH,
+                });
               }
             });
           }

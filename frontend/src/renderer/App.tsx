@@ -2,6 +2,7 @@ import { BottomBar } from "@features/bottom";
 import { ChatArea } from "@features/chat";
 import { Settings } from "@features/settings";
 import { Sidebar } from "@features/sidebar";
+import { TitleBar } from "@features/titlebar";
 import { Welcome } from "@features/welcome";
 import { useAppStore } from "@store/store";
 import { X } from "lucide-react";
@@ -19,9 +20,10 @@ export default function App() {
 
   return (
     // Root container: global font, background, overflow control
-    <div className="flex h-screen w-full bg-background text-foreground overflow-auto font-sans antialiased selection:bg-primary/20">
+    <div className="relative h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20">
+      <TitleBar />
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 relative">
+      <main className="h-full flex flex-col min-w-0 relative">
         {/* Content Container: scroll and max-width */}
         <section className="flex-1 overflow-hidden relative">
           <div className="w-full h-full flex flex-col">
@@ -65,7 +67,7 @@ export default function App() {
                   </div>
 
                   {/* Sidebar: App controls visibility, Logic internal */}
-                  <Sidebar className="h-full shrink-0 border-l border-border/10 shadow-2xl bg-secondary/30" />
+                  <Sidebar className="h-full pt-8 shrink-0 border-l border-border/10 shadow-2xl bg-background" />
                 </div>
               </div>
             )}
