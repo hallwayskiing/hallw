@@ -40,6 +40,7 @@ export function ParticleCanvas() {
     if (!ctx) return;
 
     const initStars = (width: number, height: number) => {
+      if (starsRef.current.length > 0) return;
       const stars: Star[] = [];
       const count = Math.floor((width * height) / 4500);
 
@@ -61,22 +62,21 @@ export function ParticleCanvas() {
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
 
       sizeRef.current = { width: rect.width, height: rect.height };
 
-      if (
-        starsRef.current.length === 0 ||
-        ctx.canvas.width !== rect.width * dpr ||
-        ctx.canvas.height !== rect.height * dpr
-      ) {
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
+      const newWidth = rect.width * dpr;
+      const newHeight = rect.height * dpr;
 
+      if (ctx.canvas.width !== newWidth || ctx.canvas.height !== newHeight) {
+        canvas.width = newWidth;
+        canvas.height = newHeight;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
-
-        initStars(rect.width, rect.height);
       }
+
+      initStars(rect.width, rect.height);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
