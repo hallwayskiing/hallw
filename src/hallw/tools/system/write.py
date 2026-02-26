@@ -56,3 +56,59 @@ async def write_file(file_path: str, content: str, mode: str = "w") -> str:
             "lines_written": lines_written,
         },
     )
+
+
+@tool
+async def replace_file_block(file_path: str, old_str: str, new_str: str) -> str:
+    """Replace a specific block of text in a file with new content.
+    This is the preferred tool for modifying large files to save tokens and time.
+
+    Args:
+        file_path (str): The absolute path to the file to modify.
+        old_str (str): The EXACT text sequence in the file to be replaced.
+        new_str (str): The new text to replace the old_str with.
+
+    Returns:
+        A status message indicating success or details of any failure.
+    """
+    file_path = os.path.normpath(file_path)
+
+    if not os.path.exists(file_path):
+        return build_tool_response(False, f"File not found: {file_path}")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Count occurrences to ensure we're not replacing the wrong thing
+        count = content.count(old_str)
+        if count == 0:
+            return build_tool_response(
+                False,
+                "The search block was not found. Ensure whitespace and characters match exactly.",
+            )
+        if count > 1:
+            return build_tool_response(
+                False,
+                f"The search block appeared {count} times. Provide a more unique block.",
+            )
+
+        new_content = content.replace(old_str, new_str)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        return build_tool_response(
+            True,
+            f"Successfully replaced the block in {file_path}",
+            {
+                "file_path": file_path,
+                "bytes_written": len(new_str.encode("utf-8")),
+                "lines_written": new_str.count("\n") + (1 if new_str and not new_str.endswith("\n") else 0),
+            },
+        )
+
+    except PermissionError:
+        return build_tool_response(False, f"Permission denied: {file_path}")
+    except Exception as e:
+        return build_tool_response(False, f"Failed to replace block: {str(e)}")
