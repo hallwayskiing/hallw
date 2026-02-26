@@ -28,7 +28,7 @@ export function Welcome() {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden relative">
+    <div className="flex-1 flex flex-col overflow-hidden relative pb-10">
       {theme === "dark" && (
         <>
           <div className="absolute inset-0 pointer-events-none">

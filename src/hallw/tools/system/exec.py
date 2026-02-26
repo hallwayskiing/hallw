@@ -35,11 +35,7 @@ async def exec(command: str, config: RunnableConfig) -> str:
             return build_tool_response(False, "Renderer not found.")
 
         request_id = str(uuid.uuid4())
-        status = await renderer.on_request_confirmation(
-            request_id,
-            CONFIRM_TIMEOUT,
-            f"System command execution: {command}",
-        )
+        status = await renderer.on_request_confirmation(request_id, CONFIRM_TIMEOUT, command)
 
         if status == "timeout":
             return build_tool_response(False, "Timed out waiting for user confirmation.")

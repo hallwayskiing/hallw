@@ -22,7 +22,7 @@ export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitBu
       type="button"
       onClick={isRunning ? onStop : (e) => onSubmit(e as unknown as FormEvent)}
       className={cn(
-        "group relative flex items-center justify-center w-10.5 h-10.5 rounded-xl transition-all duration-200 overflow-hidden select-none",
+        "group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 overflow-hidden select-none",
         isRunning && "bg-destructive/90 text-white hover:bg-destructive",
         isActive && "bg-linear-to-br from-sky-400 to-blue-600 text-white",
         !isRunning && !hasInput && "bg-transparent text-muted-foreground pointer-events-none cursor-default"

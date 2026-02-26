@@ -1,4 +1,4 @@
-import { MessageSquare, Send, X } from "lucide-react";
+import { Key, MessageSquare, Send, X } from "lucide-react";
 import { memo, useState } from "react";
 
 import { useCountdown } from "../hooks/useCountdown";
@@ -29,7 +29,7 @@ export const Decision = memo(
         case "submitted":
           return (
             <div className="flex gap-3 w-full p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 items-center animate-in fade-in">
-              <MessageSquare className="w-5 h-5 shrink-0" />
+              <Key className="w-5 h-5 shrink-0" />
               <div className="flex flex-col">
                 <span className="text-xs opacity-90 mt-1">{input}</span>
               </div>
@@ -108,7 +108,7 @@ export const Decision = memo(
     return (
       <div
         id={requestId}
-        className="flex flex-col gap-4 max-w-3xl mx-auto w-full min-w-0 p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2"
+        className="flex flex-col gap-4 w-[640px] mx-auto min-w-0 p-5 rounded-xl bg-blue-500/10 border border-blue-500/20 animate-in slide-in-from-bottom-2"
       >
         <div className="flex items-center gap-3 text-blue-500">
           <MessageSquare className="w-5 h-5" />

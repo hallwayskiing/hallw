@@ -30,7 +30,7 @@ export function BottomBar() {
   };
 
   return (
-    <div className="p-4 border-t border-border bg-background">
+    <div className="py-2.5 px-4 border-t border-border bg-background">
       <div className="w-full max-w-5xl mx-auto flex items-center gap-3">
         {/* Back / Settings Button */}
         <ActionButton
@@ -47,7 +47,7 @@ export function BottomBar() {
         />
 
         {/* Input Form Container */}
-        <div className="flex-1 relative h-11 z-20">
+        <div className="flex-1 relative h-10 z-20">
           <ChatInput
             value={input}
             onChange={setInput}
