@@ -6,6 +6,7 @@ from hallw.utils.config_mgr import config
 from ..utils.tool_response import build_tool_response
 
 TAVILY_EXTRACT_ENDPOINT = "https://api.tavily.com/extract"
+MAX_CONTENT_LENGTH = 10000
 
 
 @tool
@@ -58,6 +59,9 @@ async def extract_page(url: str) -> str:
             content = result_data.get("raw_content", "")
             if not content:
                 return build_tool_response(False, f"Tavily Fetch Error: No content returned for {url}")
+
+            if len(content) > MAX_CONTENT_LENGTH:
+                content = content[:MAX_CONTENT_LENGTH] + "... (truncated)"
 
             return build_tool_response(
                 True,
