@@ -1,9 +1,7 @@
 import { Key } from "lucide-react";
 import type { ChangeEvent } from "react";
 import type { Config } from "../../types";
-import { Input } from "../ui/Input";
-import { InputGroup } from "../ui/InputGroup";
-import { SectionCard } from "../ui/SectionCard";
+import { Input, InputGroup, SectionCard } from "../ui";
 
 const ALL_PROVIDERS = [
   { key: "openai_api_key", label: "OpenAI", placeholder: "sk-..." },

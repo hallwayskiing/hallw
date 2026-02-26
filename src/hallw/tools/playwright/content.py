@@ -2,6 +2,8 @@ import trafilatura
 from langchain_core.tools import tool
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
+from hallw.utils import config
+
 from ..utils.tool_response import build_tool_response
 from .helpers import auto_consent, remove_overlays
 from .playwright_mgr import get_page
@@ -14,6 +16,8 @@ async def browser_get_content() -> str:
     Returns:
         Status message with the final page title, url and content in markdown format.
     """
+    max_content_length = config.pw_content_max_length
+
     page = await get_page()
     if page is None:
         return build_tool_response(False, "Please launch browser first.")
@@ -47,8 +51,8 @@ async def browser_get_content() -> str:
         if not extracted_text:
             return build_tool_response(False, f"Could not extract meaningful content from {url}")
 
-        if len(extracted_text) > 10000:
-            extracted_text = extracted_text[:10000] + "...(Truncated)"
+        if len(extracted_text) > max_content_length:
+            extracted_text = extracted_text[:max_content_length] + "...(truncated)"
 
         return build_tool_response(
             True,

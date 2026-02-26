@@ -47,19 +47,28 @@ class Settings(BaseSettings):
     logging_max_chars: int = 200
 
     # =================================================
-    # 5. Exec & Search
+    # 5. Exec
     # =================================================
     auto_allow_exec: bool = False
     auto_allow_blacklist: list[str] = []
+    exec_command_timeout: int = 30
+    request_confirm_timeout: int = 60
+    request_decision_timeout: int = 60
+
+    # =================================================
+    # 6. Search
+    # =================================================
     search_engine: str = "tavily"  # "tavily" or "bocha"
     search_result_count: int = 5
     tavily_api_key: SecretStr | None = None
     bocha_api_key: SecretStr | None = None
+    extract_max_length: int = 10000
 
     # =================================================
-    # 6. Playwright & Browser
+    # 7. Playwright & Browser
     # =================================================
     chrome_user_data_dir: str | None = None
+    pw_content_max_length: int = 10000
     # Playwright timeouts (in milliseconds)
     pw_goto_timeout: int = 10000
     pw_click_timeout: int = 6000

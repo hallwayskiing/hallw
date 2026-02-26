@@ -11,8 +11,6 @@ from langchain_core.tools import tool
 from hallw.tools import build_tool_response
 from hallw.utils import config as app_config
 
-CONFIRM_TIMEOUT = 60
-EXEC_COMMAND_TIMEOUT = 30
 MAX_OUTPUT_ROWS = 500
 
 
@@ -28,6 +26,7 @@ async def exec(command: str, config: RunnableConfig) -> str:
     """
     auto_allow = app_config.auto_allow_exec
     blacklist = app_config.auto_allow_blacklist
+    request_confirm_timeout = app_config.request_confirm_timeout
 
     if not auto_allow or _is_command_blacklisted(command, blacklist):
         renderer = config.get("configurable", {}).get("renderer")
@@ -35,7 +34,7 @@ async def exec(command: str, config: RunnableConfig) -> str:
             return build_tool_response(False, "Renderer not found.")
 
         request_id = str(uuid.uuid4())
-        status = await renderer.on_request_confirmation(request_id, CONFIRM_TIMEOUT, command)
+        status = await renderer.on_request_confirmation(request_id, request_confirm_timeout, command)
 
         if status == "timeout":
             return build_tool_response(False, "Timed out waiting for user confirmation.")
@@ -46,6 +45,8 @@ async def exec(command: str, config: RunnableConfig) -> str:
 
 
 async def _run_system(command: str) -> str:
+    exec_command_timeout = app_config.exec_command_timeout
+
     cmd_args, backend_name = _select_backend(command)
 
     try:
@@ -58,10 +59,10 @@ async def _run_system(command: str) -> str:
         return build_tool_response(False, f"Failed to start {backend_name}: {exc}")
 
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=EXEC_COMMAND_TIMEOUT)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=exec_command_timeout)
     except asyncio.TimeoutError:
         await _cleanup_process(process, 3)
-        return build_tool_response(False, f"Command execution timed out after {EXEC_COMMAND_TIMEOUT} seconds.")
+        return build_tool_response(False, f"Command execution timed out after {exec_command_timeout} seconds.")
     except Exception as exc:
         await _cleanup_process(process, 1)
         return build_tool_response(False, f"Execution failed: {exc}")

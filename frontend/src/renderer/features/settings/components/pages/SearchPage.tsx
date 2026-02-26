@@ -1,10 +1,7 @@
 import { Search } from "lucide-react";
 import type { ChangeEvent } from "react";
 import type { Config } from "../../types";
-import { Combobox } from "../ui/Combobox";
-import { Input } from "../ui/Input";
-import { InputGroup } from "../ui/InputGroup";
-import { SectionCard } from "../ui/SectionCard";
+import { Combobox, Input, InputGroup, SectionCard } from "../ui";
 
 export function SearchPage({
   config,
@@ -53,11 +50,17 @@ export function SearchPage({
       <InputGroup label="Search Result Count" desc="Number of results to return">
         <Input
           name="search_result_count"
-          type="number"
           min="1"
-          max="50"
-          value={(config.search_result_count as number) ?? 10}
+          max="10"
+          value={(config.search_result_count as number) ?? 5}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("search_result_count", e.target.value)}
+        />
+      </InputGroup>
+      <InputGroup label="Extract Max Length" desc="Max length of extracted content">
+        <Input
+          name="extract_max_length"
+          value={(config.extract_max_length as number) ?? 10000}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("extract_max_length", e.target.value)}
         />
       </InputGroup>
     </SectionCard>

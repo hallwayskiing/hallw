@@ -1,10 +1,7 @@
 import { Logs } from "lucide-react";
 import type { ChangeEvent } from "react";
 import type { Config } from "../../types";
-import { Combobox } from "../ui/Combobox";
-import { Input } from "../ui/Input";
-import { InputGroup } from "../ui/InputGroup";
-import { SectionCard } from "../ui/SectionCard";
+import { Combobox, Input, InputGroup, SectionCard } from "../ui";
 
 export function LoggingPage({
   config,
@@ -39,8 +36,6 @@ export function LoggingPage({
       <InputGroup label="Max Log Chars" desc="Maximum chars per message">
         <Input
           name="logging_max_chars"
-          type="number"
-          min="1"
           value={(config.logging_max_chars as number) ?? 200}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("logging_max_chars", e.target.value)}
         />

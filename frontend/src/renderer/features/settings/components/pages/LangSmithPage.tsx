@@ -1,10 +1,7 @@
 import { Gauge } from "lucide-react";
 import type { ChangeEvent } from "react";
 import type { Config } from "../../types";
-import { Input } from "../ui/Input";
-import { InputGroup } from "../ui/InputGroup";
-import { SectionCard } from "../ui/SectionCard";
-import { ToggleGroup } from "../ui/ToggleGroup";
+import { Input, InputGroup, SectionCard, ToggleGroup } from "../ui";
 
 export function LangSmithPage({
   config,

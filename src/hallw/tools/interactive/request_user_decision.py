@@ -2,6 +2,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from hallw.tools import build_tool_response
+from hallw.utils import config as app_config
 
 
 @tool
@@ -18,6 +19,8 @@ async def request_user_decision(prompt: str, choices: list[str] | str = None, co
     Returns:
         The user's input response as a string.
     """
+    request_decision_timeout = app_config.request_decision_timeout
+
     renderer = config.get("configurable", {}).get("renderer")
 
     if renderer is None:
@@ -45,17 +48,17 @@ async def request_user_decision(prompt: str, choices: list[str] | str = None, co
         choices = [str(choices)]
 
     try:
-        # Request user input through the renderer (timeout: 5 minutes)
+        # Request user input through the renderer
         response = await renderer.on_request_user_decision(
             prompt=prompt,
             choices=choices,
-            timeout=300,
+            timeout=request_decision_timeout,
         )
 
         if response == "timeout":
             return build_tool_response(
                 success=False,
-                message="User decision request timed out after 5 minutes.",
+                message=f"User decision request timed out after {request_decision_timeout} seconds.",
             )
 
         if response == "rejected":

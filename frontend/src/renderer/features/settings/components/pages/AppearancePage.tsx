@@ -2,7 +2,7 @@ import { cn } from "@lib/utils";
 import { useAppStore } from "@store/store";
 import { Moon, Palette, Sun } from "lucide-react";
 
-import { SectionCard } from "../ui/SectionCard";
+import { SectionCard } from "../ui";
 
 export function AppearancePage() {
   const theme = useAppStore((s) => s.theme);
