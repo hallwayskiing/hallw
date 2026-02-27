@@ -85,7 +85,7 @@ def get_system_prompt() -> str:
     <file_operations>
     - For file operations, use **read_file** and **write_file** instead of system commands to get better availability.
     - Don't call `write_file` unless clearly instructed by the user.
-    - When modifying an existing file, prefer **replace_file_block** instead of rewriting the whole file.
+    - When modifying an existing file, prefer **edit_file** instead of rewriting the whole file.
     - If creating a large file, use append mode to write the file in chunks to avoid long processing time.
     - You **MUST** save your work in the `workspace/` directory.
     - You can edit any files in any path, but carefully consider the impact of your actions.
