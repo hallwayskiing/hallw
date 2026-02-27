@@ -1,39 +1,82 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export function useSmoothTyping(targetText: string, isStreaming: boolean, speed: number = 1) {
-  const [displayedText, setDisplayedText] = useState("");
+/**
+ * useSmoothTyping - Smoothly animates text content as it streams in.
+ *
+ * @param targetText The full text received so far from the stream.
+ * @param isStreaming Whether the stream is still active.
+ * @param baseSpeed Characters per second to drip (default 60).
+ */
+export function useSmoothTyping(targetText: string, isStreaming: boolean, baseSpeed: number = 60) {
+  const [displayedText, setDisplayedText] = useState(isStreaming ? "" : targetText);
+  const currentTextRef = useRef(isStreaming ? "" : targetText);
+  const targetTextRef = useRef(targetText);
+  const lastUpdateRef = useRef<number>(0);
+  const animationFrameRef = useRef<number>(0);
+
+  // Sync target ref whenever targetText changes
+  useEffect(() => {
+    targetTextRef.current = targetText;
+
+    if (!isStreaming) {
+      setDisplayedText(targetText);
+      currentTextRef.current = targetText;
+    }
+  }, [targetText, isStreaming]);
 
   useEffect(() => {
     if (!isStreaming) {
-      setDisplayedText(targetText);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       return;
     }
 
-    if (displayedText.length >= targetText.length) {
-      return;
-    }
+    const tick = (now: number) => {
+      if (!lastUpdateRef.current) {
+        lastUpdateRef.current = now;
+      }
 
-    let animationFrameId: number;
+      const deltaTime = now - lastUpdateRef.current;
+      const currentLen = currentTextRef.current.length;
+      const targetLen = targetTextRef.current.length;
+      const backlog = targetLen - currentLen;
 
-    const animate = () => {
-      setDisplayedText((current) => {
-        if (current.length >= targetText.length) {
-          cancelAnimationFrame(animationFrameId);
-          return targetText;
+      if (backlog > 0) {
+        // Base rate: chars per millisecond
+        let rate = baseSpeed / 1000;
+
+        // Adaptive speed: Accelerate if we are falling behind
+        if (backlog > 50) {
+          rate += (backlog - 50) * 0.002;
         }
 
-        const diff = targetText.length - current.length;
-        const step = Math.ceil(diff / 50) + speed;
+        const charsToAddFloat = deltaTime * rate;
 
-        const nextText = targetText.slice(0, current.length + step);
-        return nextText;
-      });
-      animationFrameId = requestAnimationFrame(animate);
+        if (charsToAddFloat >= 1) {
+          const charsToAdd = Math.floor(charsToAddFloat);
+          const nextLen = Math.min(currentLen + charsToAdd, targetLen);
+          const nextText = targetTextRef.current.slice(0, nextLen);
+
+          currentTextRef.current = nextText;
+          setDisplayedText(nextText);
+          lastUpdateRef.current = now;
+        }
+      } else {
+        lastUpdateRef.current = now;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(tick);
     };
 
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [targetText, isStreaming, speed, displayedText.length]);
+    animationFrameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isStreaming, baseSpeed]);
 
   return displayedText;
 }

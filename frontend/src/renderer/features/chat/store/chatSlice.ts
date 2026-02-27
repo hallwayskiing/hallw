@@ -78,27 +78,13 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
     }
 
     if (reasoningBuffer.length > 0) {
-      let merged = false;
-      for (let i = result.length - 1; i >= 0; i--) {
-        const msg = result[i];
-        if (msg.type === "text" && msg.msgRole === "assistant" && !!msg.content?.trim()) {
-          result[i] = {
-            ...msg,
-            reasoning: [msg.reasoning, ...reasoningBuffer].filter(Boolean).join("\n\n") || undefined,
-          };
-          merged = true;
-          break;
-        }
-      }
-      if (!merged) {
-        result.push({
-          id: firstReasoningId || `merged-reasoning-end`,
-          type: "text",
-          msgRole: "assistant",
-          content: "",
-          reasoning: reasoningBuffer.join("\n\n"),
-        });
-      }
+      result.push({
+        id: firstReasoningId || `merged-reasoning-end`,
+        type: "text",
+        msgRole: "assistant",
+        content: "",
+        reasoning: reasoningBuffer.join("\n\n"),
+      });
     }
     return result;
   },

@@ -20,12 +20,12 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
 
   const summary = useMemo(() => {
     return (
-      content
+      smoothContent
         .split("\n")
         .filter((line) => line.trim() !== "")
         .pop() || ""
     );
-  }, [content]);
+  }, [smoothContent]);
 
   return (
     <div
