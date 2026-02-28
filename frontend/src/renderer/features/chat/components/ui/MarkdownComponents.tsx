@@ -80,7 +80,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     }
     return (
       <code
-        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[14px] font-mono text-emerald-300/90"
+        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[13px] font-mono text-emerald-300/90"
         {...props}
       >
         {children}

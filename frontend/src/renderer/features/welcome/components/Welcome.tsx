@@ -15,9 +15,11 @@ export function Welcome() {
   const startTask = useAppStore((s) => s.startTask);
   const [isLoaded, setIsLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(1);
+  const [rotation, setRotation] = useState(0);
 
   const refreshQuickStarts = () => {
     setRefreshKey((prev) => prev + 1);
+    setRotation((prev) => prev + 180);
   };
 
   const isHistoryOpen = useAppStore((s) => s.isHistoryOpen);
@@ -62,13 +64,15 @@ export function Welcome() {
             disabled={isHistoryOpen}
             aria-hidden={isHistoryOpen}
           >
-            <RefreshCw className="w-4.5 h-4.5 transition-transform duration-500 group-hover:rotate-180 " />
+            <RefreshCw
+              className="w-4.5 h-4.5 transition-transform duration-500"
+              style={{ transform: `rotate(${rotation}deg)` }}
+            />
           </button>
         </div>
 
         <div className="relative h-48 overflow-hidden pt-1">
           <QuickStartList onQuickStart={startTask} isVisible={!isHistoryOpen} refreshKey={refreshKey} />
-
           <HistoryList isVisible={isHistoryOpen} />
         </div>
       </div>

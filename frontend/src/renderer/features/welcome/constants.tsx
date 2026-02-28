@@ -1,17 +1,17 @@
 import {
+  Bird,
   Book,
   Brain,
-  Calendar,
-  Camera,
+  Cat,
   Coffee,
   Dumbbell,
   FileText,
   Film,
   Gamepad2,
+  Ghost,
   Gift,
   Globe,
   Heart,
-  House,
   Leaf,
   Lightbulb,
   Mail,
@@ -19,152 +19,269 @@ import {
   Moon,
   Music,
   Palette,
-  Plane,
+  Rocket,
   Search,
   ShoppingBag,
   Sparkles,
   Star,
   Sun,
   Utensils,
+  Wand2,
+  Zap,
 } from "lucide-react";
 
 import type { ColorName } from "./types";
 
 export const ALL_QUICK_STARTS = [
   {
-    icon: <Utensils className="w-4 h-4" />,
-    color: "orange",
-    text: "Suggest a simple brunch recipe that feels special and Instagram-worthy.",
-  },
-  {
-    icon: <Globe className="w-4 h-4" />,
-    color: "blue",
-    text: "Search for hidden gems and underrated neighborhoods in Tokyo.",
-  },
-  {
-    icon: <Heart className="w-4 h-4" />,
-    color: "rose",
-    text: "What are some creative but affordable Valentine's Day gift ideas?",
-  },
-  {
-    icon: <Star className="w-4 h-4" />,
-    color: "amber",
-    text: "What movies are coming out this year? Help me create a must-watch list.",
+    icon: <Brain className="w-4 h-4" />,
+    color: "cyan",
+    text: "If animals could talk, which would be the most annoying at a dinner party?",
   },
   {
     icon: <Coffee className="w-4 h-4" />,
-    color: "yellow",
-    text: "Recommend some creative coffee drinks I can make at home.",
-  },
-  {
-    icon: <MapPin className="w-4 h-4" />,
-    color: "emerald",
-    text: "I want to go camping solo this weekend. Any beginner-friendly spots?",
-  },
-  {
-    icon: <Music className="w-4 h-4" />,
-    color: "purple",
-    text: "Find me some chill Lofi playlists perfect for late night vibes.",
-  },
-  {
-    icon: <Gift className="w-4 h-4" />,
-    color: "pink",
-    text: "My friend's birthday is coming up. What can I get for under $30?",
-  },
-  {
-    icon: <Sun className="w-4 h-4" />,
     color: "orange",
-    text: "Where are the best flower fields for a spring photo shoot?",
-  },
-  {
-    icon: <Moon className="w-4 h-4" />,
-    color: "cyan",
-    text: "I can't sleep at night. What are some science-backed tips for better sleep?",
-  },
-  {
-    icon: <Plane className="w-4 h-4" />,
-    color: "blue",
-    text: "First time going to Thailand! Help me plan what to prepare.",
-  },
-  {
-    icon: <Book className="w-4 h-4" />,
-    color: "teal",
-    text: "Recommend some addictive mystery novels I won't be able to put down.",
-  },
-  {
-    icon: <Gamepad2 className="w-4 h-4" />,
-    color: "purple",
-    text: "What are the best Nintendo Switch games to play in 2025?",
-  },
-  {
-    icon: <Palette className="w-4 h-4" />,
-    color: "pink",
-    text: "I want to learn to draw but I'm a total beginner. Where do I start?",
-  },
-  {
-    icon: <ShoppingBag className="w-4 h-4" />,
-    color: "rose",
-    text: "Spring is here! What fashion trends are in style this season?",
-  },
-  {
-    icon: <Leaf className="w-4 h-4" />,
-    color: "emerald",
-    text: "What houseplants are easy to care for and look aesthetic?",
-  },
-  {
-    icon: <Film className="w-4 h-4" />,
-    color: "amber",
-    text: "Find me the funniest comedy movies for a movie night with friends.",
-  },
-  {
-    icon: <Dumbbell className="w-4 h-4" />,
-    color: "orange",
-    text: "Quick stretching exercises office workers can do during breaks?",
-  },
-  {
-    icon: <Brain className="w-4 h-4" />,
-    color: "cyan",
-    text: "Share some fun psychology facts I can post on social media.",
-  },
-  {
-    icon: <Lightbulb className="w-4 h-4" />,
-    color: "yellow",
-    text: "Life feels boring. What are some unique hobbies I could pick up?",
-  },
-  {
-    icon: <Camera className="w-4 h-4" />,
-    color: "teal",
-    text: "What phone photography tips make photos look more professional?",
-  },
-  {
-    icon: <Calendar className="w-4 h-4" />,
-    color: "blue",
-    text: "How can I scientifically plan my week to be more productive?",
-  },
-  {
-    icon: <House className="w-4 h-4" />,
-    color: "purple",
-    text: "Budget-friendly tips to make a rented apartment look amazing?",
-  },
-  {
-    icon: <Sparkles className="w-4 h-4" />,
-    color: "pink",
-    text: "What's a simple skincare routine for someone who's too lazy?",
-  },
-  {
-    icon: <Mail className="w-4 h-4" />,
-    color: "emerald",
-    text: "Long distance relationship tips? Give me some romantic ideas!",
+    text: "Design a cocktail inspired by finding a $20 bill in an old coat pocket.",
   },
   {
     icon: <Search className="w-4 h-4" />,
     color: "amber",
-    text: "What are the hottest restaurants trending on social media right now?",
+    text: "What are the most bizarre unsolved mysteries involving time travel?",
+  },
+  {
+    icon: <Gamepad2 className="w-4 h-4" />,
+    color: "purple",
+    text: "Teach me a secret 'handshake' or coded language that only we know.",
+  },
+  {
+    icon: <Film className="w-4 h-4" />,
+    color: "blue",
+    text: "What would my daily routine look like in a 90s cyberpunk anime?",
+  },
+  {
+    icon: <Dumbbell className="w-4 h-4" />,
+    color: "orange",
+    text: "Design a workout routine for surviving a sudden zombie apocalypse.",
+  },
+  {
+    icon: <Sparkles className="w-4 h-4" />,
+    color: "pink",
+    text: "What are real-life 'glitches in the matrix' that science can't explain?",
+  },
+  {
+    icon: <Mail className="w-4 h-4" />,
+    color: "emerald",
+    text: "Write a polite breakup letter to my favorite spicy chips (heartburn).",
+  },
+  {
+    icon: <Ghost className="w-4 h-4" />,
+    color: "rose",
+    text: "Help me name my future pet ghost (it's friendly but hides socks).",
+  },
+  {
+    icon: <Rocket className="w-4 h-4" />,
+    color: "blue",
+    text: "If Earth was a video game, what would the latest patch notes say?",
+  },
+  {
+    icon: <Utensils className="w-4 h-4" />,
+    color: "yellow",
+    text: "I need a recipe for a cake that looks like a brick but tastes like heaven.",
+  },
+  {
+    icon: <Globe className="w-4 h-4" />,
+    color: "cyan",
+    text: "What are words in other languages that don't have direct translations?",
+  },
+  {
+    icon: <Wand2 className="w-4 h-4" />,
+    color: "purple",
+    text: "Create a 'vibe check' quiz to determine what mythical creature I am.",
+  },
+  {
+    icon: <Moon className="w-4 h-4" />,
+    color: "blue",
+    text: "Suggest a vacation spot for a dapper vampire who forgot sunscreen.",
+  },
+  {
+    icon: <Leaf className="w-4 h-4" />,
+    color: "emerald",
+    text: "If my houseplants could text me, what would be their main complaint?",
+  },
+  {
+    icon: <Book className="w-4 h-4" />,
+    color: "teal",
+    text: "Translate a movie quote into medieval English from a confused peasant.",
+  },
+  {
+    icon: <Heart className="w-4 h-4" />,
+    color: "rose",
+    text: "What would be the most impractical superpower on a first date?",
   },
   {
     icon: <FileText className="w-4 h-4" />,
     color: "cyan",
-    text: "I want to start journaling but don't know what to write. Give me prompts!",
+    text: "Draft a legal contract with my cat regarding mandatory 3 AM zoomies.",
+  },
+  {
+    icon: <Search className="w-4 h-4" />,
+    color: "amber",
+    text: "What's the weirdest thing ever found in a time capsule from the 1920s?",
+  },
+  {
+    icon: <MapPin className="w-4 h-4" />,
+    color: "emerald",
+    text: "Where is the most creative place on Earth to hide a treasure chest?",
+  },
+  {
+    icon: <Music className="w-4 h-4" />,
+    color: "purple",
+    text: "Compose a short lullaby for an AI having a minor existential crisis.",
+  },
+  {
+    icon: <ShoppingBag className="w-4 h-4" />,
+    color: "pink",
+    text: "What clothing would we wear on a planet with 3x stronger gravity?",
+  },
+  {
+    icon: <Brain className="w-4 h-4" />,
+    color: "cyan",
+    text: "List things that sound like insults but are actually compliments.",
+  },
+  {
+    icon: <Lightbulb className="w-4 h-4" />,
+    color: "yellow",
+    text: "Plan a party where everyone dresses as a failed invention.",
+  },
+  {
+    icon: <Book className="w-4 h-4" />,
+    color: "teal",
+    text: "What are 'forbidden' historical facts that sound too weird to be true?",
+  },
+  {
+    icon: <Globe className="w-4 h-4" />,
+    color: "blue",
+    text: "What YouTube video represents humanity best for visiting aliens?",
+  },
+  {
+    icon: <Palette className="w-4 h-4" />,
+    color: "pink",
+    text: "Describe the taste of 'electric blue' to someone who has never seen it.",
+  },
+  {
+    icon: <Zap className="w-4 h-4" />,
+    color: "yellow",
+    text: "Write a haiku about a printer running out of magenta ink.",
+  },
+  {
+    icon: <Bird className="w-4 h-4" />,
+    color: "cyan",
+    text: "What would a social media platform for squirrels look like?",
+  },
+  {
+    icon: <Utensils className="w-4 h-4" />,
+    color: "orange",
+    text: "Create a workout using only items found in a kitchen pantry.",
+  },
+  {
+    icon: <Star className="w-4 h-4" />,
+    color: "amber",
+    text: "What would be my gimmick as a low-budget superhero movie villain?",
+  },
+  {
+    icon: <Gamepad2 className="w-4 h-4" />,
+    color: "purple",
+    text: "Which early 2000s web 'abandonware' desperately needs a comeback?",
+  },
+  {
+    icon: <Brain className="w-4 h-4" />,
+    color: "cyan",
+    text: "A survival guide for talking to a hardcore conspiracy theorist.",
+  },
+  {
+    icon: <Gift className="w-4 h-4" />,
+    color: "rose",
+    text: "Value of a cursed Victorian doll on Antiques Roadshow in 2088?",
+  },
+  {
+    icon: <Globe className="w-4 h-4" />,
+    color: "blue",
+    text: "Write a short 'FAQ for Humans' by a confused alien tour guide.",
+  },
+  {
+    icon: <Lightbulb className="w-4 h-4" />,
+    color: "yellow",
+    text: "Suggest 5 absurd ways to use a pool noodle (no water allowed).",
+  },
+  {
+    icon: <Utensils className="w-4 h-4" />,
+    color: "orange",
+    text: "If I could only eat one texture for life, which is most versatile?",
+  },
+  {
+    icon: <Coffee className="w-4 h-4" />,
+    color: "amber",
+    text: "Best 'fake names' for coffee orders to mildly confuse the barista?",
+  },
+  {
+    icon: <Book className="w-4 h-4" />,
+    color: "teal",
+    text: "Start a story: 'You wake up in a room made of marshmallows'.",
+  },
+  {
+    icon: <Search className="w-4 h-4" />,
+    color: "blue",
+    text: "Poorly planned historical 'heists' that actually somehow worked?",
+  },
+  {
+    icon: <Brain className="w-4 h-4" />,
+    color: "purple",
+    text: "What 'captchas' would robots use to catch hiding humans?",
+  },
+  {
+    icon: <Sun className="w-4 h-4" />,
+    color: "orange",
+    text: "Design a new zodiac sign for digital traits, like 'The Doomscroller'.",
+  },
+  {
+    icon: <Dumbbell className="w-4 h-4" />,
+    color: "emerald",
+    text: "What's the most unusual forgotten sport in Olympic history?",
+  },
+  {
+    icon: <Mail className="w-4 h-4" />,
+    color: "cyan",
+    text: "Write a 'Letter of Recommendation' for a toaster that never burns.",
+  },
+  {
+    icon: <Music className="w-4 h-4" />,
+    color: "pink",
+    text: "Title of my dramatic solo musical song while waiting for the bus?",
+  },
+  {
+    icon: <Cat className="w-4 h-4" />,
+    color: "rose",
+    text: "Creative ways to use 'I forgot' as a legitimate excuse for anything?",
+  },
+  {
+    icon: <Film className="w-4 h-4" />,
+    color: "amber",
+    text: "Suggest a movie marathon for feeling like you're safely tripping.",
+  },
+  {
+    icon: <Globe className="w-4 h-4" />,
+    color: "blue",
+    text: "What are the 'Seven Wonders' of the digital world today?",
+  },
+  {
+    icon: <Moon className="w-4 h-4" />,
+    color: "purple",
+    text: "Invent 3 new holidays tailored for chronic introverts.",
+  },
+  {
+    icon: <Zap className="w-4 h-4" />,
+    color: "yellow",
+    text: "What's my most useless but cool-sounding secret agent gadget?",
   },
 ] as const;
 
