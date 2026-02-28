@@ -2,6 +2,7 @@ import { useAppStore } from "@store/store";
 import { ArrowLeft, ScrollText, Settings, Zap } from "lucide-react";
 import { type SubmitEvent, useState } from "react";
 
+import { useActiveSession } from "../../chat/hooks/useActiveSession";
 import { useInputHistory } from "../hooks/useInputHistory";
 import { ActionButton } from "./ActionButton";
 import { ChatInput } from "./ChatInput";
@@ -10,7 +11,8 @@ import { SubmitButton } from "./SubmitButton";
 export function BottomBar() {
   const input = useAppStore((s) => s.input);
   const isChatting = useAppStore((s) => s.isChatting);
-  const isRunning = useAppStore((s) => s.isRunning);
+  const session = useActiveSession();
+  const isRunning = session?.isRunning ?? false;
   const isHistoryOpen = useAppStore((s) => s.isHistoryOpen);
   const setInput = useAppStore((s) => s.setInput);
   const submitInput = useAppStore((s) => s.submitInput);

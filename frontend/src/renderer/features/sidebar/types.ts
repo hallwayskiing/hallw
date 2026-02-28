@@ -46,3 +46,37 @@ export interface ToolPreviewProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// ---------------------------------------------------------------------------
+// Session state
+// ---------------------------------------------------------------------------
+
+export interface SidebarSessionState {
+  toolStates: ToolState[];
+  stages: string[];
+  currentStageIndex: number;
+  completedStages: number[];
+  errorStageIndex: number;
+}
+
+// ---------------------------------------------------------------------------
+// Slice interface
+// ---------------------------------------------------------------------------
+
+export interface SidebarSlice {
+  sidebarSessions: Record<string, SidebarSessionState>;
+
+  getVisibleTools: () => ToolState[];
+
+  _onToolStateUpdate: (sessionId: string, state: ToolState) => void;
+  _onStagesBuilt: (sessionId: string, data: string[] | { stages?: string[] }) => void;
+  _onStageStarted: (sessionId: string, data: { stage_index: number }) => void;
+  _onStagesCompleted: (sessionId: string, data: { stage_indices: number[] }) => void;
+  _onStagesEdited: (sessionId: string, data: { stages: string[]; current_index: number }) => void;
+
+  _onSidebarTaskStarted: (sessionId: string) => void;
+  _onSidebarTaskCancelled: (sessionId: string) => void;
+  _onSidebarFatalError: (sessionId: string, data: unknown) => void;
+  _onSidebarReset: (sessionId: string) => void;
+  _onSidebarHistoryLoaded: (sessionId: string, data: { toolStates?: ToolState[] }) => void;
+}

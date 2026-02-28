@@ -2,6 +2,7 @@ import { useAppStore } from "@store/store";
 import { ArrowDown } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
+import { useActiveSession } from "../hooks/useActiveSession";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 import type { Message } from "../types";
 import { Confirmation } from "./Confirmation";
@@ -10,18 +11,36 @@ import { ErrorCard } from "./ErrorCard";
 import { ThinkingIndicator } from "./Indicators";
 import { MessageBubble } from "./MessageBubble";
 
+function getRemainingTimeoutSeconds(timeout?: number, expiresAt?: number): number | undefined {
+  if (typeof expiresAt === "number" && Number.isFinite(expiresAt) && expiresAt > 0) {
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+  }
+  return timeout;
+}
+
 export function ChatArea() {
-  const messages = useAppStore((s) => s.messages);
-  const streamingContent = useAppStore((s) => s.streamingContent);
-  const streamingReasoning = useAppStore((s) => s.streamingReasoning);
-  const isStreamingReasoning = useAppStore((s) => s.isStreamingReasoning);
-  const _streamingMessageId = useAppStore((s) => s._streamingMessageId);
-  const isRunning = useAppStore((s) => s.isRunning);
-  const pendingConfirmation = useAppStore((s) => s.pendingConfirmation);
-  const pendingDecision = useAppStore((s) => s.pendingDecision);
+  const session = useActiveSession();
   const handleConfirmationDecision = useAppStore((s) => s.handleConfirmationDecision);
   const handleDecision = useAppStore((s) => s.handleDecision);
   const getProcessedMessages = useAppStore((s) => s.getProcessedMessages);
+
+  const messages = session?.messages ?? [];
+  const streamingContent = session?.streamingContent ?? "";
+  const streamingReasoning = session?.streamingReasoning ?? "";
+  const isStreamingReasoning = session?.isStreamingReasoning ?? false;
+  const _streamingMessageId = session?._streamingMessageId ?? "";
+  const isRunning = session?.isRunning ?? false;
+  const pendingConfirmation = session?.pendingConfirmation ?? null;
+  const pendingDecision = session?.pendingDecision ?? null;
+
+  const confirmationTimeout = useMemo(
+    () => getRemainingTimeoutSeconds(pendingConfirmation?.timeout, pendingConfirmation?.expiresAt),
+    [pendingConfirmation?.timeout, pendingConfirmation?.expiresAt]
+  );
+  const decisionTimeout = useMemo(
+    () => getRemainingTimeoutSeconds(pendingDecision?.timeout, pendingDecision?.expiresAt),
+    [pendingDecision?.timeout, pendingDecision?.expiresAt]
+  );
 
   // 1. Data Processing Logic (Memoized)
   const processedMessages = useMemo(() => {
@@ -81,7 +100,7 @@ export function ChatArea() {
               <Confirmation
                 requestId={pendingConfirmation.requestId}
                 message={pendingConfirmation.message}
-                timeout={pendingConfirmation.timeout}
+                timeout={confirmationTimeout}
                 onDecision={handleConfirmationDecision}
               />
             </div>
@@ -96,7 +115,7 @@ export function ChatArea() {
                 requestId={pendingDecision.requestId}
                 message={pendingDecision.message}
                 choices={pendingDecision.choices}
-                timeout={pendingDecision.timeout}
+                timeout={decisionTimeout}
                 onDecision={handleDecision}
               />
             </div>

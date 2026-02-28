@@ -7,6 +7,7 @@ import { HeroSection } from "./HeroSection";
 import { HistoryList } from "./HistoryList";
 import { ParticleCanvas } from "./ParticleCanvas";
 import { QuickStartList } from "./QuickStartList";
+import { RunningSessionsDock } from "./RunningSessionsDock";
 
 export function Welcome() {
   const theme = useAppStore((s) => s.theme);
@@ -38,11 +39,12 @@ export function Welcome() {
         )}
       >
         {/* Quick Start / History List Container */}
-        <div className="relative h-[256px]">
+        <div className="relative h-64">
           <QuickStartList onQuickStart={startTask} isVisible={!isHistoryOpen} />
           <HistoryList isVisible={isHistoryOpen} />
         </div>
       </div>
+      <RunningSessionsDock />
     </div>
   );
 }

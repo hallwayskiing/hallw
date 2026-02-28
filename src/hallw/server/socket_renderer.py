@@ -9,9 +9,12 @@ from hallw.utils import config, logger
 
 
 class SocketRenderer(AgentRenderer):
-    def __init__(self, sio: socketio.AsyncServer, sid: str, main_loop: asyncio.AbstractEventLoop) -> None:
+    def __init__(
+        self, sio: socketio.AsyncServer, sid: str, main_loop: asyncio.AbstractEventLoop, session_id: str
+    ) -> None:
         super().__init__()
         self.sio, self.sid, self.main_loop = sio, sid, main_loop
+        self.session_id = session_id
         self._current_response = ""
         self._pending_confirmation: dict | None = None
 
@@ -21,9 +24,19 @@ class SocketRenderer(AgentRenderer):
         except Exception as e:
             logger.error(f"Socket Error: {e}")
 
+    def _with_session(self, data: Any = None) -> dict[str, Any]:
+        payload = {"session_id": self.session_id}
+        if data is None:
+            return payload
+        if isinstance(data, dict):
+            payload.update(data)
+            return payload
+        payload["data"] = data
+        return payload
+
     def _fire(self, event: str, data: Any = None):
         try:
-            asyncio.run_coroutine_threadsafe(self.emit(event, data), self.main_loop)
+            asyncio.run_coroutine_threadsafe(self.emit(event, self._with_session(data)), self.main_loop)
         except RuntimeError:
             logger.warning(f"No main loop for {event}")
 
@@ -39,10 +52,10 @@ class SocketRenderer(AgentRenderer):
 
     def on_llm_chunk(self, text: str, reasoning: str):
         if reasoning:
-            self._fire("llm_new_reasoning", reasoning)
+            self._fire("llm_new_reasoning", {"reasoning": reasoning})
         if text:
             self._current_response += text
-            self._fire("llm_new_text", text)
+            self._fire("llm_new_text", {"text": text})
 
     def on_llm_end(self):
         if self._current_response:
@@ -80,7 +93,7 @@ class SocketRenderer(AgentRenderer):
 
     def on_fatal_error(self, run_id: str, name: str, error: str):
         logger.critical(f"Fatal: {name} - {error}")
-        self._fire("fatal_error", error)
+        self._fire("fatal_error", {"message": error})
 
     def on_stages_built(self, data: dict) -> None:
         """Forward partial plan updates to the frontend."""

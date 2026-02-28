@@ -2,146 +2,111 @@ import type { AppState } from "@store/store";
 import type { StateCreator } from "zustand";
 
 import { HIDDEN_TOOLS } from "../constants";
-import type { ToolState } from "../types";
+import { patchSidebar, setRunningToolToError } from "../lib/utils";
+import type { SidebarSlice } from "../types";
 
-export interface SidebarSlice {
-  toolStates: ToolState[];
-  stages: string[];
-  currentStageIndex: number;
-  completedStages: number[];
-  errorStageIndex: number;
-
-  getVisibleTools: () => ToolState[];
-
-  _onToolStateUpdate: (state: ToolState) => void;
-  _onStagesBuilt: (data: string[] | { stages?: string[] }) => void;
-  _onStageStarted: (data: { stage_index: number }) => void;
-  _onStagesCompleted: (data: { stage_indices: number[] }) => void;
-  _onStagesEdited: (data: { stages: string[]; current_index: number }) => void;
-
-  // Lifecycle handlers
-  _onSidebarTaskStarted: () => void;
-  _onSidebarTaskCancelled: () => void;
-  _onSidebarFatalError: (data: unknown) => void;
-  _onSidebarReset: () => void;
-  _onSidebarHistoryLoaded: (data: { toolStates?: ToolState[] }) => void;
-}
+export type { SidebarSessionState, SidebarSlice } from "../types";
 
 export const createSidebarSlice: StateCreator<AppState, [], [], SidebarSlice> = (set, get) => ({
-  toolStates: [],
-  stages: [],
-  currentStageIndex: -1,
-  completedStages: [],
-  errorStageIndex: -1,
+  sidebarSessions: {},
 
   getVisibleTools: () => {
-    return get().toolStates.filter((t: ToolState) => !HIDDEN_TOOLS.includes(t.tool_name));
+    const { activeSessionId, sidebarSessions } = get();
+    const session = activeSessionId ? sidebarSessions[activeSessionId] : null;
+    if (!session) return [];
+    return session.toolStates.filter((t) => !HIDDEN_TOOLS.includes(t.tool_name));
   },
 
-  _onToolStateUpdate: (state) => {
-    if (!state) return;
-    set((prev: SidebarSlice) => {
-      const { run_id } = state;
-      if (!run_id) return { toolStates: [...prev.toolStates, state] };
-      const idx = prev.toolStates.findIndex((t) => t.run_id === run_id);
-      if (idx >= 0) {
-        const updated = [...prev.toolStates];
-        updated[idx] = { ...updated[idx], ...state };
-        return { toolStates: updated };
-      }
-      return { toolStates: [...prev.toolStates, state] };
-    });
-  },
+  _onToolStateUpdate: (sessionId, nextToolState) => {
+    if (!nextToolState || !sessionId || !get().chatSessions[sessionId]) return;
+    set((state) =>
+      patchSidebar(state, sessionId, (s) => {
+        const { run_id } = nextToolState;
+        if (!run_id) return { ...s, toolStates: [...s.toolStates, nextToolState] };
 
-  _onStagesBuilt: (data) => {
-    const stages = Array.isArray(data) ? data : data?.stages || [];
-    set({ stages: stages });
-  },
-
-  _onStageStarted: (data) => {
-    set({ currentStageIndex: data.stage_index });
-  },
-
-  _onStagesCompleted: (data) => {
-    set((state: SidebarSlice) => ({
-      completedStages: [...new Set([...state.completedStages, ...data.stage_indices])],
-    }));
-  },
-
-  _onStagesEdited: (data) => {
-    set((state: SidebarSlice) => ({
-      stages: data.stages,
-      currentStageIndex: data.current_index,
-      // Keep only completed indices that are still within bounds
-      completedStages: state.completedStages.filter((i) => i < data.current_index),
-      errorStageIndex: -1,
-    }));
-  },
-
-  _onSidebarTaskStarted: () => {
-    set({
-      stages: [],
-      currentStageIndex: -1,
-      completedStages: [],
-      errorStageIndex: -1,
-    });
-  },
-
-  _onSidebarTaskCancelled: () => {
-    set((state: SidebarSlice) => {
-      const updatedToolStates = [...state.toolStates];
-      if (updatedToolStates.length > 0) {
-        const lastIdx = updatedToolStates.length - 1;
-        if (updatedToolStates[lastIdx].status === "running") {
-          updatedToolStates[lastIdx] = {
-            ...updatedToolStates[lastIdx],
-            status: "error",
-          };
+        const idx = s.toolStates.findIndex((t) => t.run_id === run_id);
+        if (idx >= 0) {
+          const updated = [...s.toolStates];
+          updated[idx] = { ...updated[idx], ...nextToolState };
+          return { ...s, toolStates: updated };
         }
-      }
-      return {
-        toolStates: updatedToolStates,
-        errorStageIndex: state.currentStageIndex,
-      };
-    });
+        return { ...s, toolStates: [...s.toolStates, nextToolState] };
+      })
+    );
   },
 
-  _onSidebarFatalError: () => {
-    set((state: SidebarSlice) => {
-      const updatedToolStates = [...state.toolStates];
-      if (updatedToolStates.length > 0) {
-        const lastIdx = updatedToolStates.length - 1;
-        if (updatedToolStates[lastIdx].status === "running") {
-          updatedToolStates[lastIdx] = {
-            ...updatedToolStates[lastIdx],
-            status: "error",
-          };
-        }
-      }
-      return {
-        toolStates: updatedToolStates,
-        errorStageIndex: state.currentStageIndex,
-      };
-    });
+  _onStagesBuilt: (sessionId, data) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    const nextStages = Array.isArray(data) ? data : data?.stages || [];
+    set((state) => patchSidebar(state, sessionId, (s) => ({ ...s, stages: nextStages })));
   },
 
-  _onSidebarReset: () => {
-    set({
-      toolStates: [],
-      stages: [],
-      currentStageIndex: -1,
-      completedStages: [],
-      errorStageIndex: -1,
-    });
+  _onStageStarted: (sessionId, data) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) => patchSidebar(state, sessionId, (s) => ({ ...s, currentStageIndex: data.stage_index })));
   },
 
-  _onSidebarHistoryLoaded: (data) => {
-    set({
-      toolStates: data.toolStates || [],
-      stages: [],
-      currentStageIndex: -1,
-      completedStages: [],
-      errorStageIndex: -1,
-    });
+  _onStagesCompleted: (sessionId, data) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) =>
+      patchSidebar(state, sessionId, (s) => ({
+        ...s,
+        completedStages: [...new Set([...s.completedStages, ...data.stage_indices])],
+      }))
+    );
+  },
+
+  _onStagesEdited: (sessionId, data) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) =>
+      patchSidebar(state, sessionId, (s) => ({
+        ...s,
+        stages: data.stages,
+        currentStageIndex: data.current_index,
+        completedStages: s.completedStages.filter((i) => i < data.current_index),
+        errorStageIndex: -1,
+      }))
+    );
+  },
+
+  _onSidebarTaskStarted: (sessionId) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) =>
+      patchSidebar(state, sessionId, (s) => ({
+        ...s,
+        stages: [],
+        currentStageIndex: -1,
+        completedStages: [],
+        errorStageIndex: -1,
+      }))
+    );
+  },
+
+  _onSidebarTaskCancelled: (sessionId) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) => patchSidebar(state, sessionId, setRunningToolToError));
+  },
+
+  _onSidebarFatalError: (sessionId) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) => patchSidebar(state, sessionId, setRunningToolToError));
+  },
+
+  _onSidebarReset: (sessionId) => {
+    if (!sessionId || !get().sidebarSessions[sessionId]) return;
+    set((state) => patchSidebar(state, sessionId, (s) => ({ ...setRunningToolToError(s), currentStageIndex: -1 })));
+  },
+
+  _onSidebarHistoryLoaded: (sessionId, data) => {
+    if (!sessionId || !get().chatSessions[sessionId]) return;
+    set((state) =>
+      patchSidebar(state, sessionId, () => ({
+        toolStates: data.toolStates || [],
+        stages: [],
+        currentStageIndex: -1,
+        completedStages: [],
+        errorStageIndex: -1,
+      }))
+    );
   },
 });

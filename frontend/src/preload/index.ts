@@ -5,8 +5,10 @@ import { contextBridge, ipcRenderer } from "electron";
 // Custom APIs for renderer
 const api = {
   openCdpPage: () => ipcRenderer.invoke("open-cdp-page"),
-  resizeCdpWindow: (expand: boolean, headless: boolean = false, userDataDir: string = "") =>
-    ipcRenderer.invoke("resize-cdp-window", expand, headless, userDataDir),
+  cdpCreateOrShow: (sessionId: string, headless: boolean = false, userDataDir: string = "") =>
+    ipcRenderer.invoke("cdp-create-or-show", sessionId, headless, userDataDir),
+  cdpHide: () => ipcRenderer.invoke("cdp-hide"),
+  cdpDestroy: (sessionId: string) => ipcRenderer.invoke("cdp-destroy", sessionId),
   windowMinimize: () => ipcRenderer.send("window-minimize"),
   windowMaximize: () => ipcRenderer.send("window-maximize"),
   windowClose: () => ipcRenderer.send("window-close"),

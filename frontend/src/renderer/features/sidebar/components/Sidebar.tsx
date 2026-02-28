@@ -1,9 +1,9 @@
 import { cn } from "@lib/utils";
 
-import { useAppStore } from "@store/store";
 import { ChevronLeft } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { useActiveSidebarSession } from "../hooks/useActiveSidebarSession";
 import type { SidebarProps } from "../types";
 import { StagesPanel } from "./StagesPanel";
 import { ToolPreview } from "./ToolPreview";
@@ -14,11 +14,12 @@ export function Sidebar({ className }: SidebarProps) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const toolStates = useAppStore((s) => s.toolStates);
-  const toolPlan = useAppStore((s) => s.stages);
-  const currentStageIndex = useAppStore((s) => s.currentStageIndex);
-  const completedStages = useAppStore((s) => s.completedStages);
-  const errorStageIndex = useAppStore((s) => s.errorStageIndex);
+  const sidebar = useActiveSidebarSession();
+  const toolStates = sidebar?.toolStates ?? [];
+  const toolPlan = sidebar?.stages ?? [];
+  const currentStageIndex = sidebar?.currentStageIndex ?? -1;
+  const completedStages = sidebar?.completedStages ?? [];
+  const errorStageIndex = sidebar?.errorStageIndex ?? -1;
   const selectedTool = selectedRunId ? toolStates.find((t) => t.run_id === selectedRunId) : null;
 
   const handleMouseEnter = () => {

@@ -58,106 +58,177 @@ app.whenReady().then(() => {
     BrowserWindow.fromWebContents(event.sender)?.close();
   });
 
-  let cdpView: WebContentsView | null = null;
+  // Per-session CDP view pool: Map<sessionId, WebContentsView>
+  const cdpViews = new Map<string, WebContentsView>();
+  let attachedSessionId: string | null = null;
   let unexpandedBounds: Electron.Rectangle | null = null;
+  let resizeHandler: (() => void) | null = null;
 
-  // Handle expanding, collapsing, and destroying the CDP view
+  /** Detach the currently-attached CDP view from the window (without destroying it). */
+  function detachCurrentView(win: BrowserWindow) {
+    if (!attachedSessionId) return;
+    const view = cdpViews.get(attachedSessionId);
+    if (view) {
+      try {
+        win.contentView.removeChildView(view);
+      } catch {}
+    }
+    // Remove resize listener
+    if (resizeHandler) {
+      win.removeListener("resize", resizeHandler);
+      resizeHandler = null;
+    }
+    attachedSessionId = null;
+  }
+
+  /** Restore the main window to its pre-expansion size. */
+  function restoreWindowBounds(win: BrowserWindow) {
+    if (unexpandedBounds) {
+      win.setBounds(unexpandedBounds, true);
+      unexpandedBounds = null;
+    } else {
+      const bounds = win.getBounds();
+      if (bounds.width > 1080) {
+        win.setBounds(
+          { x: bounds.x + Math.floor(bounds.width / 4), y: bounds.y, width: 1080, height: bounds.height },
+          true
+        );
+      }
+    }
+  }
+
+  /** Attach a view to the window and expand the window for split-pane layout. */
+  function attachView(win: BrowserWindow, sessionId: string, view: WebContentsView) {
+    // Detach any currently-attached view first
+    detachCurrentView(win);
+
+    unexpandedBounds = unexpandedBounds || win.getBounds();
+    const widthPerPane = unexpandedBounds.width;
+    const expandedWidth = widthPerPane * 2;
+
+    win.setBounds(
+      {
+        x: unexpandedBounds.x - Math.floor(widthPerPane / 2),
+        y: unexpandedBounds.y,
+        width: expandedWidth,
+        height: unexpandedBounds.height,
+      },
+      true
+    );
+
+    win.contentView.addChildView(view);
+    const topOffset = 32;
+    view.setBounds({
+      x: 0,
+      y: topOffset,
+      width: widthPerPane,
+      height: unexpandedBounds.height - topOffset,
+    });
+
+    // Keep CDP view sized when window resizes
+    resizeHandler = () => {
+      if (!win.isDestroyed() && view && !view.webContents.isDestroyed()) {
+        const curBounds = win.getBounds();
+        view.setBounds({
+          x: 0,
+          y: topOffset,
+          width: Math.floor(curBounds.width / 2),
+          height: curBounds.height - topOffset,
+        });
+      }
+    };
+    win.on("resize", resizeHandler);
+
+    attachedSessionId = sessionId;
+  }
+
+  // --- IPC: Create or show a CDP view for a session ---
   ipcMain.handle(
-    "resize-cdp-window",
-    async (event, expand: boolean, headless: boolean = false, userDataDir: string = "") => {
+    "cdp-create-or-show",
+    async (event, sessionId: string, headless: boolean = false, userDataDir: string = "") => {
       const window = BrowserWindow.fromWebContents(event.sender);
       if (!window) return false;
 
-      const bounds = window.getBounds();
+      let view = cdpViews.get(sessionId);
+      const isNew = !view;
 
-      if (expand) {
-        if (!cdpView) {
-          const ses = userDataDir
-            ? session.fromPath(resolve(app.getPath("userData"), userDataDir))
-            : session.defaultSession;
+      if (!view) {
+        // Create a brand-new view for this session
+        const ses = userDataDir
+          ? session.fromPath(resolve(app.getPath("userData"), userDataDir))
+          : session.defaultSession;
 
-          cdpView = new WebContentsView({
-            webPreferences: { session: ses, devTools: !headless },
-          });
+        view = new WebContentsView({
+          webPreferences: { session: ses, devTools: !headless },
+        });
 
-          if (!headless) {
-            unexpandedBounds = window.getBounds();
-            const widthPerPane = unexpandedBounds.width;
-            const expandedWidth = widthPerPane * 2;
-
-            // Expand the main window
-            window.setBounds(
-              {
-                x: unexpandedBounds.x - Math.floor(widthPerPane / 2),
-                y: unexpandedBounds.y,
-                width: expandedWidth,
-                height: unexpandedBounds.height,
-              },
-              true
-            );
-
-            window.contentView.addChildView(cdpView);
-            const titleBarHeight = 32;
-            cdpView.setBounds({
-              x: 0,
-              y: titleBarHeight,
-              width: widthPerPane,
-              height: unexpandedBounds.height - titleBarHeight,
-            });
-
-            // Ensure the CDP view height and width adjusts with the main window
-            window.on("resize", () => {
-              if (cdpView && !window.isDestroyed()) {
-                const curBounds = window.getBounds();
-                const tbH = 32;
-                cdpView.setBounds({
-                  x: 0,
-                  y: tbH,
-                  width: Math.floor(curBounds.width / 2),
-                  height: curBounds.height - tbH,
-                });
-              }
-            });
-          }
-
-          // Initialize the CDP page and inject the Playwright marker
-          await cdpView.webContents.loadURL("about:blank");
-          await cdpView.webContents.executeJavaScript("window.__IS_AGENT_VIEW__ = true;");
-
-          window.on("closed", () => {
-            cdpView = null;
-            unexpandedBounds = null;
-          });
-        }
-      } else {
-        // Remove and destroy the CDP view
-        if (cdpView) {
-          try {
-            window.contentView.removeChildView(cdpView);
-            // Destroy the WebContents to ensure the page is actually closed, not just hidden
-            if (cdpView.webContents && !cdpView.webContents.isDestroyed()) {
-              cdpView.webContents.close();
-            }
-          } catch {}
-          cdpView = null;
-        }
-
-        // Restore the main window bounds
-        if (!headless) {
-          if (unexpandedBounds) {
-            window.setBounds(unexpandedBounds, true);
-            unexpandedBounds = null;
-          } else if (bounds.width > 1080) {
-            window.setBounds(
-              { x: bounds.x + Math.floor(bounds.width / 4), y: bounds.y, width: 1080, height: bounds.height },
-              true
-            );
-          }
-        }
+        cdpViews.set(sessionId, view);
       }
+
+      // Attach BEFORE loading so the view is discoverable via CDP
+      if (!headless) {
+        attachView(window, sessionId, view);
+      }
+
+      // Initialize page only on first creation
+      if (isNew) {
+        await view.webContents.loadURL("about:blank");
+        await view.webContents.executeJavaScript("window.__IS_AGENT_VIEW__ = true;");
+      }
+
       return true;
     }
   );
+
+  // --- IPC: Hide the currently-attached CDP view (no destruction) ---
+  ipcMain.handle("cdp-hide", async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return false;
+
+    detachCurrentView(window);
+    restoreWindowBounds(window);
+
+    return true;
+  });
+
+  // --- IPC: Destroy a specific session's CDP view ---
+  ipcMain.handle("cdp-destroy", async (event, sessionId: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return false;
+
+    // If this session's view is currently attached, detach first
+    if (attachedSessionId === sessionId) {
+      detachCurrentView(window);
+      restoreWindowBounds(window);
+    }
+
+    const view = cdpViews.get(sessionId);
+    if (view) {
+      try {
+        if (!view.webContents.isDestroyed()) {
+          view.webContents.close();
+        }
+      } catch {}
+      cdpViews.delete(sessionId);
+    }
+
+    return true;
+  });
+
+  // Clean up all views when the window is closed
+  app.on("browser-window-created", (_, win) => {
+    win.on("closed", () => {
+      for (const view of cdpViews.values()) {
+        try {
+          if (!view.webContents.isDestroyed()) view.webContents.close();
+        } catch {}
+      }
+      cdpViews.clear();
+      attachedSessionId = null;
+      unexpandedBounds = null;
+      resizeHandler = null;
+    });
+  });
 
   createWindow();
 

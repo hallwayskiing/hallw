@@ -10,7 +10,9 @@ export interface UISlice {
   toggleTheme: () => void;
   toggleSettings: () => void;
   setIsChatting: (isChatting: boolean) => void;
-  toggleCdpView: (show: boolean, headless?: boolean, userDataDir?: string) => Promise<void>;
+  showCdpViewForSession: (sessionId: string, headless?: boolean, userDataDir?: string) => Promise<void>;
+  hideCdpView: () => Promise<void>;
+  destroyCdpView: (sessionId: string) => Promise<void>;
 }
 
 export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => ({
@@ -28,14 +30,44 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
     }),
   toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
   setIsChatting: (isChatting) => set({ isChatting }),
-  toggleCdpView: async (show, headless = false, userDataDir) => {
+  showCdpViewForSession: async (sessionId, headless = false, userDataDir) => {
     try {
-      if (window.api?.resizeCdpWindow) {
-        await window.api.resizeCdpWindow(show, headless, userDataDir);
+      if (window.api?.cdpCreateOrShow) {
+        await window.api.cdpCreateOrShow(sessionId, headless, userDataDir);
       }
     } catch (e) {
-      console.error("Failed to resize window for CDP view", e);
+      console.error("Failed to create/show CDP view", e);
     }
-    set({ showCdpView: show && !headless });
+    set({ showCdpView: !headless });
+  },
+  hideCdpView: async () => {
+    try {
+      if (window.api?.cdpHide) {
+        await window.api.cdpHide();
+      }
+    } catch (e) {
+      console.error("Failed to hide CDP view", e);
+    }
+    set({ showCdpView: false });
+  },
+  destroyCdpView: async (sessionId) => {
+    try {
+      if (window.api?.cdpDestroy) {
+        await window.api.cdpDestroy(sessionId);
+      }
+    } catch (e) {
+      console.error("Failed to destroy CDP view", e);
+    }
+    set((state) => {
+      const session = state.chatSessions?.[sessionId];
+      if (!session) return { showCdpView: false };
+      return {
+        showCdpView: false,
+        chatSessions: {
+          ...state.chatSessions,
+          [sessionId]: { ...session, hasCdpView: false },
+        },
+      };
+    });
   },
 });
