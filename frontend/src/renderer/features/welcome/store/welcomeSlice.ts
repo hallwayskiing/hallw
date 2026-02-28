@@ -6,6 +6,7 @@ import type { HistoryItemProps } from "../types";
 export interface WelcomeSlice {
   history: HistoryItemProps[];
   isHistoryOpen: boolean;
+  isHistoryLoading: boolean;
 
   toggleHistory: () => void;
   fetchHistory: () => void;
@@ -19,6 +20,7 @@ export interface WelcomeSlice {
 export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = (set, get) => ({
   history: [],
   isHistoryOpen: false,
+  isHistoryLoading: false,
 
   toggleHistory: () => {
     set((state: WelcomeSlice) => {
@@ -31,8 +33,12 @@ export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = 
   },
 
   fetchHistory: () => {
+    set({ isHistoryLoading: true });
     const { _socket } = get();
-    if (!_socket) return;
+    if (!_socket) {
+      set({ isHistoryLoading: false });
+      return;
+    }
     _socket.emit("get_history");
   },
 
@@ -54,7 +60,7 @@ export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = 
   },
 
   _onHistoryList: (list) => {
-    set({ history: list });
+    set({ history: list, isHistoryLoading: false });
   },
 
   _onHistoryDeleted: (data) => {

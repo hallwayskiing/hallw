@@ -1,7 +1,7 @@
 import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
-import { Clock, Trash2 } from "lucide-react";
+import { Clock, Loader2, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 import type { HistoryRowProps } from "../types";
@@ -68,6 +68,7 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
 
 export function HistoryList({ isVisible }: { isVisible: boolean }) {
   const history = useAppStore((s) => s.history);
+  const isHistoryLoading = useAppStore((s) => s.isHistoryLoading);
   const loadHistory = useAppStore((s) => s.loadHistory);
   const deleteHistory = useAppStore((s) => s.deleteHistory);
   const fetchHistory = useAppStore((s) => s.fetchHistory);
@@ -85,7 +86,12 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
         isVisible ? "opacity-100 scale-100 translate-x-0" : "opacity-0 scale-95 pointer-events-none translate-x-8"
       )}
     >
-      {history.length === 0 ? (
+      {isHistoryLoading ? (
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[140px] animate-in fade-in duration-300">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-3 opacity-80" />
+          <span className="text-[15px] text-muted-foreground/60 tracking-tight">Fetching history...</span>
+        </div>
+      ) : history.length === 0 ? (
         <EmptyHistory />
       ) : (
         history.map((item) => (
