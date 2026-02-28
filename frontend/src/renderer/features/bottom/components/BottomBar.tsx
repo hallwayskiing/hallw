@@ -1,5 +1,5 @@
 import { useAppStore } from "@store/store";
-import { ArrowLeft, Clock, Settings, Zap } from "lucide-react";
+import { ArrowLeft, ScrollText, Settings, Zap } from "lucide-react";
 import { type SubmitEvent, useState } from "react";
 
 import { useInputHistory } from "../hooks/useInputHistory";
@@ -42,7 +42,7 @@ export function BottomBar() {
         {/* History/QuickStart Toggle */}
         <ActionButton
           onClick={toggleHistory}
-          icon={isHistoryOpen ? Zap : Clock}
+          icon={isHistoryOpen ? Zap : ScrollText}
           tooltip={isHistoryOpen ? "Back to Quick Start" : "View History"}
         />
 

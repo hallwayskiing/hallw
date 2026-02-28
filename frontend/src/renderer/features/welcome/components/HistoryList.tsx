@@ -1,11 +1,10 @@
 import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
-import { Clock, Loader2, Trash2 } from "lucide-react";
+import { Clock, Loader2, Scroll, ScrollText, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 import type { HistoryRowProps } from "../types";
-import { EmptyHistory } from "./EmptyHistory";
 
 function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
   const dateStr = item.created_at || item.metadata?.created_at;
@@ -72,6 +71,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
   const loadHistory = useAppStore((s) => s.loadHistory);
   const deleteHistory = useAppStore((s) => s.deleteHistory);
   const fetchHistory = useAppStore((s) => s.fetchHistory);
+  const theme = useAppStore((s) => s.theme);
 
   useEffect(() => {
     if (isVisible) {
@@ -82,27 +82,70 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
   return (
     <div
       className={cn(
-        "absolute inset-x-0 top-1 bottom-0 flex flex-col gap-3 transition-all duration-500 ease-in-out overflow-y-auto custom-scrollbar pr-1 px-1 pt-1",
-        isVisible ? "opacity-100 scale-100 translate-x-0" : "opacity-0 scale-95 pointer-events-none translate-x-8"
+        "absolute inset-x-0 top-0 bottom-0 flex flex-col px-1 transition-all duration-500",
+        !isVisible ? "opacity-0 pointer-events-none z-0" : "opacity-100 z-10"
       )}
     >
-      {isHistoryLoading ? (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[140px] animate-in fade-in duration-300">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-3 opacity-80" />
-          <span className="text-[15px] text-muted-foreground/60 tracking-tight">Fetching history...</span>
+      {/* Header */}
+      <div
+        className={cn(
+          "flex items-center justify-between mb-4 min-h-[30px] transition-all duration-500 ease-in-out",
+          isVisible ? "translate-y-0" : "translate-y-2"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
+            {theme === "dark" && (
+              <div className="absolute inset-0 bg-emerald-400/60 blur-lg rounded-full animate-pulse" />
+            )}
+            <ScrollText
+              className={cn(
+                "relative w-3.5 h-3.5",
+                theme === "dark" ? "text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.8)]" : "text-emerald-600"
+              )}
+            />
+          </div>
+          <span
+            className={cn(
+              "text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
+              theme === "dark"
+                ? "font-light text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                : "font-medium text-emerald-600"
+            )}
+          >
+            History
+          </span>
         </div>
-      ) : history.length === 0 ? (
-        <EmptyHistory />
-      ) : (
-        history.map((item) => (
-          <HistoryRow
-            key={item.id}
-            item={item}
-            onLoad={() => loadHistory(item.id)}
-            onDelete={() => deleteHistory(item.id)}
-          />
-        ))
-      )}
+      </div>
+      {/* Main Area */}
+      <div
+        className={cn(
+          "flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 pt-1 pb-4 transition-all duration-500 ease-in-out",
+          isVisible ? "scale-100 translate-x-0" : "scale-95 translate-x-8"
+        )}
+      >
+        {/* History Loading */}
+        {isHistoryLoading ? (
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[140px] animate-in fade-in duration-300">
+            <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-3 opacity-80" />
+            <span className="text-[15px] text-muted-foreground/60 tracking-tight">Fetching history...</span>
+          </div>
+        ) : history.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[140px] gap-3 opacity-30">
+            <Scroll className="w-5 h-5" strokeWidth={1.5} />
+            <p className="text-[13px] tracking-[0.3em] uppercase whitespace-nowrap">No History Found</p>
+          </div>
+        ) : (
+          history.map((item) => (
+            <HistoryRow
+              key={item.id}
+              item={item}
+              onLoad={() => loadHistory(item.id)}
+              onDelete={() => deleteHistory(item.id)}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
