@@ -61,7 +61,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
           <CopyButton text={rawText} />
         </div>
         {/* Code content */}
-        <pre className="bg-transparent! m-0! p-4! text-[13px] leading-6 font-mono whitespace-pre-wrap wrap-break-word overflow-y-hidden">
+        <pre className="m-0! bg-transparent! p-4! text-[13px] leading-6 font-mono whitespace-pre-wrap wrap-break-word overflow-y-hidden">
           {children}
         </pre>
       </div>
@@ -70,10 +70,11 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Inline code
   code: ({ className, children, ...props }) => {
-    const isBlock = className?.includes("language-") || className?.includes("hljs");
+    const text = typeof children === "string" ? children : Array.isArray(children) ? children.join("") : "";
+    const isBlock = className?.includes("language-") || className?.includes("hljs") || text.includes("\n");
     if (isBlock) {
       return (
-        <code className={cn(className, "bg-transparent!")} {...props}>
+        <code className={cn(className, "block m-0! bg-transparent! p-0!")} {...props}>
           {children}
         </code>
       );
@@ -104,7 +105,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
       <li
         className={cn(
           "relative pl-6 text-foreground/90 leading-7 mb-2 last:mb-0",
-          "before:absolute before:left-0 before:top-[11px]",
+          "before:absolute before:left-0 before:top-2.75",
           isOrdered
             ? "before:content-[counter(list-item)'.'] before:text-foreground before:text-[12px] before:font-bold before:opacity-90 [counter-increment:list-item]"
             : "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-foreground before:opacity-85"
