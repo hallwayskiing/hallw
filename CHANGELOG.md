@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.16.0 (2026-03-01)
+
+### Feat
+
+- **core**: support multi-session to run concurrently in one frontend
+- **ui**: add more interesting quickstart prompts
+- **ui**: add loading hint for history list
+- **ui**: improve smooth typing effect
+- **ui**: move hard coded settings to frontend settings page
+- **tools**: introduce `replace_file_block` tool
+- **ui**: refine message bubble styles
+- **ui**: add customize TitleBar
+- **ui**: renew submit button
+
+### Fix
+
+- **ui**: fix code block display
+- **ui**: increase decision card font size
+- **tools**: constrain max length of `extract_page`
+- **ui**: remove deprecated event
+- **ui**: change ui sizes
+- **ui**: fix stars re-render bug
+- **ui**: refine Sidebar to adapt to TitleBar
+- **ui**: add random id to messages when loading history
+- **ui**: fix bouncing balls not aligned bug
+
+### Refactor
+
+- **ui**: refactor welcome ui
+- **tools**: move file tools to a specified directory
+
 ## v0.15.0 (2026-02-25)
 
 ### Feat
