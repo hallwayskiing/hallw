@@ -31,7 +31,7 @@ export const Decision = memo(
             <div className="flex gap-3 w-full p-4 rounded-xl bg-green-500/10 border border-green-500/15 text-green-400/80 items-center animate-in fade-in shadow-sm shadow-green-500/3">
               <Key className="w-5 h-5 shrink-0" />
               <div className="flex flex-col">
-                <span className="text-[15px] opacity-90 mt-1">{input}</span>
+                <span className="text-[13px] opacity-90 mt-1">{input}</span>
               </div>
             </div>
           );

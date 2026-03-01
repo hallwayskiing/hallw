@@ -32,8 +32,7 @@ class AgentGraphBuilder:
 
     async def build_node(self, state: AgentState, config: RunnableConfig):
         append_prompt = """
-            [NEW TASK] A new user request has been received.
-            You must now build the stages for the LATEST user input.
+            [SYSTEM] A new user request has been received. Now build the stages for the LATEST user input.
             <build_rules>
             - **CRITICAL**: Even if you have already built stages in the previous conversation history,
               you MUST ignore those and call the `build_stages` tool AGAIN for the new user request.
@@ -89,7 +88,7 @@ class AgentGraphBuilder:
         remaining_stages = [state["stage_names"][i] for i in range(curr_stage, total_stages)]
 
         append_prompt = f"""
-            Stages are not finished yet.
+            [SYSTEM] Stages are not finished yet.
             Remaining stages: {", ".join(remaining_stages)}
             You must now either:
             1. Call `end_current_stage` to advance to the next stage (or finish the task).
@@ -167,7 +166,7 @@ class AgentGraphBuilder:
     async def reflection_node(self, state: AgentState, config: RunnableConfig):
         fail_count = state["stats"]["failures_since_last_reflection"]
         append_prompt = f"""
-            You have accumulated {fail_count} failures in the previous steps.
+            [SYSTEM] You have accumulated {fail_count} failures in the previous steps.
             Please reflect on the failures and adjust your plan.
             Find out what went wrong and how to fix it.
             Recover from the failures and continue with the task.

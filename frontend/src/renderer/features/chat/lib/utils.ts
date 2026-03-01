@@ -106,11 +106,6 @@ export function patchSession(
 
   const nextSessionState = updater(sessionState);
 
-  // If updated, move to top of order (unless it was just created)
-  if (prev && nextSessionState.updatedAt > prev.updatedAt) {
-    newOrder = [sessionId, ...state.sessionOrder.filter((id) => id !== sessionId)];
-  }
-
   return {
     chatSessions: {
       ...state.chatSessions,

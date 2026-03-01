@@ -1,5 +1,5 @@
 import { cn } from "@lib/utils";
-import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, ListChecks, Loader2, XCircle } from "lucide-react";
 import type { StageItemProps, StagesPanelProps } from "../types";
 
 function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }: StageItemProps) {
@@ -43,16 +43,16 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
     >
       <h2
         className={cn(
-          "text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2",
+          "text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2",
           !isExpanded && "justify-center"
         )}
       >
-        <Clock className="w-4 h-4 shrink-0" />
-        {isExpanded && <span>Stages</span>}
+        <ListChecks className="w-4 h-4 shrink-0" />
+        {isExpanded && <span>Plan</span>}
       </h2>
       <div className="space-y-4">
         {stages.length === 0
-          ? isExpanded && <p className="text-sm text-muted-foreground italic">No active stages.</p>
+          ? isExpanded && <p className="text-sm text-muted-foreground italic">No active plan.</p>
           : stages.map((step, idx) => (
               <StageItem
                 key={step}

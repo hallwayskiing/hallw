@@ -61,7 +61,7 @@ export function ToolsPanel({ isExpanded, onToolClick }: Omit<ToolsPanelProps, "t
     >
       <h2
         className={cn(
-          "text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2",
+          "text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2",
           !isExpanded && "justify-center"
         )}
       >

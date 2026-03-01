@@ -48,7 +48,7 @@ export const MessageBubble = memo(
                 isUser
                   ? "inline-block max-w-[90%] bg-linear-to-br from-indigo-500/10 to-indigo-600/3 border border-indigo-500/10 text-foreground/90 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
                   : "block max-w-[85%] bg-linear-to-br from-teal-500/10 to-teal-600/3 border border-teal-500/12 text-foreground/85 px-5 py-3 shadow-sm shadow-teal-500/8",
-                isStreamingContent && "min-h-[40px]"
+                isStreamingContent && "min-h-10"
               )}
             >
               <MarkdownContent
