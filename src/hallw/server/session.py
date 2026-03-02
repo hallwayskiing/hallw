@@ -32,9 +32,31 @@ class Session:
 
     def _run_loop(self):
         asyncio.set_event_loop(self.session_loop)
-        self.session_loop.run_forever()
+        try:
+            self.session_loop.run_forever()
+        finally:
+            pending = asyncio.all_tasks(self.session_loop)
+            for task in pending:
+                task.cancel()
+
+            if pending:
+                self.session_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+            if hasattr(self.session_loop, "shutdown_asyncgens"):
+                self.session_loop.run_until_complete(self.session_loop.shutdown_asyncgens())
+
+            if hasattr(self.session_loop, "shutdown_default_executor"):
+                try:
+                    self.session_loop.run_until_complete(self.session_loop.shutdown_default_executor())
+                except Exception:
+                    pass
+
+            self.session_loop.close()
 
     def close(self):
         # Stop the session loop safely
-        self.session_loop.call_soon_threadsafe(self.session_loop.stop)
-        self.session_thread.join(timeout=2.0)
+        if self.session_loop.is_running():
+            self.session_loop.call_soon_threadsafe(self.session_loop.stop)
+
+        if self.session_thread.is_alive():
+            self.session_thread.join(timeout=5.0)
