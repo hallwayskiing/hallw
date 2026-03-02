@@ -62,7 +62,7 @@ export function flushStreamingMessage(session: ChatSessionState): ChatSessionSta
     streamingReasoning: "",
     isStreamingReasoning: false,
     _streamingContentRef: "",
-    _streamingMessageId: "",
+    _streamingMessageId: crypto.randomUUID(),
   };
 }
 
