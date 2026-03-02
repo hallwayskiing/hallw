@@ -1,7 +1,7 @@
 import { cn } from "@lib/utils";
 
 import { Brain, ChevronDown, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import { MarkdownContent } from "./MarkdownContent";
@@ -17,15 +17,6 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
       scrollToBottom();
     }
   }, [isOpen, isStreaming, scrollToBottom]);
-
-  const summary = useMemo(() => {
-    return (
-      smoothContent
-        .split("\n")
-        .filter((line) => line.trim() !== "")
-        .pop() || ""
-    );
-  }, [smoothContent]);
 
   return (
     <div
@@ -44,8 +35,9 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
         style={
           isStreaming
             ? {
-                background: "linear-gradient(100deg, #10b98120, #06b6d420, #3b82f620, #10b98120, #06b6d420)",
-                backgroundSize: "300% 100%",
+                background:
+                  "linear-gradient(90deg, #10b98120 0%, #06b6d430 16.66%, #3b82f625 33.33%, #10b98120 50%, #06b6d430 66.66%, #3b82f625 83.33%, #10b98120 100%)",
+                backgroundSize: "200% 100%",
               }
             : undefined
         }
@@ -66,20 +58,14 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
           )}
         />
         <div className="flex-1 min-w-0 flex items-center">
-          {!isOpen && isStreaming && summary ? (
-            <span className="text-xs text-muted-foreground/80 truncate block font-mono leading-none">
-              {summary.slice(0, 100)}
-            </span>
-          ) : (
-            <span
-              className={cn(
-                "text-xs font-medium leading-none transition-colors",
-                isStreaming ? "text-cyan-400/80" : "text-teal-400/80"
-              )}
-            >
-              {isStreaming ? "Thinking..." : "Thought Process"}
-            </span>
-          )}
+          <span
+            className={cn(
+              "text-xs font-medium leading-none transition-colors",
+              isStreaming ? "text-cyan-400/80" : "text-teal-400/80"
+            )}
+          >
+            {isStreaming ? "Thinking..." : "Thought Process"}
+          </span>
         </div>
       </button>
       {isOpen && (

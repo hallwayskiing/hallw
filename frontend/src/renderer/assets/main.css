@@ -69,10 +69,6 @@
 
   @keyframes gradient-wave {
     0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
       background-position: 100% 50%;
     }
 
@@ -247,5 +243,5 @@
 }
 
 .animate-gradient-wave {
-  background-size: 300% 100%;
+  background-size: 200% 100%;
 }
