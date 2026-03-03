@@ -58,10 +58,10 @@ class Settings(BaseSettings):
     # =================================================
     # 6. Search
     # =================================================
-    search_engine: str = "tavily"  # "tavily" or "bocha"
+    search_engine: str = "Tavily"  # "Tavily" or "Shuyan"
     search_result_count: int = 5
     tavily_api_key: SecretStr | None = None
-    bocha_api_key: SecretStr | None = None
+    shuyan_api_key: SecretStr | None = None
     extract_max_length: int = 10000
 
     # =================================================

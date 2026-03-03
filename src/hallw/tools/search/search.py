@@ -6,7 +6,7 @@ from hallw.utils.config_mgr import config
 from ..utils.tool_response import build_tool_response
 
 TAVILY_SEARCH_ENDPOINT = "https://api.tavily.com/search"
-BOCHA_SEARCH_ENDPOINT = "https://api.bochaai.com/v1/web-search"
+SHUYAN_SEARCH_ENDPOINT = "https://api.shuyanai.com/v1/search"
 
 
 async def _tavily_search(query: str) -> str:
@@ -71,12 +71,12 @@ async def _tavily_search(query: str) -> str:
     )
 
 
-async def _bocha_search(query: str) -> str:
-    """Bocha AI web search."""
+async def _shuyan_search(query: str) -> str:
+    """Shuyan AI web search API."""
 
-    api_key = config.bocha_api_key
+    api_key = config.shuyan_api_key
     if not api_key:
-        return build_tool_response(False, "Bocha API key not configured.")
+        return build_tool_response(False, "Shuyan API key not configured.")
 
     key_value = api_key.get_secret_value() if hasattr(api_key, "get_secret_value") else str(api_key)
 
@@ -87,15 +87,14 @@ async def _bocha_search(query: str) -> str:
     }
 
     payload = {
-        "query": query,
-        "count": config.search_result_count,
-        "summary": True,
+        "q": query,
+        "num": config.search_result_count,
     }
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                BOCHA_SEARCH_ENDPOINT,
+                SHUYAN_SEARCH_ENDPOINT,
                 headers=headers,
                 json=payload,
                 timeout=15.0,
@@ -104,9 +103,7 @@ async def _bocha_search(query: str) -> str:
             response.raise_for_status()
             data = response.json()
 
-            # Parse Bocha response
-            summary_text = data.get("summary", "")
-            web_results = data.get("data", {}).get("webPages", {}).get("value", [])
+            web_results = data.get("data", {}).get("webPages", [])
 
             sources = []
             for result in web_results:
@@ -119,14 +116,13 @@ async def _bocha_search(query: str) -> str:
                 )
 
     except Exception as e:
-        return build_tool_response(False, f"Bocha API Error: {str(e)}")
+        return build_tool_response(False, f"Shuyan API Error: {str(e)}")
 
     return build_tool_response(
         True,
         f"Search completed for '{query}'.",
         {
             "query": query,
-            "summary": summary_text,
             "sources": sources,
         },
     )
@@ -143,9 +139,9 @@ async def search(query: str) -> str:
     Returns:
         The search results.
     """
-    engine = config.search_engine or "tavily"
+    engine = config.search_engine
 
-    if engine == "bocha":
-        return await _bocha_search(query)
+    if engine.lower() == "shuyan":
+        return await _shuyan_search(query)
     else:
         return await _tavily_search(query)

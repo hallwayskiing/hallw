@@ -21,7 +21,7 @@ export function SearchPage({
         <Combobox
           value={(config.search_engine as string) || "Tavily"}
           onChange={(val) => handleChange("search_engine", val)}
-          options={["Tavily", "Bocha"]}
+          options={["Tavily", "Shuyan"]}
           placeholder="Select search engine"
         />
       </InputGroup>
@@ -36,14 +36,14 @@ export function SearchPage({
           />
         </InputGroup>
       )}
-      {(config.search_engine || "Tavily") === "Bocha" && (
-        <InputGroup label="Bocha API Key" desc="Bocha API Key">
+      {(config.search_engine || "Tavily") === "Shuyan" && (
+        <InputGroup label="Shuyan API Key" desc="Shuyan API Key">
           <Input
-            name="bocha_api_key"
+            name="shuyan_api_key"
             type="password"
-            value={(config.bocha_api_key as string) || ""}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("bocha_api_key", e.target.value)}
-            placeholder="Enter Bocha API key"
+            value={(config.shuyan_api_key as string) || ""}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("shuyan_api_key", e.target.value)}
+            placeholder="Enter Shuyan API key"
           />
         </InputGroup>
       )}
