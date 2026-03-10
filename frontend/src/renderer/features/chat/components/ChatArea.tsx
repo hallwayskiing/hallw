@@ -1,6 +1,6 @@
 import { useAppStore } from "@store/store";
 import { ArrowDown } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useActiveSession } from "../hooks/useActiveSession";
 import { useAutoScroll } from "../hooks/useAutoScroll";
@@ -68,6 +68,15 @@ export function ChatArea() {
     pendingDecision,
   ]);
 
+  // 3. Jump to bottom when the task starts
+  const prevIsRunning = useRef(isRunning);
+  useEffect(() => {
+    if (isRunning && !prevIsRunning.current) {
+      requestAnimationFrame(() => scrollToBottom("smooth"));
+    }
+    prevIsRunning.current = isRunning;
+  }, [isRunning, scrollToBottom]);
+
   if (processedMessages.length === 0 && !streamingContent && !streamingReasoning && !isRunning) {
     return null;
   }
@@ -122,7 +131,7 @@ export function ChatArea() {
           <div className="w-full max-w-5xl flex justify-end px-20">
             <button
               type="button"
-              onClick={scrollToBottom}
+              onClick={() => scrollToBottom()}
               className="p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in zoom-in duration-300 pointer-events-auto"
               aria-label="Scroll to bottom"
             >

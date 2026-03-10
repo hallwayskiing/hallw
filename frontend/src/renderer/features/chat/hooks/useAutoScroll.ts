@@ -11,7 +11,7 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
 
   // Check if currently at bottom
   const checkIsAtBottom = useCallback((div: HTMLElement) => {
-    const threshold = 20;
+    const threshold = 30;
     return div.scrollHeight - div.scrollTop - div.clientHeight <= threshold;
   }, []);
 
@@ -22,8 +22,8 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
     div.scrollTop = div.scrollHeight;
   }, []);
 
-  // User-invoked instant scroll to bottom (e.g. clicking the down arrow)
-  const scrollToBottom = useCallback(() => {
+  // User-invoked or programmatic scroll to bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const div = scrollRef.current;
     if (!div) return;
 
@@ -34,12 +34,18 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
     isProgrammaticSmoothScroll.current = true;
     clearTimeout(smoothScrollTimer.current);
 
-    // Jump instantly
-    div.scrollTop = div.scrollHeight;
-
-    requestAnimationFrame(() => {
-      isProgrammaticSmoothScroll.current = false;
-    });
+    if (behavior === "smooth") {
+      smoothScrollTimer.current = window.setTimeout(() => {
+        isProgrammaticSmoothScroll.current = false;
+      }, 1500); // Wait for smooth scroll animation to finish
+      div.scrollTo({ top: div.scrollHeight, behavior: "smooth" });
+    } else {
+      // Jump instantly
+      div.scrollTop = div.scrollHeight;
+      requestAnimationFrame(() => {
+        isProgrammaticSmoothScroll.current = false;
+      });
+    }
   }, []);
 
   // Let browser physics rule the state naturally
@@ -99,6 +105,7 @@ export function useAutoScroll<T extends unknown[]>(dependencies: T) {
 
     const onContentGrow = () => {
       if (isLockedToBottom.current) {
+        // use auto behavior to keep following fast output responsive
         div.scrollTop = div.scrollHeight;
       }
     };
