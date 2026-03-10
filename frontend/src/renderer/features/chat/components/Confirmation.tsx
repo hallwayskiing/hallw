@@ -4,6 +4,7 @@ import { memo, useState } from "react";
 
 import { useCountdown } from "../hooks/useCountdown";
 import type { ConfirmationProps, ConfirmationStatus } from "../types";
+import { Avatar } from "./MessageBubble";
 
 export const Confirmation = memo(({ requestId, message, timeout, initialStatus, onDecision }: ConfirmationProps) => {
   const handleConfirmationDecision = useAppStore((s) => s.handleConfirmationDecision);
@@ -71,28 +72,34 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
   };
 
   return (
-    <div
-      key={requestId}
-      className="flex flex-col gap-4 w-[640px] mx-auto min-w-0 p-5 rounded-2xl backdrop-blur-xl bg-linear-to-br from-amber-500/7 to-amber-600/3 border border-amber-500/10 shadow-sm shadow-amber-500/3 animate-in slide-in-from-bottom-2 duration-300"
-    >
-      <div className="flex items-center gap-3 text-amber-500">
-        <AlertTriangle className="w-5 h-5" />
-        <span className="font-semibold text-sm tracking-wide uppercase">Confirmation</span>
-        {timeLeft > 0 && status === "pending" && (
-          <span className="ml-auto text-xs font-mono backdrop-blur-sm bg-amber-500/10 border border-amber-500/15 px-2 py-1 rounded-md">
-            Expires in {timeLeft}s
-          </span>
-        )}
-      </div>
+    <div className="flex gap-4 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+      <Avatar msgRole="assistant" />
+      <div className="flex-1 space-y-2 min-w-0 text-left">
+        <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">HALLW</div>
+        <div
+          key={requestId}
+          className="flex flex-col gap-4 max-w-[85%] p-5 rounded-2xl backdrop-blur-xl bg-linear-to-br from-amber-500/7 to-amber-600/3 border border-amber-500/10 shadow-sm shadow-amber-500/3 animate-in slide-in-from-bottom-2 duration-300"
+        >
+          <div className="flex items-center gap-3 text-amber-500">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-semibold text-sm tracking-wide uppercase">Confirmation</span>
+            {timeLeft > 0 && status === "pending" && (
+              <span className="ml-auto text-xs font-mono backdrop-blur-sm bg-amber-500/10 border border-amber-500/15 px-2 py-1 rounded-md">
+                Expires in {timeLeft}s
+              </span>
+            )}
+          </div>
 
-      <div className="space-y-2">
-        <p className="text-sm text-foreground/80">System command needs your confirmation:</p>
-        <div className="backdrop-blur-sm bg-white/2 rounded-xl p-3 border border-white/5 font-mono text-xs break-all whitespace-pre-wrap text-foreground/70">
-          {message}
+          <div className="space-y-2">
+            <p className="text-sm text-foreground/80">System command needs your confirmation:</p>
+            <div className="backdrop-blur-sm bg-white/2 rounded-xl p-3 border border-white/5 font-mono text-xs break-all whitespace-pre-wrap text-foreground/70">
+              {message}
+            </div>
+          </div>
+
+          {getStatusContent()}
         </div>
       </div>
-
-      {getStatusContent()}
     </div>
   );
 });

@@ -4,6 +4,7 @@ import { memo, useState } from "react";
 import { useCountdown } from "../hooks/useCountdown";
 import type { DecisionRequest, DecisionStatus } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
+import { Avatar } from "./MessageBubble";
 
 export const Decision = memo(
   ({ requestId, message, choices, timeout, initialStatus, initialValue, onDecision }: DecisionRequest) => {
@@ -106,27 +107,33 @@ export const Decision = memo(
     };
 
     return (
-      <div
-        id={requestId}
-        className="flex flex-col gap-4 w-[640px] mx-auto min-w-0 p-5 rounded-2xl backdrop-blur-xl bg-linear-to-br from-blue-500/7 to-blue-600/3 border border-blue-500/10 shadow-sm shadow-blue-500/3 animate-in slide-in-from-bottom-2 duration-300"
-      >
-        <div className="flex items-center gap-3 text-blue-500">
-          <MessageSquare className="w-5 h-5" />
-          <span className="font-semibold text-sm tracking-wide uppercase">Decision Required</span>
-          {timeLeft > 0 && status === "pending" && (
-            <span className="ml-auto text-xs font-mono backdrop-blur-sm bg-blue-500/10 border border-blue-500/15 px-2 py-1 rounded-md">
-              Expires in {timeLeft}s
-            </span>
-          )}
-        </div>
+      <div className="flex gap-4 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+        <Avatar msgRole="assistant" />
+        <div className="flex-1 space-y-2 min-w-0 text-left">
+          <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">HALLW</div>
+          <div
+            id={requestId}
+            className="flex flex-col gap-4 max-w-[85%] p-5 rounded-2xl backdrop-blur-xl bg-linear-to-br from-blue-500/7 to-blue-600/3 border border-blue-500/10 shadow-sm shadow-blue-500/3 animate-in slide-in-from-bottom-2 duration-300"
+          >
+            <div className="flex items-center gap-3 text-blue-500">
+              <MessageSquare className="w-5 h-5" />
+              <span className="font-semibold text-sm tracking-wide uppercase">Decision Required</span>
+              {timeLeft > 0 && status === "pending" && (
+                <span className="ml-auto text-xs font-mono backdrop-blur-sm bg-blue-500/10 border border-blue-500/15 px-2 py-1 rounded-md">
+                  Expires in {timeLeft}s
+                </span>
+              )}
+            </div>
 
-        <div className="space-y-2">
-          <div className="text-sm wrap-break-word">
-            <MarkdownContent content={message} />
+            <div className="space-y-2">
+              <div className="text-sm wrap-break-word">
+                <MarkdownContent content={message} />
+              </div>
+            </div>
+
+            {getStatusContent()}
           </div>
         </div>
-
-        {getStatusContent()}
       </div>
     );
   }
