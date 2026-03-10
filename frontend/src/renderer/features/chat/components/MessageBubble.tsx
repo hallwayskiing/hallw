@@ -31,7 +31,7 @@ export const MessageBubble = memo(
     return (
       <div
         className={cn(
-          "flex gap-4 max-w-3xl mx-auto w-full animate-in fade-in duration-300",
+          "flex gap-4 max-w-4xl mx-auto w-full animate-in fade-in duration-300",
           isUser && "flex-row-reverse"
         )}
       >

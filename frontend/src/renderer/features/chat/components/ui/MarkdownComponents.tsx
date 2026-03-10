@@ -51,19 +51,42 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     };
     const rawText = extractText(codeChild?.props?.children).replace(/\n$/, "");
 
+    const lineCount = rawText.split("\n").length;
+
     return (
-      <div className="md-code-block group relative my-4 rounded-xl overflow-hidden border border-white/6 bg-[#0d1117]">
-        {/* Header bar */}
-        <div className="flex items-center justify-between px-3 py-1 bg-white/3 border-b border-white/6">
-          <span className="text-[12px] font-mono font-medium text-muted-foreground/40 uppercase tracking-wider pl-1">
-            {lang || "code"}
-          </span>
-          <CopyButton text={rawText} />
+      <div className="md-code-block group relative my-1 text-left">
+        {/* Sticky Copy Button Area */}
+        <div className="sticky top-[10px] z-20 w-full h-0 flex justify-end pointer-events-none">
+          <div className="pointer-events-auto mt-px mr-[6px]">
+            <CopyButton text={rawText} />
+          </div>
         </div>
-        {/* Code content */}
-        <pre className="m-0! bg-transparent! p-4! text-[13px] leading-6 font-mono whitespace-pre-wrap wrap-break-word overflow-y-hidden">
-          {children}
-        </pre>
+
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-1 pb-1 bg-transparent">
+          <span className="text-[13px] font-semibold lowercase pl-1 bg-stone-300 bg-clip-text text-transparent">
+            {lang || "PLAINTEXT"}
+          </span>
+          <div className="opacity-0 pointer-events-none select-none">
+            <CopyButton text="" />
+          </div>
+        </div>
+        {/* Code content with line numbers */}
+        <div className="code-body flex overflow-x-auto overflow-y-hidden rounded-xl border border-white/6 bg-[#0d1117]">
+          {/* Line number gutter */}
+          <div
+            className="code-line-numbers shrink-0 select-none text-right text-[13px] leading-6 font-mono py-2 pl-2 pr-1 text-white/20 sticky left-0 z-10 bg-[#0d1117]"
+            aria-hidden="true"
+          >
+            {Array.from({ length: lineCount }, (_, i) => (
+              <div key={`ln-${i + 1}`}>{i + 1}</div>
+            ))}
+          </div>
+          {/* Code */}
+          <pre className="m-0! bg-transparent! py-2! pl-2! pr-1! text-[13px] leading-6 font-mono whitespace-pre flex-1 min-w-0">
+            {children}
+          </pre>
+        </div>
       </div>
     );
   },
@@ -169,15 +192,13 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
+      title={copied ? "Copied!" : "Copy code"}
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-all duration-200",
-        copied
-          ? "text-emerald-400 bg-emerald-500/10"
-          : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-white/5"
+        "flex items-center justify-center p-1 rounded-md transition-all duration-200",
+        copied ? "text-emerald-400 bg-emerald-500/10" : "text-stone-300 hover:text-stone-200 hover:bg-white/5"
       )}
     >
-      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-      {copied ? "Copied" : "Copy"}
+      {copied ? <Check className="w-[14px] h-[14px]" /> : <Copy className="w-[14px] h-[14px]" />}
     </button>
   );
 }
