@@ -26,7 +26,7 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded, disabled 
       disabled={disabled}
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl",
-        "bg-card/20 backdrop-blur-sm border border-border/30",
+        "bg-card/20 backdrop-blur-sm border border-border dark:border-border/30",
         "transition-all duration-400 ease-out",
         colors.bg,
         colors.border,
@@ -38,8 +38,8 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded, disabled 
     >
       <div
         className={cn(
-          "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 shrink-0",
-          "transition-all duration-200 group-hover:bg-white/10 group-hover:shadow-lg",
+          "flex items-center justify-center w-7 h-7 rounded-lg dark:bg-white/5 bg-foreground/5 shrink-0",
+          "transition-all duration-200 dark:group-hover:bg-white/10 group-hover:bg-foreground/10 group-hover:shadow-lg",
           colors.icon,
           colors.glow
         )}
@@ -129,7 +129,7 @@ export function QuickStartList({
           type="button"
           onClick={handleRefresh}
           className={cn(
-            "group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 hover:bg-white/5 transition-all duration-200 active:scale-90",
+            "group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 dark:hover:bg-white/5 hover:bg-foreground/5 transition-all duration-200 active:scale-90",
             !isVisible ? "opacity-0 pointer-events-none" : "opacity-100"
           )}
           title="Shuffle prompts"

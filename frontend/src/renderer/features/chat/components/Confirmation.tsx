@@ -61,7 +61,7 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
             <button
               type="button"
               onClick={() => handleDecision("rejected")}
-              className="flex-1 flex items-center justify-center gap-2 backdrop-blur-sm bg-white/3 hover:bg-white/5 text-foreground/60 font-medium py-2 rounded-lg transition-all text-sm border border-white/8 active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center gap-2 backdrop-blur-sm bg-foreground/5 dark:bg-white/3 hover:bg-foreground/8 dark:hover:bg-white/5 text-foreground/60 font-medium py-2 rounded-lg transition-all text-sm border border-foreground/10 dark:border-white/8 active:scale-[0.98]"
             >
               <X className="w-4 h-4" />
               Reject
@@ -92,7 +92,7 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
 
           <div className="space-y-2">
             <p className="text-sm text-foreground/80">System command needs your confirmation:</p>
-            <div className="backdrop-blur-sm bg-white/2 rounded-xl p-3 border border-white/5 font-mono text-xs break-all whitespace-pre-wrap text-foreground/70">
+            <div className="backdrop-blur-sm bg-foreground/4 dark:bg-white/2 rounded-xl p-3 border border-foreground/8 dark:border-white/5 font-mono text-xs break-all whitespace-pre-wrap text-foreground/70">
               {message}
             </div>
           </div>

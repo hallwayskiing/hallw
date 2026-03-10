@@ -1,14 +1,11 @@
 import { cn } from "@lib/utils";
 
-import { useAppStore } from "@store/store";
 import { useState } from "react";
 
 import type { HeroSectionProps } from "../types";
 
 export function HeroSection({ isLoaded }: HeroSectionProps) {
-  const theme = useAppStore((s) => s.theme);
   const [spinTick, setSpinTick] = useState(0);
-  const isDark = theme === "dark";
 
   return (
     <div className="flex-1 flex items-center justify-center z-10 pointer-events-none">
@@ -24,12 +21,7 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
         >
-          <div
-            className={cn(
-              "relative w-28 h-28 flex items-center justify-center perspective-midrange",
-              isDark && "animate-hero-drift"
-            )}
-          >
+          <div className="relative w-28 h-28 flex items-center justify-center perspective-midrange animate-hero-drift">
             {/* Stable Gradient Definition */}
             <svg className="absolute w-0 h-0" aria-hidden="true">
               <defs>

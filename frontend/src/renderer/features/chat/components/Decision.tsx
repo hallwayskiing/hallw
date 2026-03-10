@@ -82,7 +82,7 @@ export const Decision = memo(
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={choices?.length ? "Or type your own response..." : "Type your response..."}
-                  className="flex-1 backdrop-blur-sm bg-white/2 border border-white/5 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-foreground/25 transition-all"
+                  className="flex-1 backdrop-blur-sm bg-foreground/4 dark:bg-white/2 border border-foreground/8 dark:border-white/5 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder:text-foreground/25 transition-all"
                 />
                 <button
                   type="submit"
@@ -95,7 +95,7 @@ export const Decision = memo(
                 <button
                   type="button"
                   onClick={() => handleDecision("rejected", "")}
-                  className="flex items-center justify-center gap-2 backdrop-blur-sm bg-white/3 hover:bg-white/5 text-foreground/60 font-medium px-4 py-2 rounded-xl transition-all text-sm border border-white/8 active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 backdrop-blur-sm bg-foreground/5 dark:bg-white/3 hover:bg-foreground/8 dark:hover:bg-white/5 text-foreground/60 font-medium px-4 py-2 rounded-xl transition-all text-sm border border-foreground/10 dark:border-white/8 active:scale-[0.98]"
                 >
                   <X className="w-4 h-4" />
                   Reject

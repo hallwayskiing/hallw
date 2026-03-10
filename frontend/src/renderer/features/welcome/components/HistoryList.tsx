@@ -15,7 +15,7 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
     <div
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl transition-all duration-400 ease-out",
-        "bg-card/20 backdrop-blur-sm border border-border/30",
+        "bg-card/20 backdrop-blur-sm border border-border dark:border-border/30",
         "hover:bg-emerald-500/5 hover:border-emerald-500/30 hover:shadow-lg hover:-translate-y-0.5",
         "active:scale-[0.99]"
       )}
@@ -27,8 +27,8 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
       >
         <div
           className={cn(
-            "flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 shrink-0",
-            "transition-all duration-200 group-hover:bg-white/10 group-hover:shadow-lg group-hover:shadow-emerald-500/50",
+            "flex items-center justify-center w-7 h-7 rounded-lg dark:bg-white/5 bg-foreground/5 shrink-0",
+            "transition-all duration-200 dark:group-hover:bg-white/10 group-hover:bg-foreground/10 group-hover:shadow-lg group-hover:shadow-emerald-500/50",
             "text-emerald-400"
           )}
         >

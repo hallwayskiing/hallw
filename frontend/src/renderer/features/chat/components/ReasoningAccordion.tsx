@@ -44,24 +44,30 @@ export function ReasoningAccordion({ content, isStreaming }: { content: string; 
       >
         {isOpen ? (
           <ChevronDown
-            className={cn("w-4 h-4 shrink-0 transition-colors", isStreaming ? "text-cyan-400/70" : "text-teal-400/70")}
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors",
+              isStreaming ? "text-cyan-600 dark:text-cyan-400/70" : "text-teal-600 dark:text-teal-400/70"
+            )}
           />
         ) : (
           <ChevronRight
-            className={cn("w-4 h-4 shrink-0 transition-colors", isStreaming ? "text-cyan-400/70" : "text-teal-400/70")}
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors",
+              isStreaming ? "text-cyan-600 dark:text-cyan-400/70" : "text-teal-600 dark:text-teal-400/70"
+            )}
           />
         )}
         <Brain
           className={cn(
             "w-4 h-4 shrink-0 transition-colors",
-            isStreaming ? "text-cyan-400 animate-pulse" : "text-teal-400"
+            isStreaming ? "text-cyan-600 dark:text-cyan-400 animate-pulse" : "text-teal-600 dark:text-teal-400"
           )}
         />
         <div className="flex-1 min-w-0 flex items-center">
           <span
             className={cn(
               "text-xs font-medium leading-none transition-colors",
-              isStreaming ? "text-cyan-400/80" : "text-teal-400/80"
+              isStreaming ? "text-cyan-700 dark:text-cyan-400/80" : "text-teal-700 dark:text-teal-400/80"
             )}
           >
             {isStreaming ? "Thinking..." : "Thought Process"}

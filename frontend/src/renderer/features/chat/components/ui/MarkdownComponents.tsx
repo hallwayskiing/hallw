@@ -64,7 +64,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
         {/* Header bar */}
         <div className="flex items-center justify-between px-1 pb-1 bg-transparent">
-          <span className="text-[13px] font-semibold lowercase pl-1 bg-stone-300 bg-clip-text text-transparent">
+          <span className="text-[13px] font-semibold lowercase pl-1 bg-stone-500 dark:bg-stone-300 bg-clip-text text-transparent">
             {lang || "PLAINTEXT"}
           </span>
           <div className="opacity-0 pointer-events-none select-none">
@@ -72,10 +72,10 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
           </div>
         </div>
         {/* Code content with line numbers */}
-        <div className="code-body flex overflow-x-auto overflow-y-hidden rounded-xl border border-white/6 bg-[#0d1117]">
+        <div className="code-body flex overflow-x-auto overflow-y-hidden rounded-xl border border-foreground/8 dark:border-white/6 bg-[#f5f0e4] dark:bg-[#0d1117]">
           {/* Line number gutter */}
           <div
-            className="code-line-numbers shrink-0 select-none text-right text-[13px] leading-6 font-mono py-2 pl-2 pr-1 text-white/20 sticky left-0 z-10 bg-[#0d1117]"
+            className="code-line-numbers shrink-0 select-none text-right text-[13px] leading-6 font-mono py-2 pl-2 pr-1 text-foreground/20 dark:text-white/20 sticky left-0 z-10 bg-[#f5f0e4] dark:bg-[#0d1117]"
             aria-hidden="true"
           >
             {Array.from({ length: lineCount }, (_, i) => (
@@ -104,7 +104,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     }
     return (
       <code
-        className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[13px] font-mono text-emerald-300/90"
+        className="px-1.5 py-0.5 rounded-md bg-foreground/6 dark:bg-white/6 border border-foreground/10 dark:border-white/8 text-[13px] font-mono text-emerald-700/90 dark:text-emerald-300/90"
         {...props}
       >
         {children}
@@ -145,7 +145,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-blue-400 hover:text-blue-300 underline decoration-blue-400/30 underline-offset-2 hover:decoration-blue-300/50 transition-colors duration-200"
+      className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 underline decoration-blue-600/30 dark:decoration-blue-400/30 underline-offset-2 hover:decoration-blue-500/50 dark:hover:decoration-blue-300/50 transition-colors duration-200"
     >
       {children}
     </a>
@@ -153,18 +153,26 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Tables
   table: ({ children }) => (
-    <div className="my-4 overflow-x-auto rounded-lg border border-white/6">
+    <div className="my-4 overflow-x-auto rounded-lg border border-foreground/8 dark:border-white/6">
       <table className="w-full text-sm">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-white/3 border-b border-white/8">{children}</thead>,
+  thead: ({ children }) => (
+    <thead className="bg-foreground/3 dark:bg-white/3 border-b border-foreground/8 dark:border-white/8">
+      {children}
+    </thead>
+  ),
   th: ({ children }) => (
     <th className="px-4 py-2.5 text-left text-xs font-semibold text-foreground/70 uppercase tracking-wider">
       {children}
     </th>
   ),
-  td: ({ children }) => <td className="px-4 py-2.5 text-foreground/80 border-t border-white/4">{children}</td>,
-  tr: ({ children }) => <tr className="hover:bg-white/2 transition-colors duration-150">{children}</tr>,
+  td: ({ children }) => (
+    <td className="px-4 py-2.5 text-foreground/80 border-t border-foreground/4 dark:border-white/4">{children}</td>
+  ),
+  tr: ({ children }) => (
+    <tr className="hover:bg-foreground/2 dark:hover:bg-white/2 transition-colors duration-150">{children}</tr>
+  ),
 
   // Horizontal rule
   hr: () => <hr className="my-8 border-0 h-px bg-linear-to-r from-transparent via-foreground/10 to-transparent" />,
@@ -175,7 +183,11 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
 
   // Images
   img: ({ src, alt }) => (
-    <img src={src} alt={alt} className="my-4 rounded-xl border border-white/6 max-w-full shadow-lg" />
+    <img
+      src={src}
+      alt={alt}
+      className="my-4 rounded-xl border border-foreground/8 dark:border-white/6 max-w-full shadow-lg"
+    />
   ),
 };
 
@@ -195,7 +207,9 @@ function CopyButton({ text }: { text: string }) {
       title={copied ? "Copied!" : "Copy code"}
       className={cn(
         "flex items-center justify-center p-1 rounded-md transition-all duration-200",
-        copied ? "text-emerald-400 bg-emerald-500/10" : "text-stone-300 hover:text-stone-200 hover:bg-white/5"
+        copied
+          ? "text-emerald-400 bg-emerald-500/10"
+          : "text-stone-500 dark:text-stone-300 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-foreground/5 dark:hover:bg-white/5"
       )}
     >
       {copied ? <Check className="w-[14px] h-[14px]" /> : <Copy className="w-[14px] h-[14px]" />}

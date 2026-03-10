@@ -2,6 +2,8 @@
 @import "@fontsource-variable/inter/index.css";
 @import "@fontsource/jetbrains-mono/index.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
 
@@ -102,25 +104,25 @@
 @layer base {
   :root {
     font-size: 15px;
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --background: 35 30% 90%;
+    --foreground: 30 20% 12%;
+    --card: 40 30% 98%;
+    --card-foreground: 30 20% 12%;
+    --popover: 40 30% 98%;
+    --popover-foreground: 30 20% 12%;
+    --primary: 30 20% 15%;
+    --primary-foreground: 40 30% 97%;
+    --secondary: 35 20% 84%;
+    --secondary-foreground: 30 15% 14%;
+    --muted: 35 18% 83%;
+    --muted-foreground: 25 12% 35%;
+    --accent: 35 20% 84%;
+    --accent-foreground: 30 15% 14%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --border: 30 15% 75%;
+    --input: 30 15% 75%;
+    --ring: 30 15% 20%;
     --radius: 0.5rem;
   }
 
@@ -169,24 +171,138 @@
 }
 
 @layer components {
+  /* Base code syntax (light mode) */
   .hljs {
-    color: #adbac7;
+    color: #1a1410;
   }
 
   .hljs-comment,
   .hljs-quote {
-    color: #768390;
+    color: #8a7e68;
     font-style: italic;
   }
 
   .hljs-keyword,
   .hljs-selector-tag {
-    color: #f47067;
+    color: #a0422a;
   }
 
   .hljs-string,
   .hljs-addition {
+    color: #1a6e5c;
+  }
+
+  .hljs-number,
+  .hljs-literal {
+    color: #8a5c1e;
+  }
+
+  .hljs-title,
+  .hljs-title\.function_,
+  .hljs-section {
+    color: #6a3a8a;
+  }
+
+  .hljs-type,
+  .hljs-built_in {
+    color: #2a6ea0;
+  }
+
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-attr {
+    color: #8a5020;
+  }
+
+  .hljs-name,
+  .hljs-selector-id,
+  .hljs-selector-class {
+    color: #2a6ea0;
+  }
+
+  .hljs-meta,
+  .hljs-tag {
+    color: #7a6a5a;
+  }
+
+  .hljs-deletion {
+    color: #a0422a;
+    background: rgba(160, 66, 42, 0.08);
+  }
+
+  .hljs-addition {
+    background: rgba(26, 110, 92, 0.08);
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: bold;
+  }
+
+  /* Dark mode code syntax override */
+  .dark .hljs {
+    color: #adbac7;
+  }
+
+  .dark .hljs-comment,
+  .dark .hljs-quote {
+    color: #768390;
+    font-style: italic;
+  }
+
+  .dark .hljs-keyword,
+  .dark .hljs-selector-tag {
+    color: #f47067;
+  }
+
+  .dark .hljs-string,
+  .dark .hljs-addition {
     color: #96d0ff;
+  }
+
+  .dark .hljs-number,
+  .dark .hljs-literal {
+    color: #6cb6ff;
+  }
+
+  .dark .hljs-title,
+  .dark .hljs-title\.function_,
+  .dark .hljs-section {
+    color: #dcbdfb;
+  }
+
+  .dark .hljs-type,
+  .dark .hljs-built_in {
+    color: #f69d50;
+  }
+
+  .dark .hljs-variable,
+  .dark .hljs-template-variable,
+  .dark .hljs-attr {
+    color: #f69d50;
+  }
+
+  .dark .hljs-name,
+  .dark .hljs-selector-id,
+  .dark .hljs-selector-class {
+    color: #6cb6ff;
+  }
+
+  .dark .hljs-meta,
+  .dark .hljs-tag {
+    color: #768390;
+  }
+
+  .dark .hljs-deletion {
+    color: #f47067;
+    background: rgba(244, 112, 103, 0.1);
+  }
+
+  .dark .hljs-addition {
+    background: rgba(150, 208, 255, 0.1);
   }
 
   /* Markdown content polishing */

@@ -7,8 +7,6 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
-import "highlight.js/styles/github-dark.css";
-
 import { mdComponents } from "./ui/MarkdownComponents";
 
 export const MarkdownContent = memo(({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
