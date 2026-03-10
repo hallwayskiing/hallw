@@ -1,5 +1,28 @@
 import { cn } from "@lib/utils";
-import { Bot, User } from "lucide-react";
+import { useAppStore } from "@store/store";
+import {
+  Atom,
+  Bot,
+  BrainCircuit,
+  Cat,
+  CircuitBoard,
+  Cpu,
+  Crown,
+  Dog,
+  Gem,
+  Ghost,
+  Heart,
+  type LucideIcon,
+  Orbit,
+  Rabbit,
+  Rocket,
+  Smile,
+  Sparkles,
+  Squirrel,
+  User,
+  UserCircle,
+  Zap,
+} from "lucide-react";
 import { memo } from "react";
 
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
@@ -7,8 +30,39 @@ import type { AvatarProps, MessageBubbleProps } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningAccordion } from "./ReasoningAccordion";
 
+export const AVATAR_ICON_MAP: Record<string, LucideIcon> = {
+  // User avatars
+  User,
+  UserCircle,
+  Smile,
+  Ghost,
+  Cat,
+  Dog,
+  Heart,
+  Squirrel,
+  Rabbit,
+  Crown,
+  // AI avatars
+  Bot,
+  BrainCircuit,
+  Cpu,
+  Sparkles,
+  Zap,
+  CircuitBoard,
+  Atom,
+  Orbit,
+  Gem,
+  Rocket,
+};
+
 export function Avatar({ msgRole: role }: AvatarProps) {
   const isUser = role === "user";
+  const userAvatarIcon = useAppStore((s) => s.userAvatarIcon);
+  const aiAvatarIcon = useAppStore((s) => s.aiAvatarIcon);
+
+  const iconName = isUser ? userAvatarIcon : aiAvatarIcon;
+  const IconComponent = AVATAR_ICON_MAP[iconName] || (isUser ? User : Bot);
+
   return (
     <div
       className={cn(
@@ -18,7 +72,7 @@ export function Avatar({ msgRole: role }: AvatarProps) {
           : "bg-teal-500/10 border-teal-500/20 text-teal-400 shadow-teal-500/10"
       )}
     >
-      {isUser ? <User className="w-4 h-4" /> : <Bot className="w-5 h-5" />}
+      <IconComponent className={cn("transition-all", "w-5 h-5")} />
     </div>
   );
 }

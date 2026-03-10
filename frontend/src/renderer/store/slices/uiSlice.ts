@@ -6,10 +6,14 @@ export interface UISlice {
   isSettingsOpen: boolean;
   isChatting: boolean;
   showCdpView: boolean;
+  userAvatarIcon: string;
+  aiAvatarIcon: string;
   setTheme: (theme: "light" | "dark") => void;
   toggleTheme: () => void;
   toggleSettings: () => void;
   setIsChatting: (isChatting: boolean) => void;
+  setUserAvatarIcon: (icon: string) => void;
+  setAiAvatarIcon: (icon: string) => void;
   showCdpViewForSession: (sessionId: string, headless?: boolean, userDataDir?: string) => Promise<void>;
   hideCdpView: () => Promise<void>;
   destroyCdpView: (sessionId: string) => Promise<void>;
@@ -20,6 +24,8 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
   isSettingsOpen: false,
   isChatting: false,
   showCdpView: false,
+  userAvatarIcon: localStorage.getItem("userAvatarIcon") || "User",
+  aiAvatarIcon: localStorage.getItem("aiAvatarIcon") || "Bot",
   setTheme: (theme) => set({ theme }),
   toggleTheme: () =>
     set((state) => {
@@ -30,6 +36,14 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
     }),
   toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
   setIsChatting: (isChatting) => set({ isChatting }),
+  setUserAvatarIcon: (icon) => {
+    localStorage.setItem("userAvatarIcon", icon);
+    set({ userAvatarIcon: icon });
+  },
+  setAiAvatarIcon: (icon) => {
+    localStorage.setItem("aiAvatarIcon", icon);
+    set({ aiAvatarIcon: icon });
+  },
   showCdpViewForSession: async (sessionId, headless = false, userDataDir) => {
     try {
       if (window.api?.cdpCreateOrShow) {
