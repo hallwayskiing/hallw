@@ -1,6 +1,6 @@
 import { useAppStore } from "@store/store";
 import { ArrowDown } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useActiveSession } from "../hooks/useActiveSession";
 import { useAutoScroll } from "../hooks/useAutoScroll";
@@ -68,23 +68,13 @@ export function ChatArea() {
     pendingDecision,
   ]);
 
-  useEffect(() => {
-    if (isRunning && !streamingContent && !streamingReasoning && !pendingDecision && !pendingConfirmation) {
-      scrollToBottom();
-    }
-  }, [isRunning, scrollToBottom, pendingDecision, pendingConfirmation, streamingContent, streamingReasoning]);
-
   if (processedMessages.length === 0 && !streamingContent && !streamingReasoning && !isRunning) {
     return null;
   }
 
   return (
     <div className="relative h-full w-full">
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex flex-col h-full overflow-auto px-1 pt-12 pb-4 scroll-smooth"
-      >
+      <div ref={scrollRef} onScroll={handleScroll} className="flex flex-col h-full overflow-auto px-1 pt-12 pb-4">
         <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
           {processedMessages.map((msg: Message) => (
             <div key={msg.id} className="space-y-4">
