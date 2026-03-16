@@ -47,7 +47,7 @@ def get_user_profile() -> str:
     Generates the user profile for the automation agent based on the USER.md file.
     """
     if not Path("USER.md").exists():
-        shutil.copy("templates/USER.example.md", "USER.md")
+        shutil.copy(Path(__file__).parent / "templates/USER.example.md", "USER.md")
 
     with open("USER.md", "r", encoding="utf-8") as f:
         return f.read()
@@ -61,7 +61,6 @@ def get_system_prompt() -> str:
     <identity>
     You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
     You need to complete user's task by appropriate use of the available tools.
-    Your main ability is enabled by `exec` tool, which can execute any command in the terminal.
     You are running in a {platform.system()} environment.
     Today is {datetime.now().strftime("%Y-%m-%d")}.
     Current working directory is {os.getcwd()}.
