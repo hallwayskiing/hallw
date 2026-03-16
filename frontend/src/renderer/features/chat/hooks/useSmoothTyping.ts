@@ -29,6 +29,9 @@ export function useSmoothTyping(targetText: string, isStreaming: boolean, baseSp
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (displayedText !== targetText) {
+        setDisplayedText(targetText);
+      }
       return;
     }
 
@@ -53,7 +56,8 @@ export function useSmoothTyping(targetText: string, isStreaming: boolean, baseSp
 
         const charsToAddFloat = deltaTime * rate;
 
-        if (charsToAddFloat >= 1) {
+        // Throttled update (~20fps) to optimize performance
+        if (charsToAddFloat >= 1 && deltaTime > 50) {
           const charsToAdd = Math.floor(charsToAddFloat);
           const nextLen = Math.min(currentLen + charsToAdd, targetLen);
           const nextText = targetTextRef.current.slice(0, nextLen);
@@ -76,7 +80,7 @@ export function useSmoothTyping(targetText: string, isStreaming: boolean, baseSp
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isStreaming, baseSpeed]);
+  }, [isStreaming, baseSpeed, displayedText, targetText]);
 
   return displayedText;
 }
