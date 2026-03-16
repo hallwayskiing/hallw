@@ -33,12 +33,12 @@ export default function App() {
               <Welcome />
             ) : (
               <div className="flex w-full h-full relative z-10">
-                {/* CDP Webview Split Pane (Left Side) — native WebContentsView fills this area via Electron IPC */}
+                {/* CDP Webview Split Pane */}
                 {showCdpView && (
                   <div className="w-1/2 shrink-0 border-r border-border/10 bg-background/50 shadow-2xl" />
                 )}
 
-                {/* Main Chat Area (Right Side if Split) */}
+                {/* Main Chat Area */}
                 <div
                   id="chat-viewport"
                   className={`flex-1 min-w-0 h-full flex flex-row relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
@@ -47,8 +47,9 @@ export default function App() {
                     <ChatArea />
                   </div>
 
-                  {/* Sidebar: App controls visibility, Logic internal */}
-                  <Sidebar className="h-full pt-8 shrink-0 border-l border-border/10 shadow-2xl bg-background" />
+                  {/* Sidebar: Collapsable at Right Side */}
+                  <div className="w-12 shrink-0 border-l border-transparent" />
+                  <Sidebar className="absolute top-0 right-0 h-full pt-8 shrink-0 border-l border-border shadow-2xl bg-background z-50" />
                 </div>
               </div>
             )}
