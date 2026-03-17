@@ -112,6 +112,14 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       actions._onChatNewText(sessionId, text);
     });
 
+    socket.on("llm_finished", (data: SessionPayload) => {
+      const sessionId = getSessionId(data) || get().activeSessionId;
+      if (!sessionId) return;
+      const session = get().chatSessions[sessionId];
+      if (!session?.streamingContent) return;
+      get()._onChatNewText(sessionId, "\n");
+    });
+
     socket.on("task_started", (data: SessionPayload) => {
       const sessionId = getSessionId(data);
       if (!sessionId) return;
