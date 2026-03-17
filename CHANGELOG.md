@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.17.0 (2026-03-16)
+
+### Feat
+
+- **ui**: auto focus on input when task is finished
+- **ui**: change sidebar collapsing behavior
+- **ui**: complete light mode design
+- **ui**: add avatar picker for user and ai
+- **ui**: treat confirmation and decison as ai messages
+- **ui**: add line numbers for code block
+- **ui**: redesign auto-scroll
+- **tools**: migrate from Bocha to Shuyan which supports web extraction
+
+### Fix
+
+- **backend**: small fixups
+- **ui**: improve auto scroll behaviors
+- **ui**: improve ui stability
+- **server**: fix up task exit errors
+- **ui**: remove reasoning preview
+- **ui**: small improvements
+
+### Perf
+
+- **ui**: add throttling for markdown rendering
+
 ## v0.16.0 (2026-03-01)
 
 ### Feat
