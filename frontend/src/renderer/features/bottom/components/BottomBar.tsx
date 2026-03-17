@@ -1,6 +1,6 @@
 import { useAppStore } from "@store/store";
 import { ArrowLeft, ScrollText, Settings, Zap } from "lucide-react";
-import { type SubmitEvent, useState } from "react";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
 
 import { useActiveSession } from "../../chat/hooks/useActiveSession";
 import { useInputHistory } from "../hooks/useInputHistory";
@@ -23,6 +23,16 @@ export function BottomBar() {
 
   const [isFocused, setIsFocused] = useState(false);
   const { handleHistoryNavigation, pushHistory } = useInputHistory();
+
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const prevIsRunningRef = useRef(isRunning);
+
+  useEffect(() => {
+    if (!isRunning && prevIsRunningRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+    prevIsRunningRef.current = isRunning;
+  }, [isRunning]);
 
   const onSubmit = (e?: SubmitEvent) => {
     e?.preventDefault();
@@ -51,6 +61,7 @@ export function BottomBar() {
         {/* Input Form Container */}
         <div className="flex-1 relative h-10 z-20">
           <ChatInput
+            ref={inputRef}
             value={input}
             onChange={setInput}
             onKeyDown={(e) => {
