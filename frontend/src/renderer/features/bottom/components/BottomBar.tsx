@@ -8,6 +8,30 @@ import { ActionButton } from "./ActionButton";
 import { ChatInput } from "./ChatInput";
 import { SubmitButton } from "./SubmitButton";
 
+const getDisplayNames = (files: { id: string; name: string; path: string | null }[]) => {
+  const counts = new Map<string, number>();
+  const totals = new Map<string, Set<string>>();
+
+  for (const file of files) {
+    const paths = totals.get(file.name) ?? new Set<string>();
+    paths.add(file.path ?? file.id);
+    totals.set(file.name, paths);
+  }
+
+  return new Map(
+    files.map((file) => {
+      const distinctPathCount = totals.get(file.name)?.size ?? 0;
+      if (distinctPathCount <= 1) {
+        return [file.id, file.name] as const;
+      }
+
+      const next = (counts.get(file.name) ?? 0) + 1;
+      counts.set(file.name, next);
+      return [file.id, `${file.name}(${next})`] as const;
+    })
+  );
+};
+
 export function BottomBar() {
   const input = useAppStore((s) => s.input);
   const isChatting = useAppStore((s) => s.isChatting);
@@ -30,8 +54,9 @@ export function BottomBar() {
   const { handleHistoryNavigation, pushHistory } = useInputHistory();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const prevIsRunningRef = useRef(isRunning);
+
+  const displayNames = getDisplayNames(attachedFiles);
 
   useEffect(() => {
     if (!isRunning && prevIsRunningRef.current) {
@@ -88,68 +113,21 @@ export function BottomBar() {
       e.stopPropagation();
       setIsDragOver(false);
 
-      // Check for file paths from Electron drag-drop (local files)
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) {
-        // In Electron, files from the OS have a `path` property
-        const localPaths: string[] = [];
-        const webFiles: File[] = [];
-
-        for (const file of files) {
-          const filePath = (file as File & { path?: string }).path;
-          if (filePath) {
-            localPaths.push(filePath);
-          } else {
-            webFiles.push(file);
-          }
-        }
-
-        if (localPaths.length > 0) {
-          addLocalPaths(localPaths);
-        }
-        if (webFiles.length > 0) {
-          void addFiles(webFiles);
-        }
+        void addFiles(Array.from(files));
       }
     },
-    [addFiles, addLocalPaths]
+    [addFiles]
   );
 
   // --- File picker ---
-  const handleFilePickerClick = useCallback(() => {
-    fileInputRef.current?.click();
+  const handleFilePickerClick = useCallback(async () => {
+    const pickedPaths = (await window.api?.pickFiles?.()) ?? [];
+    if (pickedPaths.length > 0) {
+      addLocalPaths(pickedPaths);
+    }
   }, []);
-
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-
-      // In Electron, input files have `path` property
-      const localPaths: string[] = [];
-      const webFiles: File[] = [];
-
-      for (const file of files) {
-        const filePath = (file as File & { path?: string }).path;
-        if (filePath) {
-          localPaths.push(filePath);
-        } else {
-          webFiles.push(file);
-        }
-      }
-
-      if (localPaths.length > 0) {
-        addLocalPaths(localPaths);
-      }
-      if (webFiles.length > 0) {
-        void addFiles(webFiles);
-      }
-
-      // Reset input so re-selecting the same file triggers onChange
-      e.target.value = "";
-    },
-    [addFiles, addLocalPaths]
-  );
 
   return (
     <fieldset
@@ -171,7 +149,7 @@ export function BottomBar() {
                   <Paperclip className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0 max-w-37.5">
-                  <span className="truncate font-medium text-xs">{file.name}</span>
+                  <span className="truncate font-medium text-xs">{displayNames.get(file.id) ?? file.name}</span>
                   {file.isSaving && (
                     <span className="text-[10px] text-muted-foreground/60 animate-pulse">saving...</span>
                   )}
@@ -180,7 +158,7 @@ export function BottomBar() {
                   type="button"
                   onClick={() => removeFile(file.id)}
                   className="ml-1 p-1 rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={`Remove ${file.name}`}
+                  aria-label={`Remove ${displayNames.get(file.id) ?? file.name}`}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -218,9 +196,6 @@ export function BottomBar() {
             active={attachedFiles.length > 0}
           />
         </div>
-
-        {/* Hidden file input */}
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInputChange} />
 
         {/* Input Form Container */}
         <div className={`flex-1 relative z-20 ${isDragOver ? "ring-2 ring-ring ring-offset-1 rounded-2xl" : ""}`}>

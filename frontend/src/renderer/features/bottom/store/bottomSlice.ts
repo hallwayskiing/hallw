@@ -12,7 +12,7 @@ export interface AttachedFile {
   size: number;
   /** MIME type if available */
   type: string;
-  /** True while saving pasted file to temp */
+  /** True while saving a dragged/pasted/web-selected file to temp */
   isSaving: boolean;
 }
 
@@ -27,6 +27,30 @@ export interface BottomSlice {
   submitInput: () => void;
 }
 
+const getDisplayNames = (files: Pick<AttachedFile, "id" | "name" | "path">[]) => {
+  const counts = new Map<string, number>();
+  const totals = new Map<string, Set<string>>();
+
+  for (const file of files) {
+    const paths = totals.get(file.name) ?? new Set<string>();
+    paths.add(file.path ?? file.id);
+    totals.set(file.name, paths);
+  }
+
+  return new Map(
+    files.map((file) => {
+      const distinctPathCount = totals.get(file.name)?.size ?? 0;
+      if (distinctPathCount <= 1) {
+        return [file.id, file.name] as const;
+      }
+
+      const next = (counts.get(file.name) ?? 0) + 1;
+      counts.set(file.name, next);
+      return [file.id, `${file.name}(${next})`] as const;
+    })
+  );
+};
+
 export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (set, get) => ({
   input: "",
   attachedFiles: [],
@@ -34,7 +58,7 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
   setInput: (input) => set({ input }),
 
   /**
-   * Handle File objects (from paste, drag-drop, or file picker).
+   * Handle File objects that must be persisted to a temp path first.
    * Saves them to temp via Electron IPC and stores the resulting path.
    */
   addFiles: async (fileList) => {
@@ -76,10 +100,12 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
           continue;
         }
 
-        // Update placeholder with real path. name is kept as original (placeholder.name), or use base name of savedPath
+        // Preserve the original display name; only the backing path changes.
         set((state) => ({
           attachedFiles: state.attachedFiles.map((f) =>
-            f.id === placeholder.id ? { ...f, name: savedPath.split(/[\\/]/).pop() || savedPath, path: savedPath, isSaving: false } : f
+            f.id === placeholder.id
+              ? { ...f, name: savedPath.split(/[\\/]/).pop() || savedPath, path: savedPath, isSaving: false }
+              : f
           ),
         }));
       } catch (err) {
@@ -92,7 +118,7 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
   },
 
   /**
-   * Handle local file paths (e.g., from native drag-drop with file paths).
+   * Handle directly-selected local file paths.
    */
   addLocalPaths: (paths) => {
     const newFiles: AttachedFile[] = paths.map((p) => {
@@ -124,11 +150,12 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
     const activeSession = activeId ? get().chatSessions[activeId] : null;
     if (activeSession?.isRunning) return;
 
-    const filePaths = attachedFiles
-      .filter((f) => f.path !== null)
-      .map((f) => f.path as string);
+    const readyFiles = attachedFiles.filter((f) => f.path !== null);
+    const displayNames = getDisplayNames(readyFiles);
+    const filePaths = readyFiles.map((f) => f.path as string);
+    const fileDisplayNames = readyFiles.map((f) => displayNames.get(f.id) ?? f.name);
 
-    startTask(input, filePaths);
+    startTask(input, filePaths, fileDisplayNames);
     set({ input: "", attachedFiles: [] });
   },
 });

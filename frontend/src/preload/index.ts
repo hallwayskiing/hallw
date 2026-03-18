@@ -5,6 +5,7 @@ import { contextBridge, ipcRenderer } from "electron";
 // Custom APIs for renderer
 const api = {
   openCdpPage: () => ipcRenderer.invoke("open-cdp-page"),
+  pickFiles: (): Promise<string[]> => ipcRenderer.invoke("pick-files"),
   cdpCreateOrShow: (sessionId: string, headless: boolean = false, userDataDir: string = "") =>
     ipcRenderer.invoke("cdp-create-or-show", sessionId, headless, userDataDir),
   cdpHide: () => ipcRenderer.invoke("cdp-hide"),

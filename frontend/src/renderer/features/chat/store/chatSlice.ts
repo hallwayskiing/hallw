@@ -278,7 +278,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       set((state) => removeSession(state, sessionId));
     },
 
-    startTask: (task, filePaths) => {
+    startTask: (task, filePaths, fileDisplayNames) => {
       const { _socket, activeSessionId, isChatting, chatSessions } = get();
       if (!_socket) return;
 
@@ -288,8 +288,8 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       const title = buildSessionTitle(task, sessionId);
       clearAllTimers(sessionId);
 
-      // Build user display content (show short name, but absolute paths go to backend)
-      const fileNames = filePaths?.map((p) => p.split(/[\\/]/).pop() || p) ?? [];
+      // Build user display content with duplicate-safe display names.
+      const fileNames = fileDisplayNames ?? [];
       let filePreviews = "";
       if (fileNames.length > 0) {
         filePreviews = `\n${fileNames.map((f) => `🔗 *${f}*`).join("\n")}`;

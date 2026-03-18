@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, session, shell, WebContentsView } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session, shell, WebContentsView } from "electron";
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -46,26 +47,33 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"));
 
-  // --- IPC: Save pasted/dropped file to temp and return path ---
+  ipcMain.handle("pick-files", async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return [];
+
+    const result = await dialog.showOpenDialog(window, {
+      properties: ["openFile", "multiSelections"],
+    });
+
+    if (result.canceled) {
+      return [];
+    }
+
+    return result.filePaths;
+  });
+
+  // --- IPC: Save transient uploads to temp and return the absolute path ---
   ipcMain.handle("save-temp-file", async (_event, fileName: string, buffer: ArrayBuffer) => {
     const { tmpdir } = await import("node:os");
-    const { mkdirSync, writeFileSync, existsSync } = await import("node:fs");
+    const { mkdirSync, writeFileSync } = await import("node:fs");
     const { parse } = await import("node:path");
 
     const tempDir = join(tmpdir(), "hallw-uploads");
     mkdirSync(tempDir, { recursive: true });
 
     const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_");
-
-    // Check namesake and append (1), (2), etc.
-    let filePath = join(tempDir, safeName);
-    let counter = 1;
-    while (existsSync(filePath)) {
-      const parsed = parse(safeName);
-      const newName = `${parsed.name} (${counter})${parsed.ext}`;
-      filePath = join(tempDir, newName);
-      counter++;
-    }
+    const parsed = parse(safeName);
+    const filePath = join(tempDir, `${randomUUID().slice(0, 8)}${parsed.ext}`);
 
     writeFileSync(filePath, Buffer.from(buffer));
 
