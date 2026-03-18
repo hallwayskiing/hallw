@@ -257,15 +257,6 @@ def _handle_build_stages(output, config):
     total = len(stages)
 
     dispatch_custom_event("stages_built", {"stages": stages}, config=config)
-    dispatch_custom_event(
-        "stage_started",
-        {
-            "stage_index": 0,
-            "total_stages": total,
-            "stage_name": stages[0],
-        },
-        config=config,
-    )
     return stages, total
 
 
@@ -280,19 +271,21 @@ def _handle_end_stage(args, curr_idx, total, stage_names, config):
     end_idx = total if stage_count == -1 else min(start_idx + stage_count, total)
 
     completed_indices = list(range(start_idx, end_idx))
-    if completed_indices:
-        dispatch_custom_event("stages_completed", {"stage_indices": completed_indices}, config=config)
-
     curr_idx = end_idx
-    if curr_idx >= total:
-        return curr_idx, True
+    is_done = curr_idx >= total
 
-    dispatch_custom_event(
-        "stage_started",
-        {"stage_index": curr_idx, "total_stages": total, "stage_name": stage_names[curr_idx]},
-        config=config,
-    )
-    return curr_idx, False
+    if completed_indices:
+        dispatch_custom_event(
+            "stages_advanced",
+            {
+                "completed_indices": completed_indices,
+                "next_index": curr_idx if not is_done else -1,
+                "is_done": is_done,
+            },
+            config=config,
+        )
+
+    return curr_idx, is_done
 
 
 def _handle_edit_stages(output, curr_idx, stage_names, config):

@@ -51,12 +51,8 @@ class AgentRenderer(ABC):
         """Called when task stages are built."""
 
     @abstractmethod
-    def on_stage_started(self, data: dict) -> None:
-        """Called when a new task stage starts."""
-
-    @abstractmethod
-    def on_stages_completed(self, data: dict) -> None:
-        """Called when task stages complete."""
+    def on_stages_advanced(self, data: dict) -> None:
+        """Called when task stages complete and advance to the next."""
 
     @abstractmethod
     def on_stages_edited(self, data: dict) -> None:

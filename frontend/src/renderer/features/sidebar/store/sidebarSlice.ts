@@ -38,20 +38,16 @@ export const createSidebarSlice: StateCreator<AppState, [], [], SidebarSlice> = 
   _onStagesBuilt: (sessionId, data) => {
     if (!sessionId || !get().chatSessions[sessionId]) return;
     const nextStages = Array.isArray(data) ? data : data?.stages || [];
-    set((state) => patchSidebar(state, sessionId, (s) => ({ ...s, stages: nextStages })));
+    set((state) => patchSidebar(state, sessionId, (s) => ({ ...s, stages: nextStages, currentStageIndex: 0, completedStages: [] })));
   },
 
-  _onStageStarted: (sessionId, data) => {
-    if (!sessionId || !get().chatSessions[sessionId]) return;
-    set((state) => patchSidebar(state, sessionId, (s) => ({ ...s, currentStageIndex: data.stage_index })));
-  },
-
-  _onStagesCompleted: (sessionId, data) => {
+  _onStagesAdvanced: (sessionId, data) => {
     if (!sessionId || !get().chatSessions[sessionId]) return;
     set((state) =>
       patchSidebar(state, sessionId, (s) => ({
         ...s,
-        completedStages: [...new Set([...s.completedStages, ...data.stage_indices])],
+        completedStages: [...new Set([...s.completedStages, ...data.completed_indices])],
+        currentStageIndex: data.next_index,
       }))
     );
   },

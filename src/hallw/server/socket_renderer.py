@@ -99,11 +99,8 @@ class SocketRenderer(AgentRenderer):
         """Forward partial plan updates to the frontend."""
         self._fire("stages_built", data)
 
-    def on_stage_started(self, data: dict):
-        self._fire("stage_started", data)
-
-    def on_stages_completed(self, data: dict):
-        self._fire("stages_completed", data)
+    def on_stages_advanced(self, data: dict):
+        self._fire("stages_advanced", data)
 
     def on_stages_edited(self, data: dict):
         self._fire("stages_edited", data)

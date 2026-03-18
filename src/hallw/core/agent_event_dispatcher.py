@@ -32,10 +32,7 @@ class AgentEventDispatcher:
 
         # Custom Events
         self.register("on_custom_event", name="stages_built")(lambda r, ev: r.on_stages_built(ev.get("data", {})))
-        self.register("on_custom_event", name="stage_started")(lambda r, ev: r.on_stage_started(ev.get("data", {})))
-        self.register("on_custom_event", name="stages_completed")(
-            lambda r, ev: r.on_stages_completed(ev.get("data", {}))
-        )
+        self.register("on_custom_event", name="stages_advanced")(lambda r, ev: r.on_stages_advanced(ev.get("data", {})))
         self.register("on_custom_event", name="stages_edited")(lambda r, ev: r.on_stages_edited(ev.get("data", {})))
 
     def register(self, event_kind: str, name: str | None = None):

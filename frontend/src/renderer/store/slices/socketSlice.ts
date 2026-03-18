@@ -198,17 +198,11 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const { session_id: _sessionId, ...payload } = data;
       actions._onStagesBuilt(sessionId, payload as string[] | { stages?: string[] });
     });
-    socket.on("stage_started", (data: SessionPayload & { stage_index: number }) => {
+    socket.on("stages_advanced", (data: SessionPayload & { completed_indices: number[]; next_index: number; is_done: boolean }) => {
       const sessionId = getSessionId(data);
       if (!sessionId) return;
-      const { stage_index } = data;
-      actions._onStageStarted(sessionId, { stage_index });
-    });
-    socket.on("stages_completed", (data: SessionPayload & { stage_indices: number[] }) => {
-      const sessionId = getSessionId(data);
-      if (!sessionId) return;
-      const { stage_indices } = data;
-      actions._onStagesCompleted(sessionId, { stage_indices });
+      const { completed_indices, next_index, is_done } = data;
+      actions._onStagesAdvanced(sessionId, { completed_indices, next_index, is_done });
     });
     socket.on("stages_edited", (data: SessionPayload & { stages: string[]; current_index: number }) => {
       const sessionId = getSessionId(data);

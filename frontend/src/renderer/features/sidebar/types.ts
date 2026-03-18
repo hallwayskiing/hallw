@@ -70,8 +70,7 @@ export interface SidebarSlice {
 
   _onToolStateUpdate: (sessionId: string, state: ToolState) => void;
   _onStagesBuilt: (sessionId: string, data: string[] | { stages?: string[] }) => void;
-  _onStageStarted: (sessionId: string, data: { stage_index: number }) => void;
-  _onStagesCompleted: (sessionId: string, data: { stage_indices: number[] }) => void;
+  _onStagesAdvanced: (sessionId: string, data: { completed_indices: number[]; next_index: number; is_done: boolean }) => void;
   _onStagesEdited: (sessionId: string, data: { stages: string[]; current_index: number }) => void;
 
   _onSidebarTaskStarted: (sessionId: string) => void;
