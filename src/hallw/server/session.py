@@ -42,6 +42,14 @@ class Session:
             if pending:
                 self.session_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
+            # Run a brief sleep to allow deferred cancellations and callbacks (like aiohttp teardown) to schedule
+            self.session_loop.run_until_complete(asyncio.sleep(0.1))
+
+            # Second pass: gather any new cleanup tasks spawned during the flush
+            pending = asyncio.all_tasks(self.session_loop)
+            if pending:
+                self.session_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
             if hasattr(self.session_loop, "shutdown_asyncgens"):
                 self.session_loop.run_until_complete(self.session_loop.shutdown_asyncgens())
 
