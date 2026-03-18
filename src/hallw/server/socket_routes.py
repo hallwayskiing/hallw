@@ -1,12 +1,10 @@
 import asyncio
-import uuid
 
 import socketio
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import SecretStr
 
 from hallw.core import AgentRunner
-from hallw.tools.playwright.playwright_mgr import browser_disconnect
 from hallw.utils import (
     config,
     get_system_prompt,
@@ -18,92 +16,11 @@ from hallw.utils import (
 )
 
 from .session import Session
-
-# --- Global State ---
-sessions: dict[str, dict[str, Session]] = {}
+from .session_mgr import session_mgr
 
 # --- SocketIO Events ---
 
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
-
-
-def _resolve_session_id(data) -> str | None:
-    if isinstance(data, dict):
-        session_id = data.get("session_id")
-        if isinstance(session_id, str) and session_id.strip():
-            return session_id
-    return None
-
-
-def _get_client_sessions(sid: str) -> dict[str, Session]:
-    return sessions.setdefault(sid, {})
-
-
-def _pick_session(sid: str, session_id: str | None) -> Session | None:
-    client_sessions = sessions.get(sid, {})
-    if session_id:
-        return client_sessions.get(session_id)
-    if len(client_sessions) == 1:
-        return next(iter(client_sessions.values()))
-    return None
-
-
-def _ensure_session(
-    sid: str, main_loop: asyncio.AbstractEventLoop, session_id: str | None = None, thread_id: str | None = None
-) -> tuple[Session, str]:
-    resolved_session_id = session_id or str(uuid.uuid4())
-    client_sessions = _get_client_sessions(sid)
-    if resolved_session_id not in client_sessions:
-        client_sessions[resolved_session_id] = Session(
-            sid=sid,
-            sio=sio,
-            main_loop=main_loop,
-            session_id=resolved_session_id,
-            thread_id=thread_id,
-        )
-
-    session = client_sessions[resolved_session_id]
-    session.renderer.sid = sid
-    session.renderer.main_loop = main_loop
-    return session, resolved_session_id
-
-
-async def _shutdown_session(sid: str, session_id: str, emit_reset: bool = True) -> bool:
-    client_sessions = sessions.get(sid)
-    if not client_sessions:
-        return False
-
-    session = client_sessions.get(session_id)
-    if not session:
-        return False
-
-    # Shutdown browser tied to this session loop
-    future = asyncio.run_coroutine_threadsafe(browser_disconnect(), session.session_loop)
-    try:
-        future.result(timeout=5.0)
-    except Exception as e:
-        logger.error(f"Browser disconnect failed: {e}")
-
-    # Cancel in-flight task
-    if session.active_runner and session.active_runner.is_running and getattr(session.active_runner, "task", None):
-        try:
-            session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
-        except Exception:
-            pass
-
-    if session.input_tokens > 0 and session.output_tokens > 0:
-        logger.info(f"[session={session_id}] Input tokens: {session.input_tokens}")
-        logger.info(f"[session={session_id}] Output tokens: {session.output_tokens}")
-
-    session.close()
-    del client_sessions[session_id]
-    if not client_sessions:
-        sessions.pop(sid, None)
-
-    if emit_reset:
-        await sio.emit("reset", {"session_id": session_id}, room=sid)
-
-    return True
 
 
 @sio.event
@@ -118,9 +35,11 @@ async def start_task(sid, data):
         return
 
     main_loop = asyncio.get_running_loop()
-    requested_session_id = _resolve_session_id(data)
+    requested_session_id = session_mgr.resolve_session_id(data)
     thread_id = data.get("thread_id")
-    session, session_id = _ensure_session(sid, main_loop, session_id=requested_session_id, thread_id=thread_id)
+    session, session_id = session_mgr.ensure_session(
+        sid, sio, main_loop, session_id=requested_session_id, thread_id=thread_id
+    )
 
     if session.active_runner and session.active_runner.is_running:
         await sio.emit(
@@ -210,16 +129,16 @@ async def start_task(sid, data):
 
 @sio.event
 async def reset_session(sid, data=None):
-    requested_session_id = _resolve_session_id(data)
-    client_sessions = sessions.get(sid, {})
+    requested_session_id = session_mgr.resolve_session_id(data)
+    client_sessions = session_mgr.get_client_sessions(sid)
 
     if requested_session_id:
-        await _shutdown_session(sid, requested_session_id, emit_reset=True)
+        await session_mgr.shutdown_session(sid, requested_session_id, sio, emit_reset=True)
         return
 
     # Backward-compatible fallback: reset every session for this client
     for session_id in list(client_sessions.keys()):
-        await _shutdown_session(sid, session_id, emit_reset=True)
+        await session_mgr.shutdown_session(sid, session_id, sio, emit_reset=True)
 
 
 @sio.event
@@ -273,7 +192,7 @@ async def load_history(sid, data):
     if not thread_id:
         return
 
-    session_id = _resolve_session_id(data) or thread_id
+    session_id = session_mgr.resolve_session_id(data) or thread_id
 
     try:
         # 1. Load thread via manager
@@ -285,20 +204,15 @@ async def load_history(sid, data):
 
         # 2. Re-hydrate target session only
         main_loop = asyncio.get_running_loop()
-        client_sessions = _get_client_sessions(sid)
-        existing_session = client_sessions.get(session_id)
-        if existing_session:
-            await _shutdown_session(sid, session_id, emit_reset=False)
-            client_sessions = _get_client_sessions(sid)
-
-        session = Session(sid, sio, main_loop, session_id=session_id, thread_id=thread_id)
-        client_sessions[session_id] = session
-        session.history = thread_data["messages"]
-
-        # Restore stats
-        stats = thread_data["stats"]
-        session.input_tokens = stats.get("input_tokens", 0)
-        session.output_tokens = stats.get("output_tokens", 0)
+        await session_mgr.restore_session_from_history(
+            sid=sid,
+            sio=sio,
+            main_loop=main_loop,
+            session_id=session_id,
+            thread_id=thread_id,
+            messages=thread_data["messages"],
+            stats=thread_data["stats"],
+        )
 
         # 3. Emit loaded data
         await sio.emit(
@@ -335,32 +249,32 @@ async def delete_history(sid, data):
 @sio.event
 async def stop_task(sid, data=None):
     """Signals the agent to stop current execution immediately."""
-    session_id = _resolve_session_id(data)
-    session = _pick_session(sid, session_id)
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
     if session and session.active_runner and getattr(session.active_runner, "task", None):
         session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
 
 
 @sio.event
 async def resolve_confirmation(sid, data):
-    session_id = _resolve_session_id(data)
-    session = _pick_session(sid, session_id)
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
     if session:
         session.renderer.on_resolve_confirmation(data["request_id"], data["status"])
 
 
 @sio.event
 async def resolve_user_decision(sid, data):
-    session_id = _resolve_session_id(data)
-    session = _pick_session(sid, session_id)
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
     if session:
         session.renderer.on_resolve_user_decision(data["request_id"], data["status"], data["value"])
 
 
 @sio.event
 async def resolve_cdp_page(sid, data):
-    session_id = _resolve_session_id(data)
-    session = _pick_session(sid, session_id)
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
     if session:
         session.renderer.on_resolve_cdp_page(data.get("status", "error"))
 
@@ -370,11 +284,9 @@ async def disconnect(sid):
     """Handles the socket disconnect event."""
     print(f"Client disconnected: {sid}")
 
-    client_sessions = sessions.get(sid, {})
+    client_sessions = session_mgr.get_client_sessions(sid)
     for session_id in list(client_sessions.keys()):
-        await _shutdown_session(sid, session_id, emit_reset=False)
-
-    sessions.pop(sid, None)
+        await session_mgr.shutdown_session(sid, session_id, sio, emit_reset=False)
 
 
 # --- Helper Functions ---
