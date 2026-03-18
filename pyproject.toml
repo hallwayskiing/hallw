@@ -37,6 +37,7 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=3.0.3",
     "aiosqlite>=0.22.1",
     "docling>=2.74.0",
+    "pefile>=2024.8.26",
 ]
 
 [project.urls]

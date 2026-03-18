@@ -1,19 +1,134 @@
 import type { AppState } from "@store/store";
 import type { StateCreator } from "zustand";
 
+export interface AttachedFile {
+  /** Unique ID for UI rendering */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Absolute path (local) or null if pending save */
+  path: string | null;
+  /** File size in bytes */
+  size: number;
+  /** MIME type if available */
+  type: string;
+  /** True while saving pasted file to temp */
+  isSaving: boolean;
+}
+
 export interface BottomSlice {
   input: string;
+  attachedFiles: AttachedFile[];
   setInput: (input: string) => void;
+  addFiles: (files: FileList | File[]) => Promise<void>;
+  addLocalPaths: (paths: string[]) => void;
+  removeFile: (id: string) => void;
+  clearFiles: () => void;
   submitInput: () => void;
 }
 
 export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (set, get) => ({
   input: "",
+  attachedFiles: [],
+
   setInput: (input) => set({ input }),
+
+  /**
+   * Handle File objects (from paste, drag-drop, or file picker).
+   * Saves them to temp via Electron IPC and stores the resulting path.
+   */
+  addFiles: async (fileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    // Create placeholders
+    const placeholders: AttachedFile[] = files.map((f) => ({
+      id: crypto.randomUUID(),
+      name: f.name,
+      path: null,
+      size: f.size,
+      type: f.type,
+      isSaving: true,
+    }));
+
+    set((state) => ({ attachedFiles: [...state.attachedFiles, ...placeholders] }));
+
+    // Save each file to temp via IPC
+    const saveTempFile = window.api?.saveTempFile;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const placeholder = placeholders[i];
+
+      try {
+        let savedPath: string;
+
+        if (saveTempFile) {
+          // Electron environment: save via main process IPC
+          const buffer = await file.arrayBuffer();
+          savedPath = await saveTempFile(file.name, buffer);
+        } else {
+          // Fallback: shouldn't happen in Electron context
+          console.warn("saveTempFile IPC not available");
+          set((state) => ({
+            attachedFiles: state.attachedFiles.filter((f) => f.id !== placeholder.id),
+          }));
+          continue;
+        }
+
+        // Update placeholder with real path. name is kept as original (placeholder.name), or use base name of savedPath
+        set((state) => ({
+          attachedFiles: state.attachedFiles.map((f) =>
+            f.id === placeholder.id ? { ...f, name: savedPath.split(/[\\/]/).pop() || savedPath, path: savedPath, isSaving: false } : f
+          ),
+        }));
+      } catch (err) {
+        console.error("Failed to save temp file:", err);
+        set((state) => ({
+          attachedFiles: state.attachedFiles.filter((f) => f.id !== placeholder.id),
+        }));
+      }
+    }
+  },
+
+  /**
+   * Handle local file paths (e.g., from native drag-drop with file paths).
+   */
+  addLocalPaths: (paths) => {
+    const newFiles: AttachedFile[] = paths.map((p) => {
+      const name = p.split(/[\\/]/).pop() || p;
+      return {
+        id: crypto.randomUUID(),
+        name,
+        path: p,
+        size: 0,
+        type: "",
+        isSaving: false,
+      };
+    });
+    set((state) => ({ attachedFiles: [...state.attachedFiles, ...newFiles] }));
+  },
+
+  removeFile: (id) => {
+    set((state) => ({ attachedFiles: state.attachedFiles.filter((f) => f.id !== id) }));
+  },
+
+  clearFiles: () => set({ attachedFiles: [] }),
+
   submitInput: () => {
-    const { input, startTask } = get();
-    if (!input.trim() || get().isRunning) return;
-    startTask(input);
-    set({ input: "" });
+    const { input, attachedFiles, startTask } = get();
+    const hasSavingFiles = attachedFiles.some((f) => f.isSaving);
+    if (hasSavingFiles) return; // Wait for files to finish saving
+    if (!input.trim() && attachedFiles.length === 0) return;
+    const activeId = get().activeSessionId;
+    const activeSession = activeId ? get().chatSessions[activeId] : null;
+    if (activeSession?.isRunning) return;
+
+    const filePaths = attachedFiles
+      .filter((f) => f.path !== null)
+      .map((f) => f.path as string);
+
+    startTask(input, filePaths);
+    set({ input: "", attachedFiles: [] });
   },
 });

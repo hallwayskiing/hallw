@@ -5,7 +5,7 @@ import { useAutoResize } from "../hooks/useAutoResize";
 import type { ChatInputProps } from "../types";
 
 export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
-  ({ value, onChange, onKeyDown, disabled, placeholder, onFocus, onBlur, className }, ref) => {
+  ({ value, onChange, onKeyDown, onPaste, disabled, placeholder, onFocus, onBlur, className }, ref) => {
     const maxHeight = 320;
     const { textareaRef, height } = useAutoResize(value, maxHeight);
     useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
@@ -13,7 +13,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     return (
       <form
         className={cn(
-          "absolute bottom-0 left-0 right-0 bg-muted/60 transition-colors rounded-2xl border border-border/50 flex items-center",
+          "w-full bg-muted/60 transition-colors rounded-2xl border border-border/50 flex items-center",
           "focus-within:ring-1 focus-within:ring-ring focus-within:border-ring",
           "transition-all duration-200 ease-in-out overflow-hidden shadow-sm",
           className
@@ -25,6 +25,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onFocus={onFocus}
           onBlur={onBlur}
           disabled={disabled}
@@ -32,7 +33,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           className={cn(
             "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none flex items-center",
             "resize-none py-2 px-4 text-[15px] text-foreground",
-            "placeholder:text-muted-foreground/50 leading-[24px]",
+            "placeholder:text-muted-foreground/50 leading-6",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             height >= maxHeight ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
           )}

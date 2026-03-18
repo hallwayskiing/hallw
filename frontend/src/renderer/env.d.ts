@@ -8,6 +8,7 @@ declare global {
       cdpCreateOrShow: (sessionId: string, headless?: boolean, userDataDir?: string) => Promise<boolean>;
       cdpHide: () => Promise<boolean>;
       cdpDestroy: (sessionId: string) => Promise<boolean>;
+      saveTempFile: (fileName: string, buffer: ArrayBuffer) => Promise<string>;
       windowMinimize: () => void;
       windowMaximize: () => void;
       windowClose: () => void;

@@ -9,6 +9,8 @@ const api = {
     ipcRenderer.invoke("cdp-create-or-show", sessionId, headless, userDataDir),
   cdpHide: () => ipcRenderer.invoke("cdp-hide"),
   cdpDestroy: (sessionId: string) => ipcRenderer.invoke("cdp-destroy", sessionId),
+  saveTempFile: (fileName: string, buffer: ArrayBuffer) =>
+    ipcRenderer.invoke("save-temp-file", fileName, buffer),
   windowMinimize: () => ipcRenderer.send("window-minimize"),
   windowMaximize: () => ipcRenderer.send("window-maximize"),
   windowClose: () => ipcRenderer.send("window-close"),

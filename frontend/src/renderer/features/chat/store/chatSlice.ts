@@ -278,7 +278,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       set((state) => removeSession(state, sessionId));
     },
 
-    startTask: (task) => {
+    startTask: (task, filePaths) => {
       const { _socket, activeSessionId, isChatting, chatSessions } = get();
       if (!_socket) return;
 
@@ -287,6 +287,14 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         !isChatting || !activeSessionId || activeSession?.isClosed ? crypto.randomUUID() : activeSessionId;
       const title = buildSessionTitle(task, sessionId);
       clearAllTimers(sessionId);
+
+      // Build user display content (show short name, but absolute paths go to backend)
+      const fileNames = filePaths?.map((p) => p.split(/[\\/]/).pop() || p) ?? [];
+      let filePreviews = "";
+      if (fileNames.length > 0) {
+        filePreviews = `\n${fileNames.map((f) => `🔗 *${f}*`).join("\n")}`;
+      }
+      const displayContent = `${task}${filePreviews}`.trim();
 
       set((state) => ({
         ...patchSession(
@@ -297,7 +305,10 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
             title: s.messages.length === 0 ? title : s.title,
             isClosed: false,
             hasFatalError: false,
-            messages: [...s.messages, { id: crypto.randomUUID(), type: "text", msgRole: "user", content: task }],
+            messages: [
+              ...s.messages,
+              { id: crypto.randomUUID(), type: "text", msgRole: "user", content: displayContent },
+            ],
             isRunning: true,
             isStreamingReasoning: false,
             streamingContent: "",
@@ -314,7 +325,11 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         isChatting: true,
       }));
 
-      _socket.emit("start_task", { task, session_id: sessionId });
+      const payload: Record<string, unknown> = { task, session_id: sessionId };
+      if (filePaths && filePaths.length > 0) {
+        payload.file_paths = filePaths;
+      }
+      _socket.emit("start_task", payload);
     },
 
     stopTask: () => {

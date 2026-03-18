@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import Any
 
 import aiosqlite
@@ -42,9 +43,16 @@ async def get_all_threads() -> list[dict[str, Any]]:
                     messages = latest.checkpoint["channel_values"].get("messages", [])
                     for msg in messages:
                         if isinstance(msg, HumanMessage):
-                            content = str(msg.content)
-                            if content.startswith("User: "):
-                                content = content[6:]
+                            content = ""
+                            if isinstance(msg.content, list):
+                                for block in msg.content:
+                                    if block.get("role", "") == "user":
+                                        content = block.get("text", "")
+                                        break
+                                if not content:
+                                    content = "Attached Files"
+                            else:
+                                content = str(msg.content)
                             title = content.strip()
                             break
 
@@ -116,14 +124,23 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
 
         if isinstance(msg, HumanMessage):
             role = "user"
-            content = str(msg.content)
-            if content.startswith("User: "):
-                content = content[6:]
+            content = msg.content
+            res = ""
+            if isinstance(content, list):
+                for block in content:
+                    if block.get("role", "") == "user":
+                        res = block.get("text", "")
+                        break
+                file_paths = msg.additional_kwargs.get("files", [])
+                for file_path in file_paths:
+                    res += f"\n 🔗 *{os.path.basename(file_path)}*"
+            else:
+                res = str(msg.content)
             serialized_msgs.append(
                 {
                     "role": role,
                     "type": "text",
-                    "content": content,
+                    "content": res,
                 }
             )
 

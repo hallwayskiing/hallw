@@ -13,6 +13,7 @@ export interface ChatInputProps {
   value: string;
   onChange: (val: string) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onPaste?: (e: React.ClipboardEvent) => void;
   disabled?: boolean;
   isFocused: boolean;
   placeholder?: string;

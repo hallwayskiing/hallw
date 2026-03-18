@@ -46,6 +46,32 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"));
 
+  // --- IPC: Save pasted/dropped file to temp and return path ---
+  ipcMain.handle("save-temp-file", async (_event, fileName: string, buffer: ArrayBuffer) => {
+    const { tmpdir } = await import("node:os");
+    const { mkdirSync, writeFileSync, existsSync } = await import("node:fs");
+    const { parse } = await import("node:path");
+
+    const tempDir = join(tmpdir(), "hallw-uploads");
+    mkdirSync(tempDir, { recursive: true });
+
+    const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_");
+
+    // Check namesake and append (1), (2), etc.
+    let filePath = join(tempDir, safeName);
+    let counter = 1;
+    while (existsSync(filePath)) {
+      const parsed = parse(safeName);
+      const newName = `${parsed.name} (${counter})${parsed.ext}`;
+      filePath = join(tempDir, newName);
+      counter++;
+    }
+
+    writeFileSync(filePath, Buffer.from(buffer));
+
+    return filePath;
+  });
+
   // Window control IPC handlers for custom title bar
   ipcMain.on("window-minimize", (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();

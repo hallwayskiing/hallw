@@ -123,7 +123,7 @@ export interface ChatSlice {
   resumeSession: (sessionId: string) => void;
   endSession: (sessionId: string) => void;
 
-  startTask: (task: string) => void;
+  startTask: (task: string, filePaths?: string[]) => void;
   stopTask: () => void;
   resetSession: () => void;
   handleConfirmationDecision: (status: ConfirmationStatus) => void;

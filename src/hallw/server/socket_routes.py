@@ -7,7 +7,15 @@ from pydantic import SecretStr
 
 from hallw.core import AgentRunner
 from hallw.tools.playwright.playwright_mgr import browser_disconnect
-from hallw.utils import config, get_system_prompt, history_mgr, init_logger, logger, save_config_to_env
+from hallw.utils import (
+    config,
+    get_system_prompt,
+    history_mgr,
+    init_logger,
+    logger,
+    parse_file,
+    save_config_to_env,
+)
 
 from .session import Session
 
@@ -103,8 +111,10 @@ async def start_task(sid, data):
     if not isinstance(data, dict):
         return
 
-    task_text = data.get("task")
-    if not task_text:
+    task_text = data.get("task", "")
+    file_paths: list[str] = data.get("file_paths", [])
+
+    if not task_text.strip() and not file_paths:
         return
 
     main_loop = asyncio.get_running_loop()
@@ -124,15 +134,26 @@ async def start_task(sid, data):
     if not session.history:
         session.history.append(SystemMessage(content=get_system_prompt()))
 
-    # Append the new user request
-    user_msg = HumanMessage(content=task_text)
-    session.history.append(user_msg)
+    # Build a single HumanMessage containing both text and files
+    if not file_paths:
+        message = HumanMessage(content=task_text)
+    else:
+        blocks = []
+        if task_text:
+            blocks.append({"type": "text", "text": task_text, "role": "user"})
+        for path in file_paths:
+            blocks.append(parse_file(path))
+        message = HumanMessage(content=blocks, additional_kwargs={"files": file_paths})
+    session.history.append(message)
 
     # Initialize logger for this task execution
     init_logger(session.thread_id)
 
-    # Immediately echo the user's message back to the UI
-    await sio.emit("user_message", {"session_id": session_id, "task": task_text}, room=sid)
+    # Echo user message back to the UI (include absolute file paths)
+    echo_data: dict = {"session_id": session_id, "task": task_text}
+    if file_paths:
+        echo_data["files"] = file_paths
+    await sio.emit("user_message", echo_data, room=sid)
 
     # Update recent models list
     _save_recent_model()

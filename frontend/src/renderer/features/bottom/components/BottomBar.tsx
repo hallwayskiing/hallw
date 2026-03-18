@@ -1,6 +1,6 @@
 import { useAppStore } from "@store/store";
-import { ArrowLeft, ScrollText, Settings, Zap } from "lucide-react";
-import { type SubmitEvent, useEffect, useRef, useState } from "react";
+import { ArrowLeft, Paperclip, ScrollText, Settings, X, Zap } from "lucide-react";
+import { type DragEvent, type SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { useActiveSession } from "../../chat/hooks/useActiveSession";
 import { useInputHistory } from "../hooks/useInputHistory";
@@ -20,11 +20,17 @@ export function BottomBar() {
   const resetSession = useAppStore((s) => s.resetSession);
   const toggleSettings = useAppStore((s) => s.toggleSettings);
   const toggleHistory = useAppStore((s) => s.toggleHistory);
+  const attachedFiles = useAppStore((s) => s.attachedFiles);
+  const addFiles = useAppStore((s) => s.addFiles);
+  const addLocalPaths = useAppStore((s) => s.addLocalPaths);
+  const removeFile = useAppStore((s) => s.removeFile);
 
   const [isFocused, setIsFocused] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const { handleHistoryNavigation, pushHistory } = useInputHistory();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const prevIsRunningRef = useRef(isRunning);
 
   useEffect(() => {
@@ -36,30 +42,188 @@ export function BottomBar() {
 
   const onSubmit = (e?: SubmitEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isRunning) return;
+    if ((!input.trim() && attachedFiles.length === 0) || isRunning) return;
     pushHistory(input);
     submitInput();
   };
 
+  // --- Paste handler ---
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+
+      if (files.length > 0) {
+        e.preventDefault();
+        void addFiles(files);
+      }
+    },
+    [addFiles]
+  );
+
+  // --- Drag & Drop ---
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+
+      // Check for file paths from Electron drag-drop (local files)
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        // In Electron, files from the OS have a `path` property
+        const localPaths: string[] = [];
+        const webFiles: File[] = [];
+
+        for (const file of files) {
+          const filePath = (file as File & { path?: string }).path;
+          if (filePath) {
+            localPaths.push(filePath);
+          } else {
+            webFiles.push(file);
+          }
+        }
+
+        if (localPaths.length > 0) {
+          addLocalPaths(localPaths);
+        }
+        if (webFiles.length > 0) {
+          void addFiles(webFiles);
+        }
+      }
+    },
+    [addFiles, addLocalPaths]
+  );
+
+  // --- File picker ---
+  const handleFilePickerClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      // In Electron, input files have `path` property
+      const localPaths: string[] = [];
+      const webFiles: File[] = [];
+
+      for (const file of files) {
+        const filePath = (file as File & { path?: string }).path;
+        if (filePath) {
+          localPaths.push(filePath);
+        } else {
+          webFiles.push(file);
+        }
+      }
+
+      if (localPaths.length > 0) {
+        addLocalPaths(localPaths);
+      }
+      if (webFiles.length > 0) {
+        void addFiles(webFiles);
+      }
+
+      // Reset input so re-selecting the same file triggers onChange
+      e.target.value = "";
+    },
+    [addFiles, addLocalPaths]
+  );
+
   return (
-    <div className="py-2.5 px-4 border-t border-border bg-background">
-      <div className="w-full max-w-5xl mx-auto flex items-center gap-3">
+    <fieldset
+      className="relative py-2.5 px-4 border-t border-border bg-background"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Floating Attached Files Display */}
+      {attachedFiles.length > 0 && (
+        <div className="absolute bottom-full mb-3 left-0 right-0 w-full px-4 pointer-events-none z-10 flex justify-center">
+          <div className="w-full max-w-5xl flex flex-wrap gap-2 items-end justify-start pointer-events-auto">
+            {attachedFiles.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/50 backdrop-blur-md border border-border/80 shadow-xs text-sm text-foreground/90 transition-all duration-200 hover:bg-background/70 group"
+              >
+                <div className="p-1.5 bg-muted/60 rounded-lg text-muted-foreground">
+                  <Paperclip className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col flex-1 min-w-0 max-w-37.5">
+                  <span className="truncate font-medium text-xs">{file.name}</span>
+                  {file.isSaving && (
+                    <span className="text-[10px] text-muted-foreground/60 animate-pulse">saving...</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFile(file.id)}
+                  className="ml-1 p-1 rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-5xl mx-auto flex items-end gap-3">
         {/* Back / Settings Button */}
-        <ActionButton
-          onClick={isChatting ? resetSession : toggleSettings}
-          icon={isChatting ? ArrowLeft : Settings}
-          tooltip={isChatting ? "Back" : "Settings"}
-        />
+        <div className="pb-1 text-muted-foreground">
+          <ActionButton
+            onClick={isChatting ? resetSession : toggleSettings}
+            icon={isChatting ? ArrowLeft : Settings}
+            tooltip={isChatting ? "Back" : "Settings"}
+          />
+        </div>
 
         {/* History/QuickStart Toggle */}
-        <ActionButton
-          onClick={toggleHistory}
-          icon={isHistoryOpen ? Zap : ScrollText}
-          tooltip={isHistoryOpen ? "Back to Quick Start" : "View History"}
-        />
+        <div className="pb-1 text-muted-foreground">
+          <ActionButton
+            onClick={toggleHistory}
+            icon={isHistoryOpen ? Zap : ScrollText}
+            tooltip={isHistoryOpen ? "Back to Quick Start" : "View History"}
+          />
+        </div>
+
+        {/* File Attachment Button */}
+        <div className="pb-1 text-muted-foreground">
+          <ActionButton
+            onClick={handleFilePickerClick}
+            icon={Paperclip}
+            tooltip="Attach files"
+            active={attachedFiles.length > 0}
+          />
+        </div>
+
+        {/* Hidden file input */}
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInputChange} />
 
         {/* Input Form Container */}
-        <div className="flex-1 relative h-10 z-20">
+        <div className={`flex-1 relative z-20 ${isDragOver ? "ring-2 ring-ring ring-offset-1 rounded-2xl" : ""}`}>
           <ChatInput
             ref={inputRef}
             value={input}
@@ -72,17 +236,25 @@ export function BottomBar() {
                 handleHistoryNavigation(e, input, setInput);
               }
             }}
+            onPaste={handlePaste}
             disabled={isRunning}
             isFocused={isFocused}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder={isRunning ? "Running..." : "Tell me what to do..."}
+            placeholder={isDragOver ? "Drop files here..." : isRunning ? "Running..." : "Tell me what to do..."}
           />
         </div>
 
         {/* Action Button (Send/Stop) */}
-        <SubmitButton isRunning={isRunning} hasInput={!!input.trim()} onStop={stopTask} onSubmit={onSubmit} />
+        <div className="pb-1">
+          <SubmitButton
+            isRunning={isRunning}
+            hasInput={!!input.trim() || attachedFiles.length > 0}
+            onStop={stopTask}
+            onSubmit={onSubmit}
+          />
+        </div>
       </div>
-    </div>
+    </fieldset>
   );
 }
