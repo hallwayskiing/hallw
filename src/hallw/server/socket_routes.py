@@ -61,7 +61,9 @@ async def start_task(sid, data):
         if task_text:
             blocks.append({"type": "text", "text": task_text, "role": "user"})
         for path in file_paths:
-            blocks.append(parse_file(path))
+            parsed_blocks = parse_file(path)
+            if parsed_blocks:
+                blocks.extend(parsed_blocks)
         message = HumanMessage(content=blocks, additional_kwargs={"files": file_paths})
     session.history.append(message)
 

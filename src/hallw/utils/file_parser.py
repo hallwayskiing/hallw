@@ -1,14 +1,18 @@
 import base64
+import concurrent.futures
 import datetime
+import io
 import os
 import subprocess
-
-import pefile
 
 from hallw.utils.hallw_logger import logger
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 MAX_TEXT_LENGTH = 100_000  # characters
+PDF_RENDER_SCALE = 2.0
+PDF_MAX_IMAGE_DIMENSION = 1568
+PDF_JPEG_QUALITY = 75
+PDF_MAX_WORKERS = 4
 
 IMAGE_EXTENSIONS = {
     ".png",
@@ -23,8 +27,9 @@ IMAGE_EXTENSIONS = {
     ".tif",
 }
 
+PDF_EXTENSIONS = {".pdf"}
+
 DOCLING_EXTENSIONS = {
-    ".pdf",
     ".docx",
     ".doc",
     ".pptx",
@@ -63,7 +68,7 @@ IMAGE_MIME_MAP = {
 }
 
 
-def parse_file(file_path: str) -> dict | None:
+def parse_file(file_path: str) -> list[dict] | None:
     """
     Parse a file of any file type.
 
@@ -71,7 +76,7 @@ def parse_file(file_path: str) -> dict | None:
         file_path: Absolute path to the file.
 
     Returns:
-        dict as a part of HumanMessage
+        one or more blocks as part of HumanMessage
     """
     file_path = os.path.normpath(file_path)
 
@@ -80,45 +85,110 @@ def parse_file(file_path: str) -> dict | None:
         return None
 
     if not os.path.exists(file_path):
-        return {"type": "text", "text": "(file not exists)"}
+        return [{"type": "text", "text": "(file not exists)"}]
 
     file_size = os.path.getsize(file_path)
     if file_size > MAX_FILE_SIZE:
-        return {"type": "text", "text": "(file too large)"}
+        return [{"type": "text", "text": "(file too large)"}]
 
     if file_size == 0:
-        return {"type": "text", "text": "(empty file)"}
+        return [{"type": "text", "text": "(empty file)"}]
 
     ext = os.path.splitext(file_path)[1].lower()
 
+    prefix_block = {"type": "text", "text": f"File: {file_path}"}
+
     # Route to appropriate handler
     if ext in IMAGE_EXTENSIONS:
-        return _parse_image(file_path, ext)
+        return [prefix_block, *_parse_image(file_path, ext)]
+    elif ext in PDF_EXTENSIONS:
+        return [prefix_block, *_parse_pdf(file_path)]
     elif ext in DOCLING_EXTENSIONS:
-        return _parse_document(file_path)
+        return [prefix_block, *_parse_document(file_path)]
     elif ext in BINARY_EXTENSIONS:
-        return _parse_binary(file_path, ext)
+        return [prefix_block, *_parse_binary(file_path, ext)]
     else:
-        return _parse_text_or_fallback(file_path)
+        return [prefix_block, *_parse_text_or_fallback(file_path)]
 
 
-def _parse_image(file_path: str, ext: str) -> dict:
+def _parse_image(file_path: str, ext: str) -> list[dict]:
     """Read image file and convert to base64."""
     try:
         mime = IMAGE_MIME_MAP.get(ext, "image/png")
         with open(file_path, "rb") as f:
             data = f.read()
         b64 = base64.b64encode(data).decode("utf-8")
-        return {
-            "type": "image_url",
-            "image_url": {"url": f"data:{mime};base64,{b64}"},
-        }
+        return [
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{b64}"},
+            }
+        ]
     except Exception as e:
-        return {"type": "text", "text": f"Failed to read image: {e}"}
+        return [{"type": "text", "text": f"Failed to read image: {e}"}]
 
 
-def _parse_document(file_path: str) -> dict:
-    """Parse PDF/DOCX/PPTX/XLSX using Docling DocumentConverter."""
+def _parse_pdf(file_path: str) -> list[dict]:
+    """Render PDF pages to image blocks."""
+    try:
+        import pypdfium2 as pdfium
+
+        pdf = pdfium.PdfDocument(file_path)
+        page_count = len(pdf)
+        pdf.close()
+
+        page_blocks: list[dict] = []
+        max_workers = min(PDF_MAX_WORKERS, max(1, page_count))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_page = {
+                executor.submit(_render_pdf_page, file_path, page_index): page_index for page_index in range(page_count)
+            }
+            page_results: dict[int, list[dict]] = {}
+
+            for future in concurrent.futures.as_completed(future_to_page):
+                page_index = future_to_page[future]
+                page_results[page_index] = future.result()
+
+        for page_index in range(page_count):
+            page_blocks.extend(page_results[page_index])
+
+        return page_blocks
+    except Exception as e:
+        logger.error(f"PDF parse failed for {file_path}: {e}")
+        return [{"type": "text", "text": f"Failed to parse PDF: {e}"}]
+
+
+def _render_pdf_page(file_path: str, page_index: int) -> list[dict]:
+    import pypdfium2 as pdfium
+    from PIL import Image
+
+    pdf = pdfium.PdfDocument(file_path)
+    page = pdf[page_index]
+    try:
+        bitmap = page.render(scale=PDF_RENDER_SCALE).to_pil()
+
+        if bitmap.mode not in ("RGB", "L"):
+            bitmap = bitmap.convert("RGB")
+
+        # Cap image size to control payload size and vision token cost.
+        if max(bitmap.size) > PDF_MAX_IMAGE_DIMENSION:
+            bitmap.thumbnail((PDF_MAX_IMAGE_DIMENSION, PDF_MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
+
+        buffer = io.BytesIO()
+        bitmap.save(buffer, format="JPEG", quality=PDF_JPEG_QUALITY, optimize=True)
+        b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]
+    except Exception as e:
+        logger.error(f"Failed to render PDF page {page_index} of {file_path}: {e}")
+        return [{"type": "text", "text": f"(failed to render page {page_index + 1}: {e})"}]
+    finally:
+        page.close()
+        pdf.close()
+
+
+def _parse_document(file_path: str) -> list[dict]:
+    """Parse DOC/DOCX/PPTX/XLSX using Docling DocumentConverter."""
     try:
         from docling.document_converter import DocumentConverter
 
@@ -129,14 +199,14 @@ def _parse_document(file_path: str) -> dict:
         if len(content) > MAX_TEXT_LENGTH:
             content = content[:MAX_TEXT_LENGTH] + "\n\n... (truncated)"
 
-        return {"type": "text", "text": content}
+        return [{"type": "text", "text": content}]
     except Exception as e:
         logger.error(f"Docling parse failed for {file_path}: {e}")
         # Fallback: try reading as text
-        return {"type": "text", "text": f"Failed to parse document: {e}"}
+        return [{"type": "text", "text": f"Failed to parse document: {e}"}]
 
 
-def _parse_binary(file_path: str, ext: str) -> dict:
+def _parse_binary(file_path: str, ext: str) -> list[dict]:
     """
     Analyze binary files:
     1. Extract visible strings
@@ -156,13 +226,13 @@ def _parse_binary(file_path: str, ext: str) -> dict:
             sections.append("## PE Structure Analysis\n" + pe_info)
 
     if not sections:
-        return {"type": "text", "text": "(No readable content extracted from binary file)"}
+        return [{"type": "text", "text": "(No readable content extracted from binary file)"}]
 
     content = "\n\n".join(sections)
     if len(content) > MAX_TEXT_LENGTH:
         content = content[:MAX_TEXT_LENGTH] + "\n\n... (truncated)"
 
-    return {"type": "text", "text": content}
+    return [{"type": "text", "text": content}]
 
 
 def _extract_strings(file_path: str, min_length: int = 4) -> str:
@@ -194,6 +264,8 @@ def _extract_strings(file_path: str, min_length: int = 4) -> str:
 def _analyze_pe(file_path: str) -> str:
     """Analyze PE structure using pefile library."""
     try:
+        import pefile
+
         pe = pefile.PE(file_path, fast_load=True)
         pe.parse_data_directories(
             directories=[
@@ -260,7 +332,7 @@ def _analyze_pe(file_path: str) -> str:
         return f"(PE analysis failed: {e})"
 
 
-def _parse_text_or_fallback(file_path: str) -> dict:
+def _parse_text_or_fallback(file_path: str) -> list[dict]:
     """Try reading as text; if it fails (binary), fall back to string extraction."""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -271,11 +343,11 @@ def _parse_text_or_fallback(file_path: str) -> dict:
         if file_size > MAX_TEXT_LENGTH:
             content += "\n\n... (truncated)"
 
-        return {"type": "text", "text": content}
+        return [{"type": "text", "text": content}]
 
     except UnicodeDecodeError:
         # It's a binary file we don't recognize by extension
         ext = os.path.splitext(file_path)[1].lower()
         return _parse_binary(file_path, ext)
     except Exception as e:
-        return {"type": "text", "text": f"Failed to read file: {e}"}
+        return [{"type": "text", "text": f"Failed to read file: {e}"}]
