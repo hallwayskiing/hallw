@@ -72,6 +72,7 @@ def get_system_prompt() -> str:
     - If you completed multiple stages at once, pass the number of completed stages to `end_current_stage` tool.
     - If your plan needs adjustment mid-task, call `edit_stages` to replace all remaining stages with a new plan.
     - During stages, you can only receive from user by `request_user_decision` tool.
+    - At the very last stage, make sure output everything needed before ending it.
     </stages>
 
     <exec>
@@ -83,7 +84,7 @@ def get_system_prompt() -> str:
 
     <file_operations>
     - For file operations, use **read_file** and **write_file** instead of system commands to get better availability.
-    - Don't call `write_file` unless clearly instructed by the user.
+    - Don't call `write_file` unless explicitly instructed by the user.
     - When modifying an existing file, prefer **edit_file** instead of rewriting the whole file.
     - If creating a large file, use append mode to write the file in chunks to avoid long processing time.
     - You **MUST** save your work in the `workspace/` directory.
@@ -98,7 +99,7 @@ def get_system_prompt() -> str:
     <user_profile>
     {get_user_profile()}
     You need to use this profile to complete tasks that are related to user's personal information.
-    If any information is missing, ask the user to provide it.
+    If any information is missing, ask user to provide it.
     If user provides important information, update it in USER.md.
     </user_profile>
 
@@ -108,6 +109,4 @@ def get_system_prompt() -> str:
     - Use markdown style for all your plain responses, for they will be shown in a markdown viewer.
     - Prefer markdown to save files and structure them gracefully for better readability.
     </formats>
-
-    **Now analyze the task, arrange your plan, and take actions.**
     """).strip()
