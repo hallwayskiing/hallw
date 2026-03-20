@@ -22,7 +22,7 @@ export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitBu
       type="button"
       onClick={isRunning ? onStop : (e) => onSubmit(e as unknown as SubmitEvent)}
       className={cn(
-        "group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 overflow-hidden select-none",
+        "group relative flex items-center justify-center w-[38px] h-[38px] rounded-xl transition-all duration-200 overflow-hidden select-none",
         isRunning && "bg-destructive/90 text-white hover:bg-destructive",
         isActive && "bg-linear-to-br from-sky-400 to-blue-600 text-white",
         !isRunning && !hasInput && "bg-transparent text-muted-foreground pointer-events-none cursor-default"
@@ -51,7 +51,7 @@ export function SubmitButton({ isRunning, hasInput, onStop, onSubmit }: SubmitBu
           isActive && "group-hover:scale-110 group-active:scale-100"
         )}
       >
-        {isRunning ? <Square className="w-5 h-5 fill-current" /> : <Send className="w-6 h-6" />}
+        {isRunning ? <Square className="w-4 h-4 fill-current" /> : <Send className="w-[22px] h-[22px]" />}
       </div>
     </button>
   );

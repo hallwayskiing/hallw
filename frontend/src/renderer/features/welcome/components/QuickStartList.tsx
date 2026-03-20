@@ -26,7 +26,7 @@ function QuickStartCard({ icon, color, text, onClick, delay, isLoaded, disabled 
       disabled={disabled}
       className={cn(
         "group w-full flex items-center gap-3 p-3 text-left rounded-xl",
-        "bg-card/20 backdrop-blur-sm border border-border dark:border-border/30",
+        "bg-card/35 backdrop-blur-sm border border-border dark:border-border/30",
         "transition-all duration-400 ease-out",
         colors.bg,
         colors.border,

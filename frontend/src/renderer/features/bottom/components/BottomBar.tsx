@@ -1,3 +1,4 @@
+import { cn } from "@lib/utils";
 import { useAppStore } from "@store/store";
 import { ArrowLeft, Paperclip, ScrollText, Settings, X, Zap } from "lucide-react";
 import { type DragEvent, type SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -127,7 +128,7 @@ export function BottomBar() {
     if (pickedPaths.length > 0) {
       addLocalPaths(pickedPaths);
     }
-  }, []);
+  }, [addLocalPaths]);
 
   return (
     <fieldset
@@ -139,11 +140,11 @@ export function BottomBar() {
       {/* Floating Attached Files Display */}
       {attachedFiles.length > 0 && (
         <div className="absolute bottom-full mb-3 left-0 right-0 w-full px-4 pointer-events-none z-10 flex justify-center">
-          <div className="w-full max-w-5xl flex flex-wrap gap-2 items-end justify-start pointer-events-auto">
+          <div className="w-full max-w-5xl flex flex-wrap gap-2 items-end justify-start pointer-events-none">
             {attachedFiles.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/50 backdrop-blur-md border border-border/80 shadow-xs text-sm text-foreground/90 transition-all duration-200 hover:bg-background/70 group"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/50 backdrop-blur-md border border-border/80 shadow-xs text-sm text-foreground/90 transition-all duration-200 hover:bg-background/70 pointer-events-auto group"
               >
                 <div className="p-1.5 bg-muted/60 rounded-lg text-muted-foreground">
                   <Paperclip className="w-4 h-4" />
@@ -168,9 +169,9 @@ export function BottomBar() {
         </div>
       )}
 
-      <div className="w-full max-w-5xl mx-auto flex items-end gap-3">
+      <div className="w-full max-w-5xl mx-auto flex items-center gap-3 h-[38px]">
         {/* Back / Settings Button */}
-        <div className="pb-1 text-muted-foreground">
+        <div className="flex items-center h-[38px] text-muted-foreground transition-all duration-200">
           <ActionButton
             onClick={isChatting ? resetSession : toggleSettings}
             icon={isChatting ? ArrowLeft : Settings}
@@ -179,7 +180,7 @@ export function BottomBar() {
         </div>
 
         {/* History/QuickStart Toggle */}
-        <div className="pb-1 text-muted-foreground">
+        <div className="flex items-center h-[38px] text-muted-foreground transition-all duration-200">
           <ActionButton
             onClick={toggleHistory}
             icon={isHistoryOpen ? Zap : ScrollText}
@@ -188,7 +189,7 @@ export function BottomBar() {
         </div>
 
         {/* File Attachment Button */}
-        <div className="pb-1 text-muted-foreground">
+        <div className="flex items-center h-[38px] text-muted-foreground transition-all duration-200">
           <ActionButton
             onClick={handleFilePickerClick}
             icon={Paperclip}
@@ -198,30 +199,37 @@ export function BottomBar() {
         </div>
 
         {/* Input Form Container */}
-        <div className={`flex-1 relative z-20 ${isDragOver ? "ring-2 ring-ring ring-offset-1 rounded-2xl" : ""}`}>
-          <ChatInput
-            ref={inputRef}
-            value={input}
-            onChange={setInput}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit();
-              } else {
-                handleHistoryNavigation(e, input, setInput);
-              }
-            }}
-            onPaste={handlePaste}
-            disabled={isRunning}
-            isFocused={isFocused}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder={isDragOver ? "Drop files here..." : isRunning ? "Running..." : "Tell me what to do..."}
-          />
+        <div className="flex-1 relative h-[38px] z-20">
+          <div
+            className={cn(
+              "absolute bottom-0 left-0 right-0 transition-all duration-200",
+              isDragOver ? "ring-2 ring-ring ring-offset-1 rounded-2xl" : ""
+            )}
+          >
+            <ChatInput
+              ref={inputRef}
+              value={input}
+              onChange={setInput}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  onSubmit();
+                } else {
+                  handleHistoryNavigation(e, input, setInput);
+                }
+              }}
+              onPaste={handlePaste}
+              disabled={isRunning}
+              isFocused={isFocused}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={isDragOver ? "Drop files here..." : isRunning ? "Running..." : "Tell me what to do..."}
+            />
+          </div>
         </div>
 
         {/* Action Button (Send/Stop) */}
-        <div className="pb-1">
+        <div className="flex items-center h-[38px] transition-all duration-200">
           <SubmitButton
             isRunning={isRunning}
             hasInput={!!input.trim() || attachedFiles.length > 0}

@@ -29,9 +29,9 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         target === document.body ? "fixed inset-0" : "absolute inset-0"
       )}
     >
-      <div className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-lg flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-2xl bg-[#fdfaf2] border border-border/20 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border-border/20 bg-[#fdfaf2]">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -112,7 +112,6 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                       className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                     >
                       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copied ? "Copied" : "Copy"}
                     </button>
                   </div>
                   <pre className="text-xs font-mono p-4 bg-muted/50 rounded-md border border-border overflow-auto flex-1 min-h-0">
@@ -135,7 +134,6 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                   className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {copied ? "Copied" : "Copy"}
                 </button>
               </div>
               <div className="flex-1 overflow-auto p-2 space-y-2">
@@ -163,7 +161,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border bg-muted/10 flex justify-end">
+        <div className="p-4 border-t border-border/20 bg-[#fdfaf2] flex justify-end">
           <button
             type="button"
             onClick={onClose}

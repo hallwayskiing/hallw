@@ -24,6 +24,7 @@ import {
   Sun,
   User,
   UserCircle,
+  X,
   Zap,
 } from "lucide-react";
 
@@ -116,8 +117,10 @@ export function AppearancePage() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const userAvatarIcon = useAppStore((s) => s.userAvatarIcon);
   const aiAvatarIcon = useAppStore((s) => s.aiAvatarIcon);
+  const showStars = useAppStore((s) => s.showStars);
   const setUserAvatarIcon = useAppStore((s) => s.setUserAvatarIcon);
   const setAiAvatarIcon = useAppStore((s) => s.setAiAvatarIcon);
+  const toggleStars = useAppStore((s) => s.toggleStars);
 
   return (
     <div className="space-y-5">
@@ -155,6 +158,42 @@ export function AppearancePage() {
             )}
           </button>
         </div>
+
+        {theme === "dark" && (
+          <>
+            <div className="border-t border-border/20" />
+            <div className="flex items-center justify-between py-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground">Star Particles</span>
+                <span className="text-xs text-muted-foreground">
+                  Toggle background star particles in welcome screen
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleStars}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
+                  showStars
+                    ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
+                    : "bg-muted/30 text-muted-foreground"
+                )}
+              >
+                {showStars ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm font-medium">On</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4" />
+                    <span className="text-sm font-medium">Off</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </SectionCard>
 
       <SectionCard

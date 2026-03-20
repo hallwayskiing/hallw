@@ -8,7 +8,10 @@ export interface UISlice {
   showCdpView: boolean;
   userAvatarIcon: string;
   aiAvatarIcon: string;
+  showStars: boolean;
   setTheme: (theme: "light" | "dark") => void;
+  setShowStars: (show: boolean) => void;
+  toggleStars: () => void;
   toggleTheme: () => void;
   toggleSettings: () => void;
   setIsChatting: (isChatting: boolean) => void;
@@ -27,9 +30,20 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => {
     isSettingsOpen: false,
     isChatting: false,
     showCdpView: false,
+    showStars: localStorage.getItem("showStars") !== "false",
     userAvatarIcon: localStorage.getItem("userAvatarIcon") || "User",
     aiAvatarIcon: localStorage.getItem("aiAvatarIcon") || "Bot",
     setTheme: (theme) => set({ theme }),
+    setShowStars: (show) => {
+      localStorage.setItem("showStars", show.toString());
+      set({ showStars: show });
+    },
+    toggleStars: () =>
+      set((state) => {
+        const newVal = !state.showStars;
+        localStorage.setItem("showStars", newVal.toString());
+        return { showStars: newVal };
+      }),
     toggleTheme: () =>
       set((state) => {
         const newTheme = state.theme === "light" ? "dark" : "light";

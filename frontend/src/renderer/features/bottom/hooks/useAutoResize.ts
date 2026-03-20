@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 export function useAutoResize(text: string, maxHeight: number = 320) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [height, setHeight] = useState(40);
+  const [height, setHeight] = useState(38);
 
   useLayoutEffect(() => {
     const node = textareaRef.current;
@@ -11,7 +11,7 @@ export function useAutoResize(text: string, maxHeight: number = 320) {
     node.style.height = "0";
 
     const scrollHeight = node.scrollHeight;
-    const nextHeight = Math.min(Math.max(scrollHeight, 40), maxHeight);
+    const nextHeight = Math.min(Math.max(scrollHeight, 38), maxHeight);
 
     setHeight(nextHeight);
 
