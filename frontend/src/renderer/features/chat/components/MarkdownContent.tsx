@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkBreaks from "remark-breaks";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -18,7 +19,7 @@ export const MarkdownContent = memo(({ content, isStreaming }: { content: string
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks, remarkCjkFriendly]}
         rehypePlugins={[rehypeKatex, rehypeHighlight]}
         components={mdComponents}
       >
