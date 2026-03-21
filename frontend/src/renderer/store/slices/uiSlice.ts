@@ -23,7 +23,7 @@ export interface UISlice {
 }
 
 export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => {
-  const savedTheme = (localStorage.getItem("theme") as "light" | "dark") || "dark";
+  const savedTheme = (localStorage.getItem("theme") as "light" | "dark") || "light";
   document.documentElement.classList.toggle("dark", savedTheme === "dark");
   return {
     theme: savedTheme,
