@@ -5,7 +5,18 @@ import { useState } from "react";
 import type { HeroSectionProps } from "../types";
 
 export function HeroSection({ isLoaded }: HeroSectionProps) {
-  const [spinTick, setSpinTick] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+
+  const handleSpin = () => {
+    setIsSpinning(false);
+    // Double requestAnimationFrame to ensure the class is removed and then re-added
+    // which restarts the one-shot animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsSpinning(true);
+      });
+    });
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center z-10 pointer-events-none">
@@ -21,42 +32,46 @@ export function HeroSection({ isLoaded }: HeroSectionProps) {
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
         >
-          <div className="relative w-28 h-28 flex items-center justify-center perspective-midrange animate-hero-drift">
-            {/* Stable Gradient Definition */}
-            <svg className="absolute w-0 h-0" aria-hidden="true">
-              <defs>
-                <linearGradient id="hero-gradient" x1="0" y1="0" x2="0" y2="200" gradientUnits="userSpaceOnUse">
-                  <stop offset="0" stopColor="#05B6FF" />
-                  <stop offset="0.166" stopColor="#8D46FF" />
-                  <stop offset="0.333" stopColor="#FF5B37" />
-                  <stop offset="0.5" stopColor="#05B6FF" />
-                  <stop offset="0.666" stopColor="#8D46FF" />
-                  <stop offset="0.833" stopColor="#FF5B37" />
-                  <stop offset="1" stopColor="#05B6FF" />
-                  <animateTransform
-                    attributeName="gradientTransform"
-                    type="translate"
-                    from="0 0"
-                    to="0 -100"
-                    dur="30s"
-                    repeatCount="indefinite"
-                  />
-                </linearGradient>
-              </defs>
-            </svg>
-
+          <div className="relative w-28 h-28 flex items-center justify-center perspective-midrange">
             <button
               type="button"
-              key={spinTick}
-              onClick={() => setSpinTick((v) => v + 1)}
-              className="relative w-18 h-18 pointer-events-auto cursor-pointer animate-hero-spin-y"
+              onClick={handleSpin}
+              onAnimationEnd={() => setIsSpinning(false)}
+              className={cn(
+                "relative w-18 h-18 pointer-events-auto cursor-pointer",
+                isSpinning && "animate-hero-spin-y"
+              )}
             >
-              <svg viewBox="0 0 100 100" className="relative w-18 h-18" aria-hidden="true">
-                <path
-                  d="M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z"
-                  fill="url(#hero-gradient)"
+                <div
+                  className="w-full h-full animate-hero-gradient blur-xs opacity-80 absolute inset-0 rounded-full"
+                  style={{
+                    background: 'linear-gradient(to bottom, #05B6FF, #4B5EFC, #8D46FF, #D146FF, #FF5B37, #FF8B37, #05B6FF)',
+                    backgroundSize: '100% 300%',
+                    maskImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z'/%3E%3C/svg%3E")`,
+                    maskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    maskSize: 'contain',
+                    WebkitMaskImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z'/%3E%3C/svg%3E")`,
+                    WebkitMaskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    WebkitMaskSize: 'contain'
+                  }}
                 />
-              </svg>
+                <div
+                  className="w-full h-full animate-hero-gradient"
+                  style={{
+                    background: 'linear-gradient(to bottom, #05B6FF, #4B5EFC, #8D46FF, #D146FF, #FF5B37, #FF8B37, #05B6FF)',
+                    backgroundSize: '100% 300%',
+                    maskImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z'/%3E%3C/svg%3E")`,
+                    maskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    maskSize: 'contain',
+                    WebkitMaskImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 C53 16 58 32 96 50 C58 68 53 84 50 100 C47 84 42 68 4 50 C42 32 47 16 50 0 Z'/%3E%3C/svg%3E")`,
+                    WebkitMaskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    WebkitMaskSize: 'contain'
+                  }}
+                />
             </button>
           </div>
         </div>
