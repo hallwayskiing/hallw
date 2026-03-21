@@ -4,13 +4,13 @@ from typing import Self
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables.config import RunnableConfig
-from langchain_litellm import ChatLiteLLM
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from hallw.utils import config
 
 from .agent_event_dispatcher import AgentEventDispatcher
 from .agent_graph import build_graph
+from .agent_llm_mgr import AgentLLMManager
 from .agent_renderer import AgentRenderer
 from .agent_state import AgentState
 
@@ -100,8 +100,8 @@ class AgentRunner:
     ) -> Self:
         """Factory method to create and initialize a new AgentRunner instance."""
         # LLM Configuration
-        llm = ChatLiteLLM(
-            model=config.model_name,
+        llm = AgentLLMManager.get_llm(
+            config.model_name,
             temperature=config.model_temperature,
             max_tokens=config.model_max_output_tokens,
             streaming=True,
