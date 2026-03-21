@@ -31,9 +31,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           disabled={disabled}
           placeholder={placeholder}
           className={cn(
-            "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none flex items-center",
-            "resize-none py-1.5 px-4 text-[15px] text-foreground",
-            "placeholder:text-muted-foreground/50 leading-6",
+            "w-full h-full bg-transparent border-0 focus:ring-0 focus:outline-none",
+            "resize-none py-2 px-4 text-[14px] text-foreground",
+            "placeholder:text-muted-foreground/50 leading-[20px]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             height >= maxHeight ? "overflow-y-auto custom-scrollbar" : "overflow-y-hidden"
           )}
