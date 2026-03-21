@@ -1,13 +1,15 @@
 import { BottomBar } from "@features/bottom";
-import { ChatArea } from "@features/chat";
-import { Settings } from "@features/settings";
-import { Sidebar } from "@features/sidebar";
 import { TitleBar } from "@features/titlebar";
 import { Welcome } from "@features/welcome";
 import { useAppStore } from "@store/store";
-import "katex/dist/katex.min.css";
+import { lazy, Suspense } from "react";
 
 import { useAppInitialization } from "./hooks/useAppInitialization";
+
+// Lazy load heavy components
+const ChatArea = lazy(() => import("@features/chat").then((m) => ({ default: m.ChatArea })));
+const Settings = lazy(() => import("@features/settings").then((m) => ({ default: m.Settings })));
+const Sidebar = lazy(() => import("@features/sidebar").then((m) => ({ default: m.Sidebar })));
 
 export default function App() {
   useAppInitialization();
@@ -44,12 +46,16 @@ export default function App() {
                   className={`flex-1 min-w-0 h-full flex flex-row relative ${showCdpView ? "max-w-[$var(--center-col)]" : ""}`}
                 >
                   <div className="flex-1 min-w-0 h-full overflow-hidden">
-                    <ChatArea />
+                    <Suspense fallback={<div className="flex-1 animate-pulse bg-muted/20" />}>
+                      <ChatArea />
+                    </Suspense>
                   </div>
 
                   {/* Sidebar: Collapsable at Right Side */}
                   <div className="w-12 shrink-0 border-l border-transparent" />
-                  <Sidebar className="absolute top-0 right-0 h-full pt-8 shrink-0 border-l border-border shadow-2xl bg-background z-50" />
+                  <Suspense fallback={null}>
+                    <Sidebar className="absolute top-0 right-0 h-full pt-8 shrink-0 border-l border-border shadow-2xl bg-background z-50" />
+                  </Suspense>
                 </div>
               </div>
             )}
@@ -63,7 +69,9 @@ export default function App() {
       </main>
 
       {/* Global Modals */}
-      <Settings isOpen={isSettingsOpen} />
+      <Suspense fallback={null}>
+        <Settings isOpen={isSettingsOpen} />
+      </Suspense>
     </div>
   );
 }

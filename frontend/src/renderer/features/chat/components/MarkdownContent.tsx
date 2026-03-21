@@ -7,6 +7,7 @@ import remarkBreaks from "remark-breaks";
 import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import "katex/dist/katex.min.css";
 
 import { mdComponents } from "./ui/MarkdownComponents";
 

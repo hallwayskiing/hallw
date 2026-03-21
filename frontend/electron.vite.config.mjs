@@ -16,5 +16,26 @@ export default defineConfig({
       },
     },
     plugins: [tailwindcss(), react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-react": ["react", "react-dom", "zustand"],
+            "vendor-utils": ["lucide-react", "clsx", "tailwind-merge"],
+            "vendor-markdown": [
+              "react-markdown",
+              "rehype-highlight",
+              "rehype-katex",
+              "remark-breaks",
+              "remark-cjk-friendly",
+              "remark-gfm",
+              "remark-math",
+              "highlight.js",
+              "katex",
+            ],
+          },
+        },
+      },
+    },
   },
 });
