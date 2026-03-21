@@ -94,7 +94,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
         )}
       >
         <div className="flex items-center gap-2">
-          <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
+          <div className="relative inline-flex items-center justify-center w-5 h-5 shrink-0 align-middle translate-y-[1.5px]">
             {theme === "dark" && (
               <div className="absolute inset-0 bg-emerald-400/60 blur-lg rounded-full animate-pulse" />
             )}
@@ -107,7 +107,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
           </div>
           <span
             className={cn(
-              "text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
+              "inline-block align-middle text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
               theme === "dark"
                 ? "font-light text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]"
                 : "font-medium text-emerald-600"

@@ -102,7 +102,7 @@ export function QuickStartList({
       >
         {/* Header */}
         <div className="flex items-center gap-2">
-          <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
+          <div className="relative inline-flex items-center justify-center w-5 h-5 shrink-0 align-middle translate-y-[1.5px]">
             {theme === "dark" && (
               <div className="absolute inset-0 bg-amber-400/60 blur-lg rounded-full animate-pulse" />
             )}
@@ -115,7 +115,7 @@ export function QuickStartList({
           </div>
           <span
             className={cn(
-              "text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
+              "inline-block align-middle text-[13px] uppercase tracking-[0.2em] whitespace-nowrap",
               theme === "dark"
                 ? "font-light text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
                 : "font-medium text-amber-600"
