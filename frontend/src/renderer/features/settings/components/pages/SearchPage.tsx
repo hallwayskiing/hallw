@@ -11,12 +11,7 @@ export function SearchPage({
   handleChange: (key: string, value: unknown) => void;
 }) {
   return (
-    <SectionCard
-      title="Web Search"
-      icon={<Search className="w-4 h-4" />}
-      color="text-foreground"
-      gradient="from-muted/20 to-muted/5"
-    >
+    <SectionCard title="Web Search" icon={Search}>
       <InputGroup label="Search Engine" desc="Preferred search provider">
         <Combobox
           value={(config.search_engine as string) || "Tavily"}

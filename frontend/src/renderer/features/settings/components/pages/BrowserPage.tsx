@@ -12,12 +12,7 @@ export function BrowserPage({
 }) {
   return (
     <div className="space-y-6">
-      <SectionCard
-        title="Browser Settings"
-        icon={<Monitor className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="Browser Settings" icon={Monitor}>
         <InputGroup label="Chrome User Data Directory" desc="Path to persistent browser profile">
           <Input
             name="chrome_user_data_dir"
@@ -34,12 +29,7 @@ export function BrowserPage({
           />
         </InputGroup>
       </SectionCard>
-      <SectionCard
-        title="Timeouts (ms)"
-        icon={<Clock className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="Timeouts (ms)" icon={Clock}>
         <div className="grid grid-cols-3 gap-4">
           <InputGroup label="Page Navigate">
             <Input

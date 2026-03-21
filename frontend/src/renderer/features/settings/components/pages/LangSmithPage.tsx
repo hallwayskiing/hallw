@@ -11,19 +11,13 @@ export function LangSmithPage({
   handleChange: (key: string, value: unknown) => void;
 }) {
   return (
-    <SectionCard
-      title="Tracing & Observability"
-      icon={<Gauge className="w-4 h-4" />}
-      color="text-foreground"
-      gradient="from-muted/20 to-muted/5"
-    >
+    <SectionCard title="Tracing & Observability" icon={Gauge}>
       <ToggleGroup
         id="langsmith_tracing"
         label="Enable LangSmith Tracing"
         desc="Send traces to LangSmith for debugging"
         checked={(config.langsmith_tracing as boolean) || false}
         onChange={(checked) => handleChange("langsmith_tracing", checked)}
-        color="bg-teal-600"
       />
       <div className="border-t border-border/30 pt-4 mt-4 space-y-4">
         <InputGroup label="Project Name" desc="LangSmith project identifier">

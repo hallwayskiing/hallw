@@ -11,12 +11,7 @@ export function LoggingPage({
   handleChange: (key: string, value: unknown) => void;
 }) {
   return (
-    <SectionCard
-      title="System Logging"
-      icon={<Logs className="w-4 h-4" />}
-      color="text-foreground"
-      gradient="from-muted/20 to-muted/5"
-    >
+    <SectionCard title="System Logging" icon={Logs}>
       <InputGroup label="Log Level" desc="Verbosity of logging output">
         <Combobox
           value={(config.logging_level as string) || "INFO"}

@@ -23,12 +23,7 @@ export function KeysPage({
   handleChange: (key: string, value: unknown) => void;
 }) {
   return (
-    <SectionCard
-      title="Provider API Keys"
-      icon={<Key className="w-4 h-4" />}
-      color="text-foreground"
-      gradient="from-muted/20 to-muted/5"
-    >
+    <SectionCard title="Provider API Keys" icon={Key}>
       <div className="space-y-4">
         {ALL_PROVIDERS.map((provider) => (
           <InputGroup key={provider.key} label={provider.label} desc={`${provider.label} API Key`}>

@@ -13,19 +13,13 @@ export function ExecutionPage({
 }) {
   return (
     <div className="space-y-6">
-      <SectionCard
-        title="System Command Execution"
-        icon={<Terminal className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="System Command Execution" icon={Terminal}>
         <ToggleGroup
           id="auto_allow_exec"
           label="Auto-allow Execute Command"
           desc="Skip confirmation for system commands"
           checked={(config.auto_allow_exec as boolean) || false}
           onChange={(checked) => handleChange("auto_allow_exec", checked)}
-          color="bg-teal-600"
         />
         {(config.auto_allow_exec as boolean) && (
           <div className="border-t border-border/30 pt-4 mt-4">
@@ -39,12 +33,7 @@ export function ExecutionPage({
           </div>
         )}
       </SectionCard>
-      <SectionCard
-        title="Timeouts (s)"
-        icon={<Clock className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="Timeouts (s)" icon={Clock}>
         <div className="grid grid-cols-3 gap-4">
           <InputGroup label="Command Execution">
             <Input

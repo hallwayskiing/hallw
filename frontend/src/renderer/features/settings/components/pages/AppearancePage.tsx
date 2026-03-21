@@ -79,7 +79,7 @@ function AvatarPicker({
   activeBg: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 py-3">
+    <div className="flex flex-col gap-2 py-1">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium text-foreground">{label}</span>
         <span className="text-xs text-muted-foreground">{description}</span>
@@ -124,25 +124,19 @@ export function AppearancePage() {
 
   return (
     <div className="space-y-5">
-      <SectionCard
-        title="Theme"
-        icon={<Palette className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
-        <div className="flex items-center justify-between py-3">
+      <SectionCard title="Theme" icon={Palette}>
+        <div className="flex items-center justify-between py-1">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-foreground">Dark Mode</span>
-            <span className="text-xs text-muted-foreground">Toggle between light and dark theme</span>
+            <span className="text-sm font-medium text-foreground">App Theme</span>
           </div>
           <button
             type="button"
             onClick={toggleTheme}
             className={cn(
-              "relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
+              "relative flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 w-22",
               theme === "dark"
                 ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
-                : "bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-300"
+                : "bg-linear-to-r from-[#FFD60A]/25 to-[#FF9500]/25 text-amber-700 font-semibold shadow-sm shadow-amber-200/30"
             )}
           >
             {theme === "dark" ? (
@@ -162,18 +156,15 @@ export function AppearancePage() {
         {theme === "dark" && (
           <>
             <div className="border-t border-border/20" />
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-1">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">Star Particles</span>
-                <span className="text-xs text-muted-foreground">
-                  Toggle background star particles in welcome screen
-                </span>
+                <span className="text-sm font-medium text-foreground">Show Stars</span>
               </div>
               <button
                 type="button"
                 onClick={toggleStars}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
+                  "relative flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 w-20",
                   showStars
                     ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300"
                     : "bg-muted/30 text-muted-foreground"
@@ -196,15 +187,10 @@ export function AppearancePage() {
         )}
       </SectionCard>
 
-      <SectionCard
-        title="Avatars"
-        icon={<User className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="Avatars" icon={User}>
         <AvatarPicker
           label="Your Avatar"
-          description="Choose an icon for your messages"
+          description=""
           options={USER_AVATAR_OPTIONS}
           selected={userAvatarIcon}
           onSelect={setUserAvatarIcon}
@@ -213,8 +199,8 @@ export function AppearancePage() {
         />
         <div className="border-t border-border/20" />
         <AvatarPicker
-          label="AI Avatar"
-          description="Choose an icon for AI messages"
+          label="HALLW Avatar"
+          description=""
           options={AI_AVATAR_OPTIONS}
           selected={aiAvatarIcon}
           onSelect={setAiAvatarIcon}

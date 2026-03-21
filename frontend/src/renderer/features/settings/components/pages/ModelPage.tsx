@@ -12,12 +12,7 @@ export function ModelPage({
 }) {
   return (
     <div className="space-y-6 max-w-2xl">
-      <SectionCard
-        title="LLM Configuration"
-        icon={<Sparkles className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="LLM Configuration" icon={Sparkles}>
         <InputGroup label="Model Name" desc="e.g. gemini/gemini-2.5-flash">
           <Combobox
             value={(config.model_name as string) || ""}
@@ -51,12 +46,7 @@ export function ModelPage({
         </InputGroup>
       </SectionCard>
 
-      <SectionCard
-        title="Generation Parameters"
-        icon={<Sparkles className="w-4 h-4" />}
-        color="text-foreground"
-        gradient="from-muted/20 to-muted/5"
-      >
+      <SectionCard title="Generation Parameters" icon={Sparkles}>
         <InputGroup label="Reasoning Effort" desc="For supported models">
           <Combobox
             value={(config.model_reasoning_effort as string) || "low"}

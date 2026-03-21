@@ -27,9 +27,9 @@ export function Settings({ isOpen }: { isOpen: boolean }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-[900px] h-[650px] bg-linear-to-br from-card via-card to-background border border-border/50 rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
+      <div className="w-[900px] h-[650px] bg-background border border-border/50 rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-linear-to-r from-background/80 to-transparent backdrop-blur-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className={cn("p-2 rounded-lg bg-linear-to-br", currentTab.gradient)}>
               <Settings2 className={cn("w-5 h-5", currentTab.color)} />
