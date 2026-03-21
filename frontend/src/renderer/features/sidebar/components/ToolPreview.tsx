@@ -29,9 +29,9 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         target === document.body ? "fixed inset-0" : "absolute inset-0"
       )}
     >
-      <div className="w-full max-w-2xl bg-[#fdfaf2] border border-border/20 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-300 overflow-hidden">
+      <div className="w-full max-w-2xl bg-[#fdfaf2] dark:bg-background border border-border/20 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/20 bg-[#fdfaf2]">
+        <div className="flex items-center justify-between p-4 border-b border-border/20 bg-[#fdfaf2] dark:bg-background">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -136,7 +136,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
-              <div className="flex-1 overflow-auto p-2 space-y-2">
+              <div className="flex-1 overflow-auto pt-1 pb-2 space-y-2">
                 {parsedArgs.length === 0 ? (
                   <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md border border-border/50">
                     No arguments recorded.
@@ -161,7 +161,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border/20 bg-[#fdfaf2] flex justify-end">
+        <div className="p-4 border-t border-border/20 bg-[#fdfaf2] dark:bg-background flex justify-end">
           <button
             type="button"
             onClick={onClose}
