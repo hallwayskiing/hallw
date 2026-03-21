@@ -127,7 +127,7 @@ export const mdComponents: ComponentPropsWithoutRef<typeof ReactMarkdown>["compo
     return (
       <li
         className={cn(
-          "relative pl-6 text-foreground/90 leading-7 mb-2 last:mb-0",
+          "relative pl-6 text-[15px] text-foreground/80 font-[450] tracking-[-0.005em] leading-[1.75] mb-2 last:mb-0",
           "before:absolute before:left-0 before:top-2.75",
           isOrdered
             ? "before:content-[counter(list-item)'.'] before:text-foreground before:text-[12px] before:font-bold before:opacity-90 [counter-increment:list-item]"
