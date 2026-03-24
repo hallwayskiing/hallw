@@ -76,9 +76,6 @@ async def start_task(sid, data):
         echo_data["files"] = file_paths
     await sio.emit("user_message", echo_data, room=sid)
 
-    # Update recent models list
-    _save_recent_model()
-
     async def run_wrapper(target_session: Session, target_session_id: str):
         local_conn = None
         try:
@@ -289,19 +286,3 @@ async def disconnect(sid):
     client_sessions = session_mgr.get_client_sessions(sid)
     for session_id in list(client_sessions.keys()):
         await session_mgr.shutdown_session(sid, session_id, sio, emit_reset=False)
-
-
-# --- Helper Functions ---
-
-
-def _save_recent_model():
-    recent_models = list(config.model_recent_used)
-    model_name = config.model_name
-    if model_name in recent_models:
-        recent_models.remove(model_name)
-    recent_models.insert(0, model_name)
-    recent_models = recent_models[:10]
-
-    if recent_models != config.model_recent_used:
-        config.model_recent_used = recent_models
-        save_config_to_env({"model_recent_used": recent_models})

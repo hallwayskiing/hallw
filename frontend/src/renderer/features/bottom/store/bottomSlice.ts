@@ -142,7 +142,7 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
   clearFiles: () => set({ attachedFiles: [] }),
 
   submitInput: () => {
-    const { input, attachedFiles, startTask } = get();
+    const { input, attachedFiles, startTask, addRecentModelLocal, config } = get();
     const hasSavingFiles = attachedFiles.some((f) => f.isSaving);
     if (hasSavingFiles) return; // Wait for files to finish saving
     if (!input.trim() && attachedFiles.length === 0) return;
@@ -154,7 +154,9 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
     const displayNames = getDisplayNames(readyFiles);
     const filePaths = readyFiles.map((f) => f.path as string);
     const fileDisplayNames = readyFiles.map((f) => displayNames.get(f.id) ?? f.name);
+    const modelName = typeof config.model_name === "string" ? config.model_name : "";
 
+    addRecentModelLocal(modelName);
     startTask(input, filePaths, fileDisplayNames);
     set({ input: "", attachedFiles: [] });
   },

@@ -89,7 +89,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
       {/* Header */}
       <div
         className={cn(
-          "flex items-center justify-between mb-4 min-h-[30px] transition-all duration-500 ease-in-out",
+          "flex items-center justify-between mb-4 min-h-7.5 transition-all duration-500 ease-in-out",
           isVisible ? "translate-y-0" : "translate-y-2"
         )}
       >
@@ -126,12 +126,12 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
       >
         {/* History Loading */}
         {isHistoryLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[140px] animate-in fade-in duration-300">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-35 animate-in fade-in duration-300">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-3 opacity-80" />
             <span className="text-[15px] text-muted-foreground/60 tracking-tight">Fetching history...</span>
           </div>
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[140px] gap-3 opacity-30">
+          <div className="flex flex-col items-center justify-center h-35 gap-3 opacity-30">
             <Scroll className="w-5 h-5" strokeWidth={1.5} />
             <p className="text-[13px] tracking-[0.3em] uppercase whitespace-nowrap">No History Found</p>
           </div>

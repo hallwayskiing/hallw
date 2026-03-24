@@ -5,10 +5,14 @@ import { Combobox, Input, InputGroup, SectionCard } from "../ui";
 
 export function ModelPage({
   config,
+  recentModels,
   handleChange,
+  handleDeleteRecentModel,
 }: {
   config: Config;
+  recentModels: string[];
   handleChange: (key: string, value: unknown) => void;
+  handleDeleteRecentModel: (modelName: string) => void;
 }) {
   return (
     <div className="space-y-6 max-w-2xl">
@@ -17,14 +21,8 @@ export function ModelPage({
           <Combobox
             value={(config.model_name as string) || ""}
             onChange={(val) => handleChange("model_name", val)}
-            options={(config.model_recent_used as string[]) || []}
-            onDelete={(val) => {
-              const recent = (config.model_recent_used as string[]) || [];
-              handleChange(
-                "model_recent_used",
-                recent.filter((m) => m !== val)
-              );
-            }}
+            options={recentModels}
+            onDelete={handleDeleteRecentModel}
             placeholder="gemini/gemini-2.5-flash"
           />
         </InputGroup>

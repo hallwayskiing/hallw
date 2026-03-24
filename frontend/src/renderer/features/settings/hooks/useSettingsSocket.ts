@@ -19,6 +19,7 @@ function debounce<T extends (...args: never[]) => void>(fn: T, ms: number) {
 
 export function useSettingsSocket(isOpen: boolean) {
   const config = useAppStore((state) => state.config);
+  const recentModels = useAppStore((state) => state.recentModels);
   const isLoading = useAppStore((state) => state.isLoading);
   const updateConfigLocal = useAppStore((state) => state.updateConfigLocal);
   const _socket = useAppStore((state) => state._socket);
@@ -54,5 +55,5 @@ export function useSettingsSocket(isOpen: boolean) {
     [updateConfigLocal, debouncedSave]
   );
 
-  return { config, isLoading, handleChange };
+  return { config, recentModels, isLoading, handleChange };
 }

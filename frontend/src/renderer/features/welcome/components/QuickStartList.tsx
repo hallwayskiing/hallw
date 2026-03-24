@@ -96,7 +96,7 @@ export function QuickStartList({
     >
       <div
         className={cn(
-          "flex items-center justify-between mb-4 min-h-[30px] transition-all duration-500 ease-in-out",
+          "flex items-center justify-between mb-4 min-h-7.5 transition-all duration-500 ease-in-out",
           !isVisible ? "-translate-y-2" : "translate-y-0"
         )}
       >

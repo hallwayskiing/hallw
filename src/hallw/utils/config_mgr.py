@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     model_reasoning_effort: str = "low"  # low, medium, high
     model_reflection_threshold: int = 3
     model_max_recursion: int = 99
-    model_recent_used: list[str] = []
 
     # =================================================
     # 2. Provider API Keys
@@ -93,6 +92,10 @@ def save_config_to_env(updates: dict):
     """
     import json
     import os
+
+    updates = {k.lower(): v for k, v in updates.items()}
+    if not updates:
+        return
 
     def format_env_value(val):
         """Format a value for .env file. Lists are JSON-encoded with double quotes."""

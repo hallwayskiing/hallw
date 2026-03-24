@@ -19,7 +19,8 @@ import { SaveStatusIndicator } from "./SaveStatusIndicator";
 export function Settings({ isOpen }: { isOpen: boolean }) {
   const [activeTab, setActiveTab] = useState("model");
   const toggleSettings = useAppStore((s) => s.toggleSettings);
-  const { config, isLoading, handleChange } = useSettingsSocket(isOpen);
+  const removeRecentModelLocal = useAppStore((s) => s.removeRecentModelLocal);
+  const { config, recentModels, isLoading, handleChange } = useSettingsSocket(isOpen);
 
   const currentTab = TABS.find((t) => t.id === activeTab) || TABS[0];
 
@@ -27,7 +28,7 @@ export function Settings({ isOpen }: { isOpen: boolean }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-[900px] h-[650px] bg-background border border-border/50 rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
+      <div className="w-225 h-162.5 bg-background border border-border/50 rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="flex items-center gap-3">
@@ -89,7 +90,14 @@ export function Settings({ isOpen }: { isOpen: boolean }) {
               </div>
             ) : (
               <div className="space-y-6 max-w-2xl">
-                {activeTab === "model" && <ModelPage config={config} handleChange={handleChange} />}
+                {activeTab === "model" && (
+                  <ModelPage
+                    config={config}
+                    recentModels={recentModels}
+                    handleChange={handleChange}
+                    handleDeleteRecentModel={removeRecentModelLocal}
+                  />
+                )}
                 {activeTab === "api-keys" && <KeysPage config={config} handleChange={handleChange} />}
                 {activeTab === "langsmith" && <LangSmithPage config={config} handleChange={handleChange} />}
                 {activeTab === "logging" && <LoggingPage config={config} handleChange={handleChange} />}
