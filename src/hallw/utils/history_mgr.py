@@ -115,7 +115,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
     """
     serialized_msgs = []
     restored_tool_states = []
-    local_tool_map: dict[str, Any] = {}
+    local_tool_map: dict[str, dict[str, Any]] = {}
 
     for msg in messages:
         role = ""
@@ -171,19 +171,55 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
 
             if hasattr(msg, "tool_calls"):
                 for call in msg.tool_calls:
-                    local_tool_map[call["id"]] = call["args"]
+                    local_tool_map[call["id"]] = {
+                        "name": call.get("name", ""),
+                        "args": call.get("args", {}),
+                    }
 
         elif isinstance(msg, ToolMessage):
             parsed = parse_tool_response(str(msg.content))
+            tool_call_meta = local_tool_map.get(msg.tool_call_id, {})
+            tool_name = msg.name or tool_call_meta.get("name", "")
+            tool_args = tool_call_meta.get("args", {})
+
+            if tool_name == "request_user_decision":
+                prompt = ""
+                choices: list[str] | None = None
+                if isinstance(tool_args, dict):
+                    prompt = str(tool_args.get("prompt", ""))
+                    raw_choices = tool_args.get("choices")
+                    if isinstance(raw_choices, list):
+                        choices = [str(choice) for choice in raw_choices]
+                    elif raw_choices is not None:
+                        choices = [str(raw_choices)]
+
+                result = ""
+                status = "submitted"
+                if parsed["success"]:
+                    result = str(parsed.get("data", {}).get("user_input", ""))
+                else:
+                    message = parsed.get("message", "")
+                    status = "timeout" if "timed out" in message.lower() else "rejected"
+
+                decision_message: dict[str, Any] = {
+                    "role": "system",
+                    "type": "decision",
+                    "requestId": msg.tool_call_id or msg.id,
+                    "prompt": prompt,
+                    "choices": choices,
+                    "result": result,
+                    "status": status,
+                }
+                serialized_msgs.append(decision_message)
 
             restored_tool_states.append(
                 {
                     "run_id": msg.id,
-                    "tool_name": msg.name,
+                    "tool_name": tool_name,
                     "status": "success" if parsed["success"] else "error",
-                    "args": json.dumps(local_tool_map.get(msg.tool_call_id, {}), ensure_ascii=False)
-                    if isinstance(local_tool_map.get(msg.tool_call_id), (dict, list))
-                    else str(local_tool_map.get(msg.tool_call_id, "")),
+                    "args": json.dumps(tool_args, ensure_ascii=False)
+                    if isinstance(tool_args, (dict, list))
+                    else str(tool_args),
                     "result": str(msg.content),
                 }
             )

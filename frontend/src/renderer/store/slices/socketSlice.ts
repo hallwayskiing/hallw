@@ -1,14 +1,24 @@
 import type { AppState } from "@store/store";
 import { io, type Socket } from "socket.io-client";
 import type { StateCreator } from "zustand";
-import type { MessageRole } from "../../features/chat/types";
+import type { Message, MessageRole } from "../../features/chat/types";
 import type { ToolState } from "../../features/sidebar/types";
 
-interface RawMessage {
+interface RawTextMessage {
   role: MessageRole;
   type: "text";
   content: string;
   reasoning: string;
+}
+
+interface RawDecisionMessage {
+  role: MessageRole;
+  type: "decision";
+  requestId: string;
+  prompt: string;
+  choices?: string[];
+  result: string;
+  status: "submitted" | "rejected" | "timeout";
 }
 
 interface SessionPayload {
@@ -47,9 +57,17 @@ interface CdpPayload extends SessionPayload {
 }
 
 interface HistoryLoadedPayload extends SessionPayload {
-  messages: RawMessage[];
+  messages: Array<RawTextMessage | RawDecisionMessage>;
   thread_id?: string;
   toolStates?: ToolState[];
+}
+
+function normalizeHistoryMessage(msg: RawTextMessage | RawDecisionMessage): Message {
+  return {
+    ...msg,
+    id: crypto.randomUUID(),
+    msgRole: msg.role,
+  } as Message;
 }
 
 export interface SocketSlice {
@@ -218,11 +236,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       if (!sessionId) return;
       const normalizedData = {
         ...data,
-        messages: data.messages.map((msg: RawMessage) => ({
-          ...msg,
-          id: crypto.randomUUID(),
-          msgRole: msg.role,
-        })),
+        messages: data.messages.map((msg) => normalizeHistoryMessage(msg)),
         toolStates: Array.isArray(data.toolStates) ? data.toolStates : [],
       };
       actions._onChatHistoryLoaded(sessionId, normalizedData);
