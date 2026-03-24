@@ -20,15 +20,15 @@ function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }
   return (
     <div
       className={cn(
-        "text-sm flex justify-between items-start gap-2",
-        isError ? "text-red-500" : isCurrent ? "text-foreground font-medium" : "text-foreground/70"
+        "text-sm flex items-start justify-between gap-3",
+        isError ? "text-red-500" : isCurrent ? "text-foreground font-medium" : "text-foreground/80"
       )}
     >
-      <div className="flex gap-2">
-        <span className="text-muted-foreground">{index + 1}.</span>
-        <span>{label}</span>
+      <div className="flex min-w-0 items-start gap-2">
+        <span className="shrink-0 text-muted-foreground leading-5">{index + 1}.</span>
+        <span className="leading-5">{label}</span>
       </div>
-      {StatusIcon}
+      <div className="shrink-0 pt-0.5">{StatusIcon}</div>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function StagesPanel({ stages, currentIndex, completedIndices, errorStage
           !isExpanded && "justify-center"
         )}
       >
-        <ListChecks className="w-4 h-4 shrink-0" />
+        <ListChecks className="w-3.5 h-3.5 shrink-0" />
         {isExpanded && <span>Plan</span>}
       </h2>
       <div className="space-y-4">

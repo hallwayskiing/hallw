@@ -1,6 +1,6 @@
 import { cn } from "@lib/utils";
 import { useAppStore } from "@store/store";
-import { Activity, Loader2 } from "lucide-react";
+import { Activity } from "lucide-react";
 
 import type { ToolItemProps, ToolsPanelProps } from "../types";
 
@@ -19,8 +19,6 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
     error: "border-red-500",
   }[status];
 
-  const StatusIcon = status === "running" ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : null;
-
   if (!isExpanded) {
     return (
       <div className="flex justify-center">
@@ -34,15 +32,14 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full group relative pl-4 border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm py-1 pr-2",
+        "w-full group relative border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm px-3 py-2",
         borderColor
       )}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-medium text-[15px] text-foreground group-hover:text-primary transition-colors">
+      <div className="flex items-center">
+        <span className="min-w-0 truncate text-[15px] font-medium text-foreground transition-colors group-hover:text-primary leading-5">
           {tool_name}
         </span>
-        {StatusIcon}
       </div>
     </button>
   );
@@ -65,7 +62,7 @@ export function ToolsPanel({ isExpanded, onToolClick }: Omit<ToolsPanelProps, "t
           !isExpanded && "justify-center"
         )}
       >
-        <Activity className="w-4 h-4 shrink-0" />
+        <Activity className="w-3.5 h-3.5 shrink-0" />
         {isExpanded && <span>Execution</span>}
       </h2>
       <div className="space-y-3">

@@ -35,7 +35,7 @@ export function ToolPreview({ toolState, isOpen, onClose }: ToolPreviewProps) {
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                "p-2 rounded-full",
+                "flex h-10 w-10 items-center justify-center rounded-full",
                 isRunning
                   ? "bg-blue-500/10 text-blue-500"
                   : isSuccess

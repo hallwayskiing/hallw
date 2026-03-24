@@ -28,23 +28,29 @@ export const Confirmation = memo(({ requestId, message, timeout, initialStatus, 
     switch (status) {
       case "approved":
         return (
-          <div className="flex gap-3 w-full p-4 rounded-xl bg-green-500/10 border border-green-500/15 text-green-400/80 items-center animate-in fade-in shadow-sm shadow-green-500/3">
-            <Check className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-medium">Confirmation approved.</span>
+          <div className="flex w-full items-center gap-3 rounded-xl border border-green-500/10 bg-green-500/15 p-4 text-green-700 dark:text-green-400/80 animate-in fade-in shadow-sm shadow-green-500/3">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <Check className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-medium leading-5">Confirmation approved.</span>
           </div>
         );
       case "rejected":
         return (
-          <div className="flex gap-3 w-full p-4 rounded-xl bg-red-500/10 border border-red-500/15 text-red-400/80 items-center animate-in fade-in shadow-sm shadow-red-500/3">
-            <X className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-medium">Confirmation rejected.</span>
+          <div className="flex w-full items-center gap-3 rounded-xl border border-red-500/10 bg-red-500/15 p-4 text-red-500 dark:text-red-400/80 animate-in fade-in shadow-sm shadow-red-500/3">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <X className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-medium leading-5">Confirmation rejected.</span>
           </div>
         );
       case "timeout":
         return (
-          <div className="flex gap-3 w-full p-4 rounded-xl bg-red-500/10 border border-red-500/15 text-red-400/80 items-center animate-in fade-in shadow-sm shadow-red-500/3">
-            <X className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-medium">Confirmation timed out.</span>
+          <div className="flex w-full items-center gap-3 rounded-xl border border-red-500/10 bg-red-500/15 p-4 text-red-500 dark:text-red-400/80 animate-in fade-in shadow-sm shadow-red-500/3">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <X className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-medium leading-5">Confirmation timed out.</span>
           </div>
         );
       default:

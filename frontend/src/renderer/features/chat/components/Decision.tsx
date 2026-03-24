@@ -29,25 +29,31 @@ export const Decision = memo(
       switch (status) {
         case "submitted":
           return (
-            <div className="flex gap-3 w-full p-4 rounded-xl bg-green-500/10 border border-green-500/15 text-green-400/80 items-center animate-in fade-in shadow-sm shadow-green-500/3">
-              <Key className="w-5 h-5 shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-[13px] opacity-90 mt-1">{input}</span>
+            <div className="flex w-full items-center gap-3 rounded-xl border border-green-500/10 bg-green-500/15 p-4 text-green-700 dark:text-green-400/80 animate-in fade-in shadow-sm shadow-green-500/3">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <Key className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-sm leading-5 opacity-90">{input}</span>
               </div>
             </div>
           );
         case "rejected":
           return (
-            <div className="flex gap-3 w-full p-4 rounded-xl bg-red-500/10 border border-red-500/15 text-red-400/80 items-center animate-in fade-in shadow-sm shadow-red-500/3">
-              <X className="w-5 h-5 shrink-0" />
-              <span className="text-[15px] font-medium">Input request rejected.</span>
+            <div className="flex w-full items-center gap-3 rounded-xl border border-red-500/10 bg-red-500/15 p-4 text-red-500 dark:text-red-400/80 animate-in fade-in shadow-sm shadow-red-500/3">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <X className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-medium leading-5">Input request rejected.</span>
             </div>
           );
         case "timeout":
           return (
-            <div className="flex gap-3 w-full p-4 rounded-xl bg-red-500/10 border border-red-500/15 text-red-400/80 items-center animate-in fade-in shadow-sm shadow-red-500/3">
-              <X className="w-5 h-5 shrink-0" />
-              <span className="text-[15px] font-medium">Input request timed out.</span>
+            <div className="flex w-full items-center gap-3 rounded-xl border border-red-500/10 bg-red-500/15 p-4 text-red-500 dark:text-red-400/80 animate-in fade-in shadow-sm shadow-red-500/3">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <X className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-medium leading-5">Input request timed out.</span>
             </div>
           );
         default:
@@ -60,7 +66,7 @@ export const Decision = memo(
                       type="button"
                       key={`${choice}`}
                       onClick={() => handleDecision("submitted", choice)}
-                      className="w-full text-left px-4 py-3 backdrop-blur-sm bg-blue-500/3 hover:bg-blue-500/7 text-blue-400/80 border border-blue-500/10 rounded-xl text-sm font-medium transition-all flex items-center gap-3 group active:scale-[0.99] shadow-sm shadow-blue-500/3"
+                      className="flex w-full items-center gap-3 rounded-xl border border-blue-500/15 bg-blue-500/6 px-4 py-3 text-left text-sm font-medium text-blue-500 transition-all shadow-sm shadow-blue-500/3 group active:scale-[0.99] hover:bg-blue-500/10 dark:text-blue-400/80"
                     >
                       <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold group-hover:bg-blue-500/20 transition-colors">
                         {index + 1}
@@ -113,7 +119,7 @@ export const Decision = memo(
           <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">HALLW</div>
           <div
             id={requestId}
-            className="flex flex-col gap-4 max-w-[85%] p-5 rounded-2xl backdrop-blur-xl bg-linear-to-br from-blue-500/7 to-blue-600/3 border border-blue-500/10 shadow-sm shadow-blue-500/3 animate-in slide-in-from-bottom-2 duration-300"
+            className="flex max-w-[85%] flex-col gap-4 rounded-2xl border border-blue-500/14 bg-linear-to-br from-blue-500/10 to-blue-600/5 p-5 shadow-sm shadow-blue-500/3 animate-in slide-in-from-bottom-2 duration-300 dark:border-blue-500/10 dark:from-blue-500/7 dark:to-blue-600/3"
           >
             <div className="flex items-center gap-3 text-blue-500">
               <MessageSquare className="w-5 h-5" />
@@ -126,7 +132,7 @@ export const Decision = memo(
             </div>
 
             <div className="space-y-2">
-              <div className="text-sm wrap-break-word">
+              <div className="text-sm text-foreground/85 wrap-break-word">
                 <MarkdownContent content={message} />
               </div>
             </div>
