@@ -47,11 +47,6 @@ async def exec(command: str, config: RunnableConfig) -> str:
 async def _run_system(command: str) -> str:
     exec_command_timeout = app_config.exec_command_timeout
 
-    if (platform.system().lower().startswith("win") and "powershell" in command.lower()) or (
-        platform.system().lower().startswith("linux") and "sh" in command.lower()
-    ):
-        return build_tool_response(False, "Nested system calls are prohibited.")
-
     cmd_args, backend_name = _select_backend(command)
 
     try:
