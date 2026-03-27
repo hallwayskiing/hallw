@@ -1,7 +1,7 @@
 import socketio
 import uvicorn
 
-from hallw.server.socket_routes import sio
+from hallw.server.socket_router import sio
 
 
 # --- Main ---

@@ -1,14 +1,18 @@
 import asyncio
-import threading
 
 import socketio
 from langchain_core.messages import BaseMessage
 
 from hallw.core import AgentRunner
 from hallw.server.socket_renderer import SocketRenderer
+from hallw.tools.playwright.playwright_mgr import BrowserWorker
 
 
 class Session:
+    """
+    Represents a single user chat session.
+    """
+
     def __init__(
         self,
         sid: str,
@@ -25,46 +29,14 @@ class Session:
         self.output_tokens = 0
         self.active_runner: AgentRunner | None = None
 
-        # --- Persistent Event Loop & Thread ---
-        self.session_loop = asyncio.new_event_loop()
-        self.session_thread = threading.Thread(target=self._run_loop, daemon=True)
-        self.session_thread.start()
+        # asyncio.Task running run_wrapper on the main loop
+        self.task: asyncio.Task | None = None
 
-    def _run_loop(self):
-        asyncio.set_event_loop(self.session_loop)
-        try:
-            self.session_loop.run_forever()
-        finally:
-            pending = asyncio.all_tasks(self.session_loop)
-            for task in pending:
-                task.cancel()
+        # Dedicated Playwright thread
+        self.browser = BrowserWorker(session_id)
 
-            if pending:
-                self.session_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-
-            # Run a brief sleep to allow deferred cancellations and callbacks (like aiohttp teardown) to schedule
-            self.session_loop.run_until_complete(asyncio.sleep(0.1))
-
-            # Second pass: gather any new cleanup tasks spawned during the flush
-            pending = asyncio.all_tasks(self.session_loop)
-            if pending:
-                self.session_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-
-            if hasattr(self.session_loop, "shutdown_asyncgens"):
-                self.session_loop.run_until_complete(self.session_loop.shutdown_asyncgens())
-
-            if hasattr(self.session_loop, "shutdown_default_executor"):
-                try:
-                    self.session_loop.run_until_complete(self.session_loop.shutdown_default_executor())
-                except Exception:
-                    pass
-
-            self.session_loop.close()
-
-    def close(self):
-        # Stop the session loop safely
-        if self.session_loop.is_running():
-            self.session_loop.call_soon_threadsafe(self.session_loop.stop)
-
-        if self.session_thread.is_alive():
-            self.session_thread.join(timeout=5.0)
+    def close(self) -> None:
+        """
+        Clean up session resources.
+        """
+        self.browser.close()

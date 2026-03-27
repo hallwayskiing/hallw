@@ -1,8 +1,11 @@
-"""Playwright browser manager with singleton pattern."""
+"""Playwright browser manager — per-session, thread-isolated via BrowserWorker."""
 
+import asyncio
 import socket
 import threading
 import time
+from contextvars import ContextVar, Token
+from typing import Any, Coroutine, TypeVar
 
 from langchain_core.tools import ToolException
 from playwright.async_api import BrowserContext, Page, Playwright, async_playwright
@@ -10,64 +13,41 @@ from playwright_stealth.stealth import Stealth
 
 from hallw.utils import config
 
+T = TypeVar("T")
 
-class PlaywrightManager(threading.local):
-    """Thread-local manager for Playwright browser state and operations."""
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Internal Playwright state — lives exclusively on the BrowserWorker thread
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class _PlaywrightState:
+    """Holds Playwright handles. Must only be accessed from its owning BrowserWorker thread."""
 
     def __init__(self) -> None:
-        """Initialize all state variables."""
-        if hasattr(self, "_initialized"):
-            return
-        self._initialized = True
-
         self.pw: Playwright | None = None
         self.main_app_page: Page | None = None
         self.target_view: Page | None = None
 
     def reset(self) -> None:
-        """Reset all state variables to initial values."""
         self.pw = None
         self.main_app_page = None
         self.target_view = None
 
-    # -------------------------
-    # Page Management
-    # -------------------------
-
     async def get_page(self) -> Page | None:
-        """Get the primary Agent View page."""
         return self.target_view
 
-    # -------------------------
-    # Browser Lifecycle
-    # -------------------------
-
-    async def launch(self):
-        """Connect to the Electron frontend via CDP.
-
-        Returns:
-            Status message
-        """
-        # Get config values
-        cdp_port = 9222
-        cdp_timeout = config.pw_cdp_timeout
+    async def launch(self, cdp_port: int = 9222, cdp_timeout: float = 1000) -> None:
         endpoint = f"http://127.0.0.1:{cdp_port}"
-
-        # Wait for port to be available (Electron CDP initialization might take a moment)
         if not _wait_for_port("127.0.0.1", cdp_port, timeout=cdp_timeout):
             raise ToolException(f"Failed to connect via CDP on port {cdp_port}")
 
         self.pw = await async_playwright().start()
-
         try:
             browser = await self.pw.chromium.connect_over_cdp(endpoint)
-
-            # The newly opened blank window will be in the default context
-            context = browser.contexts[0] if len(browser.contexts) > 0 else await browser.new_context()
-
+            context = browser.contexts[0] if browser.contexts else await browser.new_context()
             await _apply_stealth(context)
 
-            # Identify the specific Agent View by checking the injected JS variable
             for page in context.pages:
                 try:
                     is_agent_view = await page.evaluate("() => window.__IS_AGENT_VIEW__ === true")
@@ -83,7 +63,6 @@ class PlaywrightManager(threading.local):
             raise ToolException(f"Failed to connect via CDP: {e}")
 
     async def disconnect(self) -> None:
-        """Disconnect from CDP without closing the browser."""
         if self.pw:
             try:
                 await self.pw.stop()
@@ -92,19 +71,132 @@ class PlaywrightManager(threading.local):
         self.reset()
 
 
-# -------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# BrowserWorker — one per Session, runs Playwright on a dedicated thread
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class BrowserWorker:
+    """
+    Dedicated thread + event loop for Playwright operations.
+    """
+
+    def __init__(self, session_id: str) -> None:
+        self.session_id = session_id
+        self._state = _PlaywrightState()
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(
+            target=self._run_loop,
+            name=f"browser-{session_id[:8]}",
+            daemon=True,
+        )
+        self._thread.start()
+
+    def _run_loop(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def run(self, coro: Coroutine[Any, Any, T]) -> "asyncio.Future[T]":
+        """
+        Schedule *coro* on the browser thread's event loop.
+        """
+        concurrent_future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return asyncio.wrap_future(concurrent_future)
+
+    async def get_page(self) -> Page | None:
+        return await self.run(self._state.get_page())
+
+    async def launch(self) -> None:
+        await self.run(
+            self._state.launch(
+                cdp_port=9222,
+                cdp_timeout=config.pw_cdp_timeout,
+            )
+        )
+
+    async def disconnect(self) -> None:
+        try:
+            await asyncio.wait_for(self.run(self._state.disconnect()), timeout=5.0)
+        except Exception:
+            pass
+
+    def close(self) -> None:
+        """
+        Synchronously shut down the browser worker.
+        Disconnects Playwright, stops the event loop, and joins the thread.
+        Called from session cleanup (may block briefly).
+        """
+        try:
+            future = asyncio.run_coroutine_threadsafe(self._state.disconnect(), self._loop)
+            future.result(timeout=5.0)
+        except Exception:
+            pass
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(timeout=5.0)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ContextVar — task-local BrowserWorker reference
+# ──────────────────────────────────────────────────────────────────────────────
+
+_session_browser: ContextVar[BrowserWorker | None] = ContextVar("session_browser", default=None)
+
+
+def set_session_browser(browser: BrowserWorker) -> Token:
+    """Call at the start of each Session Task to bind its BrowserWorker."""
+    return _session_browser.set(browser)
+
+
+def reset_session_browser(token: Token) -> None:
+    """Call at the end of each Session Task to clean up."""
+    _session_browser.reset(token)
+
+
+def get_session_browser() -> BrowserWorker | None:
+    """Returns the BrowserWorker for the current session context, or None."""
+    return _session_browser.get()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Public API
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def get_page() -> Page | None:
+    """Get the active Playwright page for the current session."""
+    browser = get_session_browser()
+    if browser is None:
+        return None
+    return await browser.get_page()
+
+
+async def browser_launch() -> None:
+    """Launch the browser for the current session."""
+    browser = get_session_browser()
+    if browser is None:
+        raise ToolException("No BrowserWorker in session context. Was set_session_browser called?")
+    await browser.launch()
+
+
+async def browser_disconnect() -> None:
+    """Disconnect the browser for the current session."""
+    browser = get_session_browser()
+    if browser is None:
+        return
+    await browser.disconnect()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Helpers
-# -------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 async def _apply_stealth(context: BrowserContext) -> None:
-    """Apply stealth settings to context."""
     stealth = Stealth()
     await stealth.apply_stealth_async(context)
 
 
 def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
-    """Wait for a TCP port to become available."""
     deadline = time.time() + timeout / 1000
     while time.time() < deadline:
         try:
@@ -113,24 +205,3 @@ def _wait_for_port(host: str, port: int, timeout: float = 1000) -> bool:
         except (socket.error, OSError):
             time.sleep(0.2)
     return False
-
-
-# -------------------------
-# Exports
-# -------------------------
-pw_manager = PlaywrightManager()
-
-
-async def get_page() -> Page | None:
-    """Get the primary page."""
-    return await pw_manager.get_page()
-
-
-async def browser_launch():
-    """Launch browser."""
-    return await pw_manager.launch()
-
-
-async def browser_disconnect() -> None:
-    """Disconnect CDP connection."""
-    await pw_manager.disconnect()

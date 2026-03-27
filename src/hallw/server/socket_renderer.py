@@ -35,10 +35,15 @@ class SocketRenderer(AgentRenderer):
         return payload
 
     def _fire(self, event: str, data: Any = None):
+        coro = self.emit(event, self._with_session(data))
         try:
-            asyncio.run_coroutine_threadsafe(self.emit(event, self._with_session(data)), self.main_loop)
+            asyncio.get_running_loop().create_task(coro)
         except RuntimeError:
-            logger.warning(f"No main loop for {event}")
+            # Fallback: no running loop (e.g. called during shutdown)
+            try:
+                asyncio.run_coroutine_threadsafe(coro, self.main_loop)
+            except RuntimeError:
+                logger.warning(f"No event loop available for socket event '{event}'")
 
     def on_task_started(self):
         self._fire("task_started")

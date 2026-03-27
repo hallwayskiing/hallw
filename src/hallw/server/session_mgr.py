@@ -4,7 +4,6 @@ import uuid
 import socketio
 from langchain_core.messages import BaseMessage
 
-from hallw.tools.playwright.playwright_mgr import browser_disconnect
 from hallw.utils import logger
 
 from .session import Session
@@ -71,15 +70,11 @@ class SessionManager:
         if not session:
             return False
 
-        future = asyncio.run_coroutine_threadsafe(browser_disconnect(), session.session_loop)
-        try:
-            future.result(timeout=5.0)
-        except Exception as e:
-            logger.error(f"Browser disconnect failed: {e}")
-
-        if session.active_runner and session.active_runner.is_running and getattr(session.active_runner, "task", None):
+        # 1. Cancel and await the session Task so its finally-block cleanup runs
+        if session.task and not session.task.done():
+            session.task.cancel()
             try:
-                session.session_loop.call_soon_threadsafe(session.active_runner.task.cancel)
+                await asyncio.wait({session.task}, timeout=5.0)
             except Exception:
                 pass
 
@@ -87,7 +82,13 @@ class SessionManager:
             logger.info(f"[session={session_id}] Input tokens: {session.input_tokens}")
             logger.info(f"[session={session_id}] Output tokens: {session.output_tokens}")
 
-        session.close()
+        # 2. Shut down the BrowserWorker (disconnects Playwright, joins thread).
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(None, session.close)
+        except Exception as e:
+            logger.error(f"Error closing session browser worker: {e}")
+
         del client_sessions[session_id]
         if not client_sessions:
             self.sessions.pop(sid, None)
