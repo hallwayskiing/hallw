@@ -10,15 +10,11 @@ from textwrap import dedent
 def get_skills_desc() -> str:
     """
     Scans SKILL.md files from multiple directories and extracts path + YAML frontmatter.
-    Directories: skills/, ~/.agents, ~/.codex, ~/anthropic
+    Directories: .agents/skills
     """
     # Define search directories
-    home = Path.home()
     search_dirs = [
         Path(".agents/skills"),
-        home / ".agents",
-        home / ".codex",
-        home / "anthropic",
     ]
 
     skills = []
@@ -61,7 +57,7 @@ def get_system_prompt() -> str:
     <identity>
     You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
     You are running in a {platform.system()} environment.
-    Today is {datetime.now().strftime("%Y-%m-%d")}.
+    Conversation start time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
     Current working directory is {os.getcwd()}.
     For project codebase details, refer to `AGENTS.md` or `README.md`.
     </identity>

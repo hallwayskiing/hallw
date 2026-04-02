@@ -7,6 +7,7 @@ from ..utils.tool_response import build_tool_response
 def build_stages(stage_names: list[str]) -> str:
     """
     Analyze the task and provide a list of stages with their corresponding names.
+    Use natural language to describe the stages.
 
     Args:
         stage_names (list[str]): A list of stage names.
