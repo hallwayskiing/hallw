@@ -12,9 +12,11 @@ export interface WelcomeSlice {
   fetchHistory: () => void;
   loadHistory: (id: string) => void;
   deleteHistory: (id: string) => void;
+  deleteAllHistory: () => void;
 
   _onHistoryList: (list: HistoryItemProps[]) => void;
   _onHistoryDeleted: (data: { thread_id: string }) => void;
+  _onAllHistoryDeleted: () => void;
 }
 
 export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = (set, get) => ({
@@ -56,6 +58,14 @@ export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = 
     _socket.emit("delete_history", { thread_id: id });
   },
 
+  deleteAllHistory: () => {
+    set({ history: [] });
+
+    const { _socket } = get();
+    if (!_socket) return;
+    _socket.emit("delete_all_history");
+  },
+
   _onHistoryList: (list) => {
     set({ history: list, isHistoryLoading: false });
   },
@@ -64,5 +74,9 @@ export const createWelcomeSlice: StateCreator<AppState, [], [], WelcomeSlice> = 
     set((state: WelcomeSlice) => ({
       history: state.history.filter((h) => h.id !== data.thread_id),
     }));
+  },
+
+  _onAllHistoryDeleted: () => {
+    set({ history: [] });
   },
 });

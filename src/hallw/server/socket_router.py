@@ -155,6 +155,16 @@ async def delete_history(sid, data):
 
 
 @sio.event
+async def delete_all_history(sid):
+    try:
+        await history_mgr.delete_all_threads()
+        await sio.emit("all_history_deleted", room=sid)
+    except Exception as e:
+        logger.error(f"Delete all history failed: {e}")
+        await sio.emit("error", {"message": str(e)}, room=sid)
+
+
+@sio.event
 async def resolve_confirmation(sid, data):
     session = session_mgr.pick_session(sid, session_mgr.resolve_session_id(data))
     if session:

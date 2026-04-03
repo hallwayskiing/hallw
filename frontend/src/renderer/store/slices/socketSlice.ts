@@ -243,6 +243,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       actions._onSidebarHistoryLoaded(sessionId, normalizedData);
     });
     socket.on("history_deleted", actions._onHistoryDeleted);
+    socket.on("all_history_deleted", actions._onAllHistoryDeleted);
 
     // Settings events
     socket.on("config_data", actions._onConfigData);

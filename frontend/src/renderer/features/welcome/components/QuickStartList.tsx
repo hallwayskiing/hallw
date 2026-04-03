@@ -130,6 +130,7 @@ export function QuickStartList({
           onClick={handleRefresh}
           className={cn(
             "group p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground/60 dark:hover:bg-white/5 hover:bg-foreground/5 transition-all duration-200 active:scale-90",
+            "translate-y-[1.5px]",
             !isVisible ? "opacity-0 pointer-events-none" : "opacity-100"
           )}
           title="Shuffle prompts"

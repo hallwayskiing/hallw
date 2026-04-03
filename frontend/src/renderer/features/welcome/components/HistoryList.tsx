@@ -1,7 +1,7 @@
 import { cn } from "@lib/utils";
 
 import { useAppStore } from "@store/store";
-import { Clock, Loader2, Scroll, ScrollText, Trash2 } from "lucide-react";
+import { BrushCleaning, Clock, Loader2, Scroll, ScrollText, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 import type { HistoryRowProps } from "../types";
@@ -55,9 +55,9 @@ function HistoryRow({ item, onLoad, onDelete }: HistoryRowProps) {
           type="button"
           onClick={onDelete}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200"
-          title="Delete thread"
+          title="Delete chat"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
         <span className="text-muted-foreground/20 group-hover:text-foreground/40 transition-all duration-200">→</span>
       </div>
@@ -70,6 +70,7 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
   const isHistoryLoading = useAppStore((s) => s.isHistoryLoading);
   const loadHistory = useAppStore((s) => s.loadHistory);
   const deleteHistory = useAppStore((s) => s.deleteHistory);
+  const deleteAllHistory = useAppStore((s) => s.deleteAllHistory);
   const fetchHistory = useAppStore((s) => s.fetchHistory);
   const theme = useAppStore((s) => s.theme);
 
@@ -116,6 +117,22 @@ export function HistoryList({ isVisible }: { isVisible: boolean }) {
             History
           </span>
         </div>
+
+        {/* Delete All Button */}
+        {history.length > 0 && (
+          <button
+            type="button"
+            onClick={deleteAllHistory}
+            className={cn(
+              "group p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500/80 dark:hover:bg-red-500/10 hover:bg-red-400/10 transition-all duration-200 active:scale-90",
+              "translate-y-[1.5px]",
+              !isVisible ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+            title="Delete all history"
+          >
+            <BrushCleaning className="w-4.5 h-4.5" />
+          </button>
+        )}
       </div>
       {/* Main Area */}
       <div

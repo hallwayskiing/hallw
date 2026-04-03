@@ -108,6 +108,17 @@ async def delete_thread(thread_id: str) -> None:
         await local_conn.close()
 
 
+async def delete_all_threads() -> None:
+    """Deletes all threads and all associated checkpoints."""
+    local_conn, _ = await create_local_checkpointer()
+    try:
+        await local_conn.execute("DELETE FROM checkpoints")
+        await local_conn.execute("DELETE FROM writes")
+        await local_conn.commit()
+    finally:
+        await local_conn.close()
+
+
 def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Serializes LangChain messages for the frontend and reconstructs tool states.
