@@ -64,6 +64,26 @@ export function ModelPage({
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_temperature", e.target.value)}
             />
           </InputGroup>
+          <InputGroup label="Top P" desc="0.0 - 1.0">
+            <Input
+              name="model_top_p"
+              step="0.01"
+              min="0"
+              max="1"
+              value={(config.model_top_p as number) ?? 0.95}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_top_p", e.target.value)}
+            />
+          </InputGroup>
+          <InputGroup label="Top K" desc="0 - 100">
+            <Input
+              name="model_top_k"
+              step="1"
+              min="0"
+              max="100"
+              value={(config.model_top_k as number) ?? 64}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_top_k", e.target.value)}
+            />
+          </InputGroup>
           <InputGroup label="Max Output Tokens" desc="Token limit">
             <Input
               name="model_max_output_tokens"
@@ -72,6 +92,10 @@ export function ModelPage({
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_max_output_tokens", e.target.value)}
             />
           </InputGroup>
+        </div>
+      </SectionCard>
+      <SectionCard title="Workflow Parameters" icon={Sparkles}>
+        <div className="grid grid-cols-2 gap-4">
           <InputGroup label="Reflection Threshold" desc="Threshold for reflection">
             <Input
               name="model_reflection_threshold"

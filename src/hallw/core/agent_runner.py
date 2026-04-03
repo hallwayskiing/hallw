@@ -105,6 +105,8 @@ class AgentRunner:
             temperature=config.model_temperature,
             max_tokens=config.model_max_output_tokens,
             streaming=True,
+            top_p=config.model_top_p,
+            top_k=config.model_top_k,
             stream_usage=True,
             stream_options={"include_usage": True},
             model_kwargs={
