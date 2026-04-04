@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import socketio
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -49,7 +50,7 @@ async def start_task(sid, data):
 
     if not session.history:
         session.history.append(SystemMessage(content=get_system_prompt()))
-    session.history.append(_build_human_message(task_text, file_paths))
+    session.history.append(_build_human_message(task_text, file_paths, data.get("message_id")))
 
     init_logger(session.thread_id)
 
@@ -186,6 +187,62 @@ async def resolve_cdp_page(sid, data):
 
 
 @sio.event
+async def edit_user_message(sid, data):
+    if not isinstance(data, dict):
+        return
+
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
+    if not session:
+        return
+    if session.active_runner and session.active_runner.is_running:
+        await sio.emit(
+            "fatal_error",
+            {"session_id": session_id, "message": "Cannot edit messages while a task is running."},
+            room=sid,
+        )
+        return
+
+    thread_id = data.get("thread_id") or session.thread_id
+    message_id = data.get("message_id")
+    new_content = str(data.get("content", ""))
+    if not thread_id or not message_id:
+        return
+
+    target_index = next(
+        (
+            idx
+            for idx, msg in enumerate(session.history)
+            if isinstance(msg, HumanMessage) and str(getattr(msg, "id", "") or "") == message_id
+        ),
+        -1,
+    )
+    if target_index < 0:
+        await sio.emit("error", {"session_id": session_id, "message": "User message not found"}, room=sid)
+        return
+
+    original_msg = session.history[target_index]
+    session.history = session.history[:target_index] + [_replace_human_message(original_msg, new_content)]
+    session.input_tokens = 0
+    session.output_tokens = 0
+
+    await history_mgr.delete_thread(thread_id)
+
+    serialized_msgs, tool_states = history_mgr.serialize_messages(session.history)
+    await sio.emit(
+        "history_loaded",
+        {
+            "session_id": session_id,
+            "messages": serialized_msgs,
+            "thread_id": thread_id,
+            "toolStates": tool_states,
+        },
+        room=sid,
+    )
+    session.task = asyncio.create_task(_run_agent(session, session_id, sid))
+
+
+@sio.event
 async def disconnect(sid):
     for s_id in list(session_mgr.get_client_sessions(sid)):
         await session_mgr.shutdown_session(sid, s_id, sio, emit_reset=False)
@@ -194,9 +251,9 @@ async def disconnect(sid):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _build_human_message(task_text: str, file_paths: list[str]) -> HumanMessage:
+def _build_human_message(task_text: str, file_paths: list[str], message_id: str | None = None) -> HumanMessage:
     if not file_paths:
-        return HumanMessage(content=task_text)
+        return HumanMessage(content=task_text, id=message_id)
     blocks = []
     if task_text:
         blocks.append({"type": "text", "text": task_text, "role": "user"})
@@ -204,7 +261,33 @@ def _build_human_message(task_text: str, file_paths: list[str]) -> HumanMessage:
         parsed = parse_file(path)
         if parsed:
             blocks.extend(parsed)
-    return HumanMessage(content=blocks, additional_kwargs={"files": file_paths})
+    return HumanMessage(content=blocks, additional_kwargs={"files": file_paths}, id=message_id)
+
+
+def _replace_human_message(message: HumanMessage, new_content: str) -> HumanMessage:
+    next_content: str | list[dict[str, Any]]
+    if isinstance(message.content, list):
+        next_blocks = []
+        replaced = False
+        for block in message.content:
+            if isinstance(block, dict) and block.get("role") == "user" and block.get("type") == "text" and not replaced:
+                if new_content:
+                    next_blocks.append({**block, "text": new_content})
+                replaced = True
+            else:
+                next_blocks.append(block)
+        if not replaced and new_content:
+            next_blocks.insert(0, {"type": "text", "text": new_content, "role": "user"})
+        next_content = next_blocks
+    else:
+        next_content = new_content
+
+    return HumanMessage(
+        content=next_content,
+        additional_kwargs=dict(getattr(message, "additional_kwargs", {}) or {}),
+        id=message.id,
+        name=getattr(message, "name", None),
+    )
 
 
 async def _run_agent(s: Session, s_id: str, sid: str):

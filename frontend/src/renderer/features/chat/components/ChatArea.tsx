@@ -22,6 +22,7 @@ export function ChatArea() {
   const session = useActiveSession();
   const handleConfirmationDecision = useAppStore((s) => s.handleConfirmationDecision);
   const handleDecision = useAppStore((s) => s.handleDecision);
+  const editUserMessage = useAppStore((s) => s.editUserMessage);
   const getProcessedMessages = useAppStore((s) => s.getProcessedMessages);
 
   const messages = session?.messages ?? [];
@@ -32,6 +33,7 @@ export function ChatArea() {
   const isRunning = session?.isRunning ?? false;
   const pendingConfirmation = session?.pendingConfirmation ?? null;
   const pendingDecision = session?.pendingDecision ?? null;
+  const canEditMessages = !!session && !session.isRunning;
 
   const confirmationTimeout = useMemo(
     () => getRemainingTimeoutSeconds(pendingConfirmation?.timeout, pendingConfirmation?.expiresAt),
@@ -87,7 +89,7 @@ export function ChatArea() {
         <div className="w-full max-w-5xl mx-auto flex flex-col space-y-6 pb-4">
           {processedMessages.map((msg: Message) => (
             <div key={msg.id} className="space-y-4">
-              {renderMessage(msg)}
+              {renderMessage(msg, canEditMessages, editUserMessage)}
             </div>
           ))}
 
@@ -144,7 +146,11 @@ export function ChatArea() {
   );
 }
 
-function renderMessage(msg: Message) {
+function renderMessage(
+  msg: Message,
+  canEditMessages: boolean,
+  editUserMessage: (messageId: string, nextContent: string) => void
+) {
   switch (msg.type) {
     case "confirmation":
       return <Confirmation requestId={msg.requestId} message={msg.command} initialStatus={msg.status} />;
@@ -163,11 +169,14 @@ function renderMessage(msg: Message) {
     default:
       return (
         <MessageBubble
+          messageId={msg.id}
           msgRole={msg.msgRole}
           content={msg.content}
           reasoning={msg.reasoning}
           isStreamingReasoning={"isStreamingReasoning" in msg ? msg.isStreamingReasoning : false}
           isStreamingContent={"isStreamingContent" in msg ? msg.isStreamingContent : false}
+          canEdit={canEditMessages && msg.msgRole === "user" && !("isStreamingContent" in msg && msg.isStreamingContent)}
+          onEdit={editUserMessage}
         />
       );
   }

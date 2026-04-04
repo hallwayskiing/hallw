@@ -62,11 +62,14 @@ export interface AvatarProps {
 }
 
 export interface MessageBubbleProps {
+  messageId: string;
   msgRole: MessageRole;
   content: string;
   reasoning?: string;
   isStreamingReasoning?: boolean;
   isStreamingContent?: boolean;
+  canEdit?: boolean;
+  onEdit?: (messageId: string, nextContent: string) => void;
 }
 
 export interface ConfirmationProps {
@@ -124,6 +127,7 @@ export interface ChatSlice {
   endSession: (sessionId: string) => void;
 
   startTask: (task: string, filePaths?: string[], fileDisplayNames?: string[]) => void;
+  editUserMessage: (messageId: string, nextContent: string) => void;
   stopTask: () => void;
   resetSession: () => void;
   handleConfirmationDecision: (status: ConfirmationStatus) => void;

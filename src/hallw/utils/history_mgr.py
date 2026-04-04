@@ -132,6 +132,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
         role = ""
         content = ""
         reasoning = ""
+        message_id = str(getattr(msg, "id", "") or "")
 
         if isinstance(msg, HumanMessage):
             role = "user"
@@ -149,6 +150,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
                 res = str(msg.content)
             serialized_msgs.append(
                 {
+                    "id": message_id,
                     "role": role,
                     "type": "text",
                     "content": res,
@@ -173,6 +175,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
             if content.strip() or reasoning.strip():
                 serialized_msgs.append(
                     {
+                        "id": message_id,
                         "role": role,
                         "type": "text",
                         "content": content,
@@ -213,6 +216,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
                     status = "timeout" if "timed out" in message.lower() else "rejected"
 
                 decision_message: dict[str, Any] = {
+                    "id": message_id,
                     "role": "system",
                     "type": "decision",
                     "requestId": msg.tool_call_id or msg.id,

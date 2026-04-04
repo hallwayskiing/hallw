@@ -5,6 +5,7 @@ import {
   Bot,
   BrainCircuit,
   Cat,
+  Check,
   CircuitBoard,
   Cpu,
   Crown,
@@ -18,12 +19,14 @@ import {
   Rocket,
   Smile,
   Sparkles,
+  SquarePen,
   Squirrel,
   User,
   UserCircle,
+  X,
   Zap,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import type { AvatarProps, MessageBubbleProps } from "../types";
@@ -78,9 +81,58 @@ export function Avatar({ msgRole: role }: AvatarProps) {
 }
 
 export const MessageBubble = memo(
-  ({ msgRole, content, reasoning, isStreamingReasoning, isStreamingContent }: MessageBubbleProps) => {
+  ({
+    messageId,
+    msgRole,
+    content,
+    reasoning,
+    isStreamingReasoning,
+    isStreamingContent,
+    canEdit,
+    onEdit,
+  }: MessageBubbleProps) => {
     const isUser = msgRole === "user";
     const smoothContent = useSmoothTyping(content, isStreamingContent || false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [draft, setDraft] = useState(content);
+    const bubbleRef = useRef<HTMLDivElement | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+    function resizeTextarea(el: HTMLTextAreaElement) {
+      el.style.height = "0px";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+
+    useEffect(() => {
+      if (!isEditing || !textareaRef.current) return;
+      const el = textareaRef.current;
+      el.focus();
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    }, [isEditing]);
+
+    const handleStartEdit = () => {
+      if (!canEdit) return;
+      setDraft(content);
+      setIsEditing(true);
+    };
+
+    const handleCancelEdit = () => {
+      setDraft(content);
+      setIsEditing(false);
+    };
+
+    const handleSaveEdit = () => {
+      if (!canEdit || !onEdit) return;
+      const nextContent = draft.trim();
+      if (!nextContent || nextContent === content) {
+        setIsEditing(false);
+        setDraft(content);
+        return;
+      }
+      onEdit(messageId, nextContent);
+      setIsEditing(false);
+    };
 
     return (
       <div
@@ -91,24 +143,87 @@ export const MessageBubble = memo(
       >
         <Avatar msgRole={msgRole} />
         <div className={cn("flex-1 space-y-2 min-w-0", isUser ? "text-right" : "text-left")}>
-          <div className="font-semibold text-xs uppercase tracking-wider text-muted-foreground/60">
-            {isUser ? "You" : "HALLW"}
+          <div className={cn("flex items-center gap-2 leading-none", isUser ? "justify-end" : "justify-start")}>
+            {isUser && (
+              <div className="flex items-center gap-1">
+                {isEditing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-md text-emerald-500/80 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                      aria-label="Save edit"
+                      title="Save edit"
+                    >
+                      <Check className="w-3.5 h-3.5 translate-y-px" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                      aria-label="Cancel edit"
+                      title="Cancel edit"
+                    >
+                      <X className="w-3.5 h-3.5 translate-y-px" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleStartEdit}
+                    disabled={!canEdit}
+                    className={cn(
+                      "inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+                      canEdit
+                        ? "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"
+                        : "text-muted-foreground/35 cursor-not-allowed"
+                    )}
+                    aria-label="Edit message"
+                    title="Edit message"
+                  >
+                    <SquarePen className="w-3.5 h-3.5 translate-y-px" />
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="font-semibold text-xs uppercase tracking-wider leading-none text-muted-foreground/60">
+              {isUser ? "You" : "HALLW"}
+            </div>
           </div>
           {reasoning && <ReasoningAccordion content={reasoning} isStreaming={isStreamingReasoning} />}
           {(isStreamingContent || content) && (
             <div
+              ref={bubbleRef}
               className={cn(
                 "rounded-2xl text-left",
                 isUser
-                  ? "inline-block max-w-[90%] bg-linear-to-br from-indigo-500/10 to-indigo-600/3 border border-indigo-500/10 text-foreground/90 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
+                  ? "inline-block bg-linear-to-br from-indigo-500/10 to-indigo-600/3 border border-indigo-500/10 text-foreground/90 px-4 py-2.5 shadow-sm shadow-indigo-500/5"
                   : "block max-w-[85%] bg-linear-to-br from-teal-500/10 to-teal-600/3 border border-teal-500/12 text-foreground/85 px-5 py-3 shadow-sm shadow-teal-500/8",
+                isUser && !isEditing && "max-w-[90%]",
+                isUser &&
+                  isEditing &&
+                  "w-[90%] max-w-[90%] bg-muted/60 from-transparent to-transparent border-border/70 shadow-none",
                 isStreamingContent && "min-h-10"
               )}
             >
-              <MarkdownContent
-                content={isStreamingContent ? smoothContent : content}
-                isStreaming={isStreamingContent}
-              />
+              {isEditing ? (
+                <textarea
+                  ref={textareaRef}
+                  value={draft}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    resizeTextarea(e.currentTarget);
+                  }}
+                  rows={1}
+                  className="block w-full resize-none overflow-hidden bg-transparent px-0 py-0 text-[15px] font-[450] tracking-[-0.005em] leading-[1.75] text-foreground/80 outline-hidden border-0 shadow-none"
+                  style={{ fontFamily: "inherit" }}
+                />
+              ) : (
+                <MarkdownContent
+                  content={isStreamingContent ? smoothContent : content}
+                  isStreaming={isStreamingContent}
+                />
+              )}
             </div>
           )}
         </div>

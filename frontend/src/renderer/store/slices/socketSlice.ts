@@ -5,6 +5,7 @@ import type { Message, MessageRole } from "../../features/chat/types";
 import type { ToolState } from "../../features/sidebar/types";
 
 interface RawTextMessage {
+  id: string;
   role: MessageRole;
   type: "text";
   content: string;
@@ -12,6 +13,7 @@ interface RawTextMessage {
 }
 
 interface RawDecisionMessage {
+  id: string;
   role: MessageRole;
   type: "decision";
   requestId: string;
@@ -65,7 +67,6 @@ interface HistoryLoadedPayload extends SessionPayload {
 function normalizeHistoryMessage(msg: RawTextMessage | RawDecisionMessage): Message {
   return {
     ...msg,
-    id: crypto.randomUUID(),
     msgRole: msg.role,
   } as Message;
 }

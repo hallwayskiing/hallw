@@ -295,6 +295,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         filePreviews = `\n${fileNames.map((f) => `🔗 *${f}*`).join("\n")}`;
       }
       const displayContent = `${task}${filePreviews}`.trim();
+      const userMessageId = crypto.randomUUID();
 
       set((state) => ({
         ...patchSession(
@@ -302,12 +303,13 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           sessionId,
           (s) => ({
             ...s,
+            threadId: s.threadId || sessionId,
             title: s.messages.length === 0 ? title : s.title,
             isClosed: false,
             hasFatalError: false,
             messages: [
               ...s.messages,
-              { id: crypto.randomUUID(), type: "text", msgRole: "user", content: displayContent },
+              { id: userMessageId, type: "text", msgRole: "user", content: displayContent },
             ],
             isRunning: true,
             isStreamingReasoning: false,
@@ -325,11 +327,58 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         isChatting: true,
       }));
 
-      const payload: Record<string, unknown> = { task, session_id: sessionId };
+      const payload: Record<string, unknown> = { task, session_id: sessionId, message_id: userMessageId };
       if (filePaths && filePaths.length > 0) {
         payload.file_paths = filePaths;
       }
       _socket.emit("start_task", payload);
+    },
+
+    editUserMessage: (messageId, nextContent) => {
+      const { _socket, activeSessionId, chatSessions } = get();
+      if (!_socket || !activeSessionId) return;
+
+      const session = chatSessions[activeSessionId];
+      if (!session || session.isRunning || !session.threadId) return;
+
+      const targetIndex = session.messages.findIndex(
+        (msg) => msg.id === messageId && msg.type === "text" && msg.msgRole === "user"
+      );
+      if (targetIndex < 0) return;
+
+      const updatedMessages = session.messages
+        .slice(0, targetIndex + 1)
+        .map((msg, index) =>
+          index === targetIndex && msg.type === "text" && msg.msgRole === "user"
+            ? { ...msg, content: nextContent }
+            : msg
+        );
+      const titleFallback = `${DEFAULT_SESSION_TITLE_PREFIX} ${activeSessionId.slice(0, 8)}`;
+      const nextTitle = deriveTitleFromMessages(updatedMessages, titleFallback);
+
+      set((state) => ({
+        ...patchSession(state, activeSessionId, (s) => ({
+          ...s,
+          title: nextTitle,
+          messages: updatedMessages,
+          isRunning: false,
+          isStreamingReasoning: false,
+          streamingContent: "",
+          streamingReasoning: "",
+          pendingConfirmation: null,
+          pendingDecision: null,
+          _streamingContentRef: "",
+          _streamingMessageId: crypto.randomUUID(),
+          updatedAt: Date.now(),
+        })),
+      }));
+
+      _socket.emit("edit_user_message", {
+        session_id: activeSessionId,
+        thread_id: session.threadId,
+        message_id: messageId,
+        content: nextContent,
+      });
     },
 
     stopTask: () => {
