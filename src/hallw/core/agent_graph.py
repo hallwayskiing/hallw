@@ -62,7 +62,7 @@ class AgentGraphBuilder:
         total_stages = state["total_stages"]
         stage_names = state["stage_names"]
         append_prompt = f"""
-            Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
+            [SYSTEM] Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
         """
         append_msg = HumanMessage(content=append_prompt)
 
@@ -84,8 +84,7 @@ class AgentGraphBuilder:
         proceed_tools = [end_current_stage, edit_stages]
 
         curr_stage = state["current_stage"]
-        total_stages = state["total_stages"]
-        remaining_stages = [state["stage_names"][i] for i in range(curr_stage, total_stages)]
+        remaining_stages = state["stage_names"][curr_stage:]
 
         append_prompt = f"""
             [SYSTEM] Stages are not finished yet.

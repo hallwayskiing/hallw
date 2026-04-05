@@ -45,10 +45,7 @@ async def get_all_threads() -> list[dict[str, Any]]:
                         if isinstance(msg, HumanMessage):
                             content = ""
                             if isinstance(msg.content, list):
-                                for block in msg.content:
-                                    if block.get("role", "") == "user":
-                                        content = block.get("text", "")
-                                        break
+                                content = msg.content[-1].get("text", "")
                                 if not content:
                                     content = "Attached Files"
                             else:
@@ -139,10 +136,7 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
             content = msg.content
             res = ""
             if isinstance(content, list):
-                for block in content:
-                    if block.get("role", "") == "user":
-                        res = block.get("text", "")
-                        break
+                res = content[-1].get("text", "")
                 file_paths = msg.additional_kwargs.get("files", [])
                 for file_path in file_paths:
                     res += f"\n 🔗 *{os.path.basename(file_path)}*"

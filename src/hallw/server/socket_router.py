@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any
 
 import socketio
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -222,7 +221,8 @@ async def edit_user_message(sid, data):
         return
 
     original_msg = session.history[target_index]
-    session.history = session.history[:target_index] + [_replace_human_message(original_msg, new_content)]
+    _replace_human_message(original_msg, new_content)
+    session.history = session.history[:target_index] + [original_msg]
     session.input_tokens = 0
     session.output_tokens = 0
 
@@ -254,40 +254,22 @@ async def disconnect(sid):
 def _build_human_message(task_text: str, file_paths: list[str], message_id: str | None = None) -> HumanMessage:
     if not file_paths:
         return HumanMessage(content=task_text, id=message_id)
-    blocks = []
-    if task_text:
-        blocks.append({"type": "text", "text": task_text, "role": "user"})
-    for path in file_paths:
-        parsed = parse_file(path)
-        if parsed:
-            blocks.extend(parsed)
-    return HumanMessage(content=blocks, additional_kwargs={"files": file_paths}, id=message_id)
+    if file_paths:
+        blocks = []
+        for path in file_paths:
+            parsed = parse_file(path)
+            if parsed:
+                blocks.extend(parsed)
+        blocks.append({"type": "text", "text": task_text or " "})
+        return HumanMessage(content=blocks, additional_kwargs={"files": file_paths}, id=message_id)
+    return HumanMessage(content=task_text, id=message_id)
 
 
-def _replace_human_message(message: HumanMessage, new_content: str) -> HumanMessage:
-    next_content: str | list[dict[str, Any]]
+def _replace_human_message(message: HumanMessage, new_content: str) -> None:
     if isinstance(message.content, list):
-        next_blocks = []
-        replaced = False
-        for block in message.content:
-            if isinstance(block, dict) and block.get("role") == "user" and block.get("type") == "text" and not replaced:
-                if new_content:
-                    next_blocks.append({**block, "text": new_content})
-                replaced = True
-            else:
-                next_blocks.append(block)
-        if not replaced and new_content:
-            next_blocks.insert(0, {"type": "text", "text": new_content, "role": "user"})
-        next_content = next_blocks
+        message.content[-1]["text"] = new_content
     else:
-        next_content = new_content
-
-    return HumanMessage(
-        content=next_content,
-        additional_kwargs=dict(getattr(message, "additional_kwargs", {}) or {}),
-        id=message.id,
-        name=getattr(message, "name", None),
-    )
+        message.content = new_content
 
 
 async def _run_agent(s: Session, s_id: str, sid: str):
