@@ -3,6 +3,50 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.18.0 (2026-04-05)
+
+### Feat
+
+- **core**: support user message editing
+- **server**: add `delete all history` button
+- **core**: support settings of top_p & top_k
+- **core**: update prompts
+- **server**: enable reconstruction of Decision when loading history conversation
+- **ui**: improve and unify frontend ui
+- **core**: update system prompt
+- **ui**: input history and recent models are saved in localStorage now
+- **ui**: redesign hero
+- **core**: configure multi-keys for gemini to maximize free quota
+- **ui**: add remark-cjk-friendly plugin
+- **ui**: change default theme to light
+- **ui**: improve ui visual effects
+- **tools**: add `sleep` tool
+- **ui**: optimize file upload and filename preview
+- **core**: parse PDF as images
+- **core**: now support file upload with any file types
+- **ui**: add EOL when llm is finished
+
+### Fix
+
+- **core**: small fixups
+- **ui**: improve markdown list rendering
+- **ui**: fix icons alignment
+- **ui**: fix tool preview visibility in dark mode
+- **ui**: fix input box vertical asymmetry
+- **core**: update system prompt
+- **server**: enable safe quit
+
+### Refactor
+
+- **core**: move session tasks to main loop, isolate Playwright to BrowserWorker
+- **ui**: optimize section card settings
+- **server**: add SessionManager class to manage sessions
+- **core**: simplify stage management
+
+### Perf
+
+- **ui**: optimize first screen render
+
 ## v0.17.0 (2026-03-16)
 
 ### Feat
