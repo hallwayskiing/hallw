@@ -73,6 +73,7 @@ function normalizeHistoryMessage(msg: RawTextMessage | RawDecisionMessage): Mess
 
 export interface SocketSlice {
   isConnected: boolean;
+  lastMessage: "reasoning" | "text" | null;
   _socket: Socket | null;
   initSocket: () => () => void;
   getSocket: () => Socket | null;
@@ -88,6 +89,7 @@ function getSessionId(payload: unknown): string | null {
 
 export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (set, get) => ({
   isConnected: false,
+  lastMessage: null,
   _socket: null,
 
   getSocket: () => get()._socket,
@@ -122,6 +124,7 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const reasoning = typeof data === "string" ? data : data?.reasoning || "";
       if (!sessionId || !reasoning) return;
       actions._onChatNewReasoning(sessionId, reasoning);
+      set({ lastMessage: "reasoning" });
     });
 
     socket.on("llm_new_text", (data: LlmTextPayload | string) => {
@@ -129,14 +132,17 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const text = typeof data === "string" ? data : data?.text || "";
       if (!sessionId || !text) return;
       actions._onChatNewText(sessionId, text);
+      set({ lastMessage: "text" });
     });
 
     socket.on("llm_finished", (data: SessionPayload) => {
       const sessionId = getSessionId(data) || get().activeSessionId;
       if (!sessionId) return;
-      const session = get().chatSessions[sessionId];
-      if (!session?.streamingContent) return;
-      get()._onChatNewText(sessionId, "\n");
+      if (get().lastMessage === "reasoning") {
+        get()._onChatNewReasoning(sessionId, "\n\n");
+      } else if (get().lastMessage === "text") {
+        get()._onChatNewText(sessionId, "\n\n");
+      }
     });
 
     socket.on("task_started", (data: SessionPayload) => {
@@ -217,12 +223,15 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const { session_id: _sessionId, ...payload } = data;
       actions._onStagesBuilt(sessionId, payload as string[] | { stages?: string[] });
     });
-    socket.on("stages_advanced", (data: SessionPayload & { completed_indices: number[]; next_index: number; is_done: boolean }) => {
-      const sessionId = getSessionId(data);
-      if (!sessionId) return;
-      const { completed_indices, next_index, is_done } = data;
-      actions._onStagesAdvanced(sessionId, { completed_indices, next_index, is_done });
-    });
+    socket.on(
+      "stages_advanced",
+      (data: SessionPayload & { completed_indices: number[]; next_index: number; is_done: boolean }) => {
+        const sessionId = getSessionId(data);
+        if (!sessionId) return;
+        const { completed_indices, next_index, is_done } = data;
+        actions._onStagesAdvanced(sessionId, { completed_indices, next_index, is_done });
+      }
+    );
     socket.on("stages_edited", (data: SessionPayload & { stages: string[]; current_index: number }) => {
       const sessionId = getSessionId(data);
       if (!sessionId) return;

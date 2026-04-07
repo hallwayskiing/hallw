@@ -233,4 +233,34 @@ def serialize_messages(messages: list[Any]) -> tuple[list[dict[str, Any]], list[
                 }
             )
 
-    return serialized_msgs, restored_tool_states
+    merged_msgs: list[dict[str, Any]] = []
+    for msg in serialized_msgs:
+        is_ai_text = msg.get("role") == "assistant" and msg.get("type") == "text"
+
+        if not merged_msgs:
+            merged_msgs.append(msg)
+            continue
+
+        last_msg = merged_msgs[-1]
+        is_last_ai_text = last_msg.get("role") == "assistant" and last_msg.get("type") == "text"
+
+        if is_ai_text and is_last_ai_text:
+            # Merge reasoning
+            r1 = last_msg.get("reasoning", "")
+            r2 = msg.get("reasoning", "")
+            if r1 and r2:
+                last_msg["reasoning"] = r1.rstrip() + "\n\n" + r2.lstrip()
+            elif r2:
+                last_msg["reasoning"] = r2
+
+            # Merge content
+            c1 = last_msg.get("content", "")
+            c2 = msg.get("content", "")
+            if c1 and c2:
+                last_msg["content"] = c1.rstrip() + "\n\n" + c2.lstrip()
+            elif c2:
+                last_msg["content"] = c2
+        else:
+            merged_msgs.append(msg)
+
+    return merged_msgs, restored_tool_states
