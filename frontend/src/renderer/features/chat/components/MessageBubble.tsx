@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 
+import { useEditableTextarea } from "../hooks/useEditableTextarea";
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
 import type { AvatarProps, MessageBubbleProps } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
@@ -96,20 +97,12 @@ export const MessageBubble = memo(
     const [isEditing, setIsEditing] = useState(false);
     const [draft, setDraft] = useState(content);
     const bubbleRef = useRef<HTMLDivElement | null>(null);
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-    function resizeTextarea(el: HTMLTextAreaElement) {
-      el.style.height = "0px";
-      el.style.height = `${el.scrollHeight}px`;
-    }
+    const { textareaRef, mirrorRef, handleTextareaChange } = useEditableTextarea(isEditing);
 
     useEffect(() => {
-      if (!isEditing || !textareaRef.current) return;
-      const el = textareaRef.current;
-      el.focus();
-      const end = el.value.length;
-      el.setSelectionRange(end, end);
-    }, [isEditing]);
+      if (isEditing) return;
+      setDraft(content);
+    }, [content, isEditing]);
 
     const handleStartEdit = () => {
       if (!canEdit) return;
@@ -207,17 +200,27 @@ export const MessageBubble = memo(
               )}
             >
               {isEditing ? (
-                <textarea
-                  ref={textareaRef}
-                  value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
-                    resizeTextarea(e.currentTarget);
-                  }}
-                  rows={1}
-                  className="block w-full resize-none overflow-hidden bg-transparent px-0 py-0 text-[15px] font-[450] tracking-[-0.005em] leading-[1.75] text-foreground/80 outline-hidden border-0 shadow-none"
-                  style={{ fontFamily: "inherit" }}
-                />
+                <div className="relative">
+                  <div
+                    ref={mirrorRef}
+                    aria-hidden="true"
+                    className="invisible pointer-events-none whitespace-pre-wrap wrap-break-word px-0 py-0 text-[15px] font-[450] tracking-[-0.005em] leading-[1.75] text-foreground/80"
+                    style={{ fontFamily: "inherit" }}
+                  >
+                    {`${draft || " "}\n`}
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={draft}
+                    onChange={(e) => {
+                      setDraft(e.target.value);
+                      handleTextareaChange();
+                    }}
+                    rows={1}
+                    className="absolute inset-0 block h-full w-full resize-none overflow-hidden whitespace-pre-wrap wrap-break-word bg-transparent px-0 py-0 text-[15px] font-[450] tracking-[-0.005em] leading-[1.75] text-foreground/80 outline-hidden border-0 shadow-none"
+                    style={{ fontFamily: "inherit" }}
+                  />
+                </div>
               ) : (
                 <MarkdownContent
                   content={isStreamingContent ? smoothContent : content}
