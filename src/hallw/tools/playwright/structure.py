@@ -5,36 +5,31 @@ from .helpers import auto_consent, remove_overlays
 from .playwright_mgr import get_page
 
 # JavaScript for robustly extracting page structure
-# Focuses on interactive and visible elements, using a hybrid ID strategy
 SCRIPT = """
 () => {
     const idAttribute = 'data-hallw-id';
-
-    // Whitelist of interactive tags and roles
     const allowedTags = ['button', 'a', 'input', 'select', 'textarea', 'details', 'summary'];
-    const allowedRoles = ['button', 'link', 'checkbox', 'combobox', 'option',
-                            'tab', 'searchbox', 'textbox', 'menuitem', 'menu', 'radio', 'switch'];
+    const allowedRoles = ['button', 'link', 'checkbox', 'combobox', 'option', 'tab',
+    'searchbox', 'textbox', 'menuitem', 'menu', 'radio', 'switch'];
 
-    // Core visibility check (CSS level)
     function isEffectivelyVisible(el) {
-        const rect = el.getBoundingClientRect();
         // 1. Size check
-        if (rect.width <= 0 || rect.height <= 0) return false;
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 4 || rect.height <= 4) return false;
 
-        // 2. Out of viewport check
+        // 2. Style check
+        const style = window.getComputedStyle(el);
+        if (style.visibility === 'hidden' || style.display === 'none' || parseFloat(style.opacity) === 0) return false;
+
+        // 3. Hidden attribute check
+        if (el.hidden) return false;
+
+        // 4. ARIA hidden check
+        if (el.getAttribute('aria-hidden') === 'true') return false;
+
+        // 5. Out of viewport check
         const isOutOfViewport = rect.bottom < 0 || rect.top > window.innerHeight;
         if (isOutOfViewport) return false;
-
-        // 3. CSS style check
-        const style = window.getComputedStyle(el);
-        if (style.visibility === 'hidden' ||
-            style.display === 'none' ||
-            parseFloat(style.opacity) === 0) {
-            return false;
-        }
-
-        // 4. HTML attribute check
-        if (el.hidden) return false;
 
         return true;
     }
@@ -42,92 +37,78 @@ SCRIPT = """
     const items = [];
     let idCounter = 1;
 
-    function scan(root) {
-        if (!root) return;
+    function scan(node) {
+        if (!node) return;
 
-        const elements = root.children || [];
-        for (const el of elements) {
-            if (el.shadowRoot) {
-                scan(el.shadowRoot);
+        // Traverse ShadowRoot/DocumentFragment containers
+        if (!node.tagName) {
+            const containerChildren = Array.from(node.children || []);
+            for (const child of containerChildren) {
+                scan(child);
             }
+            return;
+        }
 
-            if (el.children && el.children.length > 0) {
-                scan(el);
+        const tagName = node.tagName.toLowerCase();
+        const role = node.getAttribute('role');
+
+        // 1. Check interactivity based on tag, role, attributes, and styles
+        let isInteractive = allowedTags.includes(tagName) || allowedRoles.includes(role);
+        if (!isInteractive) {
+            const classAttr = node.getAttribute('class') || '';
+            const style = window.getComputedStyle(node);
+            if (node.onclick ||
+                node.getAttribute('jsaction') ||
+                node.getAttribute('data-action') ||
+                (typeof classAttr === 'string' && classAttr.includes('btn')) ||
+                style.cursor === 'pointer') {
+                isInteractive = true;
             }
-
-            const tagName = el.tagName.toLowerCase();
-            const role = el.getAttribute('role');
-
-            // --- Filtering logic ---
-            let isInteractive = allowedTags.includes(tagName) || allowedRoles.includes(role);
-
-            // Additional capture: div/span disguised as buttons (common in React/Vue)
-            if (!isInteractive) {
-                const classAttr = el.getAttribute('class') || '';
-
-                // Additional click detection
-                if (el.onclick ||
-                    el.getAttribute('jsaction') ||
-                    el.getAttribute('data-action') ||
-                    (typeof classAttr === 'string' && classAttr.includes('btn'))) {
-                        isInteractive = true;
-                }
-
-                // Additional click detection 2
-                const style = window.getComputedStyle(el);
-                if (style.cursor === 'pointer') {
-                    isInteractive = true;
-                }
-            }
-
-            if (!isInteractive) continue;
-            if (!isEffectivelyVisible(el)) continue;
-
-            // --- Text extraction ---
-            // Priority order: Aria-label > InnerText > Title > Placeholder
-            let name = el.getAttribute('aria-label') || el.innerText ||
-            el.getAttribute('title') || el.getAttribute('placeholder') || "";
-
-            // Special handling for images
+        }
+        // 2. If interactive and visible, extract name and assign ID
+        if (isInteractive && isEffectivelyVisible(node)) {
+            let name = node.getAttribute('aria-label') || node.innerText || node.getAttribute('title') ||
+                        node.getAttribute('placeholder') || "";
             if (tagName === 'img' && !name) {
-                name = el.getAttribute('alt') || "Image";
+                name = node.getAttribute('alt') || "Image";
             }
-
-            // Clean text: compress consecutive spaces
-            name = name.replace(/\\s+/g, ' ').trim().slice(0, 100);
-
-            // Inputs are kept even if they have no name
+            name = name.replace(/\s+/g, ' ').trim().slice(0, 100);
             const isInput = ['input', 'select', 'textarea', 'textbox', 'searchbox'].includes(tagName) ||
-            ['textbox', 'searchbox'].includes(role);
-            if (!name && !isInput) continue;
-
-            // --- Hybrid ID strategy ---
-            let aid = el.getAttribute(idAttribute);
-            if (!aid) {
-                const nativeId = el.id;
-                // Conditions for using native ID: exists + not too long + not likely random
-                if (nativeId && nativeId.length < 50 && !/\\d{10,}/.test(nativeId)) {
-                    aid = nativeId;
-                } else {
-                    // Inject generated ID
-                    aid = String(idCounter++);
-                    el.setAttribute(idAttribute, aid);
+                            ['textbox', 'searchbox'].includes(role);
+            // Only include elements that have a name or are input-like (even if unnamed)
+            if (name || isInput) {
+                let aid = node.getAttribute(idAttribute);
+                if (!aid) {
+                    const nativeId = node.id;
+                    if (nativeId && nativeId.length < 50 && !/\\d{10,}/.test(nativeId)) {
+                        aid = nativeId;
+                    } else {
+                        aid = String(idCounter++);
+                        node.setAttribute(idAttribute, aid);
+                    }
                 }
-            }
 
-            items.push({
-                id: aid,
-                role: role || tagName,
-                name: name
-            });
+                items.push({
+                    id: aid,
+                    role: role || tagName,
+                    name: name
+                });
+            }
+        }
+
+        // 3. Recursively scan Shadow DOM and children
+        if (node.shadowRoot) {
+            scan(node.shadowRoot);
+        }
+        const children = Array.from(node.children || []);
+        for (const child of children) {
+            scan(child);
         }
     }
 
     scan(document.body || document.documentElement);
 
     return {
-        title: document.title,
-        url: window.location.href,
         elements: items
     };
 }
@@ -175,8 +156,8 @@ async def browser_get_structure() -> str:
         True,
         f"Fetched structure with {len(formatted_elements)} interactive elements.",
         {
-            "url": data["url"],
-            "title": data["title"],
+            "url": page.url,
+            "title": await page.title(),
             "elements": formatted_elements,
         },
     )
