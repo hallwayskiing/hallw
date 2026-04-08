@@ -7,7 +7,7 @@
 
 <div align='center'>
 
-https://github.com/user-attachments/assets/0027e982-f924-4f14-b922-7c141804657d
+https://github.com/user-attachments/assets/bca84a11-554f-498c-8f2b-21b0859777f0
 
 <p><em>Demo for 'Collect latest 30 days NVIDIA stock price and save it to my desktop'</em></p>
 </div>
