@@ -73,7 +73,6 @@ function normalizeHistoryMessage(msg: RawTextMessage | RawDecisionMessage): Mess
 
 export interface SocketSlice {
   isConnected: boolean;
-  lastMessage: "reasoning" | "text" | null;
   _socket: Socket | null;
   initSocket: () => () => void;
   getSocket: () => Socket | null;
@@ -89,7 +88,6 @@ function getSessionId(payload: unknown): string | null {
 
 export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (set, get) => ({
   isConnected: false,
-  lastMessage: null,
   _socket: null,
 
   getSocket: () => get()._socket,
@@ -124,7 +122,6 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const reasoning = typeof data === "string" ? data : data?.reasoning || "";
       if (!sessionId || !reasoning) return;
       actions._onChatNewReasoning(sessionId, reasoning);
-      set({ lastMessage: "reasoning" });
     });
 
     socket.on("llm_new_text", (data: LlmTextPayload | string) => {
@@ -132,17 +129,14 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const text = typeof data === "string" ? data : data?.text || "";
       if (!sessionId || !text) return;
       actions._onChatNewText(sessionId, text);
-      set({ lastMessage: "text" });
     });
 
     socket.on("llm_finished", (data: SessionPayload) => {
       const sessionId = getSessionId(data) || get().activeSessionId;
       if (!sessionId) return;
-      if (get().lastMessage === "reasoning") {
-        get()._onChatNewReasoning(sessionId, "\n\n");
-      } else if (get().lastMessage === "text") {
-        get()._onChatNewText(sessionId, "\n\n");
-      }
+      const session = get().chatSessions[sessionId];
+      if (!session?.streamingContent) return;
+      get()._onChatNewText(sessionId, "\n\n");
     });
 
     socket.on("task_started", (data: SessionPayload) => {

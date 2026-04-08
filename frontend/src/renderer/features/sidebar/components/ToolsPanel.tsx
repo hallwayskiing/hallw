@@ -32,12 +32,12 @@ function ToolItem({ state, isExpanded, onClick }: ToolItemProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full group relative border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm px-3 py-2",
+        "w-full text-left group relative border-l-2 transition-colors cursor-pointer hover:bg-secondary/20 rounded-r-sm px-3 py-2",
         borderColor
       )}
     >
-      <div className="flex items-center">
-        <span className="min-w-0 truncate text-[15px] font-medium text-foreground transition-colors group-hover:text-primary leading-5">
+      <div className="flex items-start">
+        <span className="min-w-0 wrap-break-word w-full text-[15px] font-medium text-foreground transition-colors group-hover:text-primary leading-5">
           {tool_name}
         </span>
       </div>

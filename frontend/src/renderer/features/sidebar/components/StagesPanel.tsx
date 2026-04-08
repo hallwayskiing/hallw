@@ -24,9 +24,9 @@ function StageItem({ index, label, isCurrent, isCompleted, isError, isExpanded }
         isError ? "text-red-500" : isCurrent ? "text-foreground font-medium" : "text-foreground/80"
       )}
     >
-      <div className="flex min-w-0 items-start gap-2">
+      <div className="flex min-w-0 flex-1 items-start gap-2">
         <span className="shrink-0 text-muted-foreground leading-5">{index + 1}.</span>
-        <span className="leading-5">{label}</span>
+        <span className="leading-5 wrap-break-word text-left min-w-0">{label}</span>
       </div>
       <div className="shrink-0 pt-0.5">{StatusIcon}</div>
     </div>
