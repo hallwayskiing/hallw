@@ -107,6 +107,7 @@ class AgentRunner:
             streaming=True,
             top_p=config.model_top_p,
             top_k=config.model_top_k,
+            repetition_penalty=config.model_repetition_penalty,
             stream_usage=True,
             stream_options={"include_usage": True},
             model_kwargs={

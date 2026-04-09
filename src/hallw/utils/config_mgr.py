@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     model_temperature: float = 1
     model_top_p: float = 0.95
     model_top_k: int = 64
+    model_repetition_penalty: float = 1.2
     model_max_output_tokens: int = 2560
     model_reasoning_effort: str = "low"  # low, medium, high
     model_reflection_threshold: int = 3

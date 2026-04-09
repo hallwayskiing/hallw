@@ -84,6 +84,16 @@ export function ModelPage({
               onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_top_k", e.target.value)}
             />
           </InputGroup>
+          <InputGroup label="Repetition Penalty" desc="1.0 - 2.0">
+            <Input
+              name="model_repetition_penalty"
+              step="0.1"
+              min="1"
+              max="2"
+              value={(config.model_repetition_penalty as number) ?? 1.2}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("model_repetition_penalty", e.target.value)}
+            />
+          </InputGroup>
           <InputGroup label="Max Output Tokens" desc="Token limit">
             <Input
               name="model_max_output_tokens"
