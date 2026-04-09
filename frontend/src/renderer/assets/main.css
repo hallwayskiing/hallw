@@ -313,7 +313,6 @@
 
   .md-content p,
   .md-content li,
-  .md-content span:not([class*="hljs"]),
   .md-content strong,
   .md-content em {
     font-family: inherit;
@@ -323,6 +322,10 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0.5rem 0;
+  }
+
+  .md-content .katex .cjk_fallback {
+    font-size: 0.85em;
   }
 
   .md-content ::selection {
