@@ -77,9 +77,9 @@ All the works done by the agent should be saved here.
 | **Install Python Deps** | `uv sync` | Root |
 | **Add Python Deps** | `uv add <package>` | Root |
 | **Run Full App** | `python main.py` | Root |
-| **Install JS Deps** | `npm install` | `frontend/` |
-| **Run Frontend Dev** | `npm run dev` | `frontend/` |
-| **Build Frontend** | `npm run build` | `frontend/` |
+| **Install JS Deps** | `bun add <package>` | `frontend/` |
+| **Run Frontend Dev** | `bun run dev` | `frontend/` |
+| **Build Frontend** | `bun run build` | `frontend/` |
 
 ## 5. Agent Guidelines
 

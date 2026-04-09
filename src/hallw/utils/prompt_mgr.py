@@ -7,6 +7,18 @@ from pathlib import Path
 from textwrap import dedent
 
 
+def get_codebase_desc() -> str:
+    """
+    Scans AGENTS.md
+    """
+    agents_file = Path("AGENTS.md")
+    if not agents_file.exists():
+        return "No codebase description found."
+
+    with open(agents_file, "r", encoding="utf-8") as f:
+        return f"<!-- AGENTS.md -->\n{f.read()}"
+
+
 def get_skills_desc() -> str:
     """
     Scans SKILL.md files from multiple directories and extracts path + YAML frontmatter.
@@ -42,11 +54,38 @@ def get_user_profile() -> str:
     """
     Generates the user profile for the automation agent based on the USER.md file.
     """
-    if not Path("USER.md").exists():
-        shutil.copy(Path(__file__).parent / "templates/USER.example.md", "USER.md")
+    user_profile_path = Path("workspace/USER.md")
+    if not user_profile_path.exists():
+        shutil.copy(Path(__file__).parent / "templates/USER.example.md", user_profile_path)
 
-    with open("USER.md", "r", encoding="utf-8") as f:
-        return f.read()
+    with open(user_profile_path, "r", encoding="utf-8") as f:
+        return f"<!-- workspace/USER.md -->\n{f.read()}"
+
+
+def get_memory() -> str:
+    """
+    Manages daily memory files and returns recent memories (up to 3 recent days).
+    """
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    memory_dir = Path("workspace/memories")
+    today_memory_dir = memory_dir / date_str
+    today_memory_file = today_memory_dir / "MEMORY.md"
+
+    if not today_memory_file.exists():
+        today_memory_dir.mkdir(parents=True, exist_ok=True)
+        template_path = Path(__file__).parent / "templates" / "MEMORY.example.md"
+        shutil.copy(template_path, today_memory_file)
+
+    recent_memories = []
+    subdirs = sorted([d for d in memory_dir.iterdir() if d.is_dir()], key=lambda x: x.name, reverse=True)
+    for subdir in subdirs[:3]:
+        mem_file = subdir / "MEMORY.md"
+        if mem_file.exists():
+            with open(mem_file, "r", encoding="utf-8") as f:
+                recent_memories.append(f"<!-- workspace/memories/{subdir.name}/MEMORY.md -->\n{f.read()}")
+
+    return "\n\n".join(recent_memories)
 
 
 def get_system_prompt() -> str:
@@ -59,8 +98,12 @@ def get_system_prompt() -> str:
     You are running in a {platform.system()} environment.
     Conversation start time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
     Current working directory is {os.getcwd()}.
-    For project codebase details, refer to `AGENTS.md` or `README.md`.
+    You are born with memories of at most past 3 days. Others are stored in `workspace/memories/mm-dd/MEMORY.md`.
     </identity>
+
+    <codebase>
+    {get_codebase_desc()}
+    </codebase>
 
     <stages>
     - For every user input, you **MUST** call the `build_stages` tool to analyze the task and create stages.
@@ -69,7 +112,6 @@ def get_system_prompt() -> str:
     - As an AI Agent, these stages are uninterruptible by user.
     - During stages, you can only receive from user by `request_user_decision` tool.
     - Stage management is internal to you. Don't expose it to the user.
-    - **CRITICAL: Always output complete content FIRST before calling any stage advancement tools.**
     </stages>
 
     <exec>
@@ -78,9 +120,9 @@ def get_system_prompt() -> str:
     </exec>
 
     <file_operations>
-    - For file operations, use **read_file** and **write_file** instead of system commands to get better availability.
+    - For file operations, use `read_file` and `write_file` instead of `exec` to get better availability.
     - Don't call `write_file` unless explicitly instructed by the user.
-    - When modifying an existing file, prefer **edit_file** instead of rewriting the whole file.
+    - When modifying an existing file, prefer `edit_file` instead of rewriting the whole file.
     - If creating a large file, use append mode to write the file in chunks to avoid long processing time.
     - You **MUST** save your work in the `workspace/` directory.
     - You can operate on any files in any path, but carefully consider the impact of your actions.
@@ -93,10 +135,12 @@ def get_system_prompt() -> str:
 
     <user_profile>
     {get_user_profile()}
-    You need to use this profile to complete tasks that are related to user's personal information.
-    If any information is missing, ask user to provide it.
-    If user provides important information, update it in USER.md.
     </user_profile>
+
+    <memory>
+    CRITICAL: **SILENTLY** record today's events, learnings, and pending items into today's MEMORY.md file.
+    {get_memory()}
+    </memory>
 
     <formats>
     - Never return an empty response.

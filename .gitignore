@@ -2,7 +2,6 @@
 .chrome*
 *.log
 workspace/
-USER.md
 *.db*
 
 # Byte-compiled / optimized / DLL files
