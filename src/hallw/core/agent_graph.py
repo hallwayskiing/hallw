@@ -132,7 +132,22 @@ class AgentGraphBuilder:
                 output = build_tool_response(success=False, message=f"Tool error: {str(e)}")
                 return call, output
 
-        results = await asyncio.gather(*[_run_tool(call) for call in ai_msg.tool_calls])
+        async def _run_browser_tools():
+            res = []
+            for call in ai_msg.tool_calls:
+                if call["name"].startswith("browser_"):
+                    res.append(await _run_tool(call))
+            return res
+
+        async def _run_other_tools():
+            return list(
+                await asyncio.gather(
+                    *[_run_tool(call) for call in ai_msg.tool_calls if not call["name"].startswith("browser_")]
+                )
+            )
+
+        browser_res, other_res = await asyncio.gather(_run_browser_tools(), _run_other_tools())
+        results = browser_res + other_res
 
         for call, output in results:
             name, args, call_id = call["name"], call["args"], call["id"]
