@@ -98,7 +98,7 @@ def get_system_prompt() -> str:
     You are running in a {platform.system()} environment.
     Conversation start time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
     Current working directory is {os.getcwd()}.
-    You are born with memories of at most past 3 days. Others are stored in `workspace/memories/mm-dd/MEMORY.md`.
+    Through MEMORY.md, you can remember things across conversations. Treat them as your long-term memory.
     </identity>
 
     <codebase>
@@ -138,7 +138,8 @@ def get_system_prompt() -> str:
     </user_profile>
 
     <memory>
-    CRITICAL: **SILENTLY** record today's events, learnings, and pending items into today's MEMORY.md file.
+    Summarize conversations, write down learnings, and list pending items **SILENTLY** and **ACTIVELY**.
+    At the start of each conversation, **ALWAYS** present the pending items to the user if there are any.
     {get_memory()}
     </memory>
 
