@@ -1,7 +1,7 @@
 import asyncio
 
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -32,7 +32,7 @@ class AgentGraphBuilder:
 
     async def build_node(self, state: AgentState, config: RunnableConfig):
         append_prompt = """
-            [SYSTEM] A new user request has been received. Now build the stages for the LATEST user input.
+            A new user request has been received. Now build the stages for the LATEST user input.
             <build_rules>
             - **CRITICAL**: Even if you have already built stages in the previous conversation history,
               you MUST ignore those and call the `build_stages` tool AGAIN for the new user request.
@@ -42,7 +42,7 @@ class AgentGraphBuilder:
             - For complex requests, break the task into stages that are clear and actionable.
             </build_rules>
         """
-        append_msg = HumanMessage(content=append_prompt)
+        append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools([build_stages], tool_choice="required").ainvoke(
             state["messages"] + [append_msg], config=config
@@ -62,9 +62,9 @@ class AgentGraphBuilder:
         total_stages = state["total_stages"]
         stage_names = state["stage_names"]
         append_prompt = f"""
-            [SYSTEM] Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
+            Current stage ({curr_stage + 1}/{total_stages}): {stage_names[curr_stage]}
         """
-        append_msg = HumanMessage(content=append_prompt)
+        append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools(list(self.tools_dict.values()), tool_choice="auto").ainvoke(
             state["messages"] + [append_msg], config=config
@@ -87,14 +87,14 @@ class AgentGraphBuilder:
         remaining_stages = state["stage_names"][curr_stage:]
 
         append_prompt = f"""
-            [SYSTEM] Stages are not finished yet.
+            Stages are not finished yet.
             Remaining stages: {", ".join(remaining_stages)}
             You must now either:
             1. Call `end_current_stage` to advance to the next stage (or finish the task).
             2. Call `edit_stages` to replace all remaining stages with a new plan.
             You MUST call one of these tools.
         """
-        append_msg = HumanMessage(content=append_prompt)
+        append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
             state["messages"] + [append_msg], config=config
@@ -180,12 +180,12 @@ class AgentGraphBuilder:
     async def reflection_node(self, state: AgentState, config: RunnableConfig):
         fail_count = state["stats"]["failures_since_last_reflection"]
         append_prompt = f"""
-            [SYSTEM] You have accumulated {fail_count} failures in the previous steps.
+            You have accumulated {fail_count} failures in the previous steps.
             Please reflect on the failures and adjust your plan.
             Find out what went wrong and how to fix it.
             Recover from the failures and continue with the task.
         """
-        append_msg = HumanMessage(content=append_prompt)
+        append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.ainvoke(state["messages"] + [append_msg], config=config)
 
