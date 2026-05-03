@@ -3,6 +3,8 @@ import { join, resolve } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, dialog, ipcMain, session, shell, WebContentsView } from "electron";
 
+let handleMainWindowClosed = () => {};
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 960,
@@ -32,6 +34,8 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  mainWindow.on("closed", handleMainWindowClosed);
 }
 
 // Enable remote debugging protocol
@@ -206,6 +210,11 @@ app.whenReady().then(() => {
 
       // Initialize page only on first creation
       if (isNew) {
+        // Prevent popup windows from opening
+        view.webContents.setWindowOpenHandler(() => {
+          return { action: "deny" };
+        });
+
         await view.webContents.loadURL("about:blank");
         await view.webContents.executeJavaScript("window.__IS_AGENT_VIEW__ = true;");
       }
@@ -249,20 +258,18 @@ app.whenReady().then(() => {
     return true;
   });
 
-  // Clean up all views when the window is closed
-  app.on("browser-window-created", (_, win) => {
-    win.on("closed", () => {
-      for (const view of cdpViews.values()) {
-        try {
-          if (!view.webContents.isDestroyed()) view.webContents.close();
-        } catch {}
-      }
-      cdpViews.clear();
-      attachedSessionId = null;
-      unexpandedBounds = null;
-      resizeHandler = null;
-    });
-  });
+  // Clean up all views when the main window is closed
+  handleMainWindowClosed = () => {
+    for (const view of cdpViews.values()) {
+      try {
+        if (!view.webContents.isDestroyed()) view.webContents.close();
+      } catch {}
+    }
+    cdpViews.clear();
+    attachedSessionId = null;
+    unexpandedBounds = null;
+    resizeHandler = null;
+  };
 
   createWindow();
 
