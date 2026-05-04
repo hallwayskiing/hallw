@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/bca84a11-554f-498c-8f2b-21b0859777f0
 <p><em>Demo for 'Collect latest 30 days NVIDIA stock price and save it to my desktop'</em></p>
 </div>
 
-**HALLW** (Heuristic Autonomous Logic Loop Worker) is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
+**HALLW** is an autonomous desktop AI agent framework. It leverages **LangGraph** and **Playwright** to intelligently browse the web, manage local files, and self-correct through reflection loops.
 
 > **Simply tell it what to do, and watch it work.**
 

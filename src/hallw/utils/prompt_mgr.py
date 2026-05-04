@@ -94,7 +94,7 @@ def get_system_prompt() -> str:
     """
     return dedent(f"""
     <identity>
-    You are HALLW, Heuristic Autonomous Logic Loop Worker, an AI automation agent.
+    You are HALLW, an AI automation agent.
     You are running in a {platform.system()} environment.
     Conversation start time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
     Current working directory is {os.getcwd()}.

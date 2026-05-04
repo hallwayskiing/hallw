@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This document provides a comprehensive overview of the HALLW (Heuristic Autonomous Logic Loop Worker) project structure and architecture, designed to help Agents quickly understand the codebase.
+This document provides a comprehensive overview of the HALLW project structure and architecture, designed to help Agents quickly understand the codebase.
 
 ## 1. Project Identity
 
