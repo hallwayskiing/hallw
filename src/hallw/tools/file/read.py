@@ -107,7 +107,6 @@ def read_file(file_path: str, start_line: int = 0, end_line: int = -1) -> str:
                 "file_path": file_path,
                 "start_line": start_line,
                 "end_line": start_line + len(lines),
-                "lines_read": len(lines),
                 "content": content,
             },
         )

@@ -44,15 +44,11 @@ async def write_file(file_path: str, content: str, mode: str = "w") -> str:
     except Exception as e:
         return build_tool_response(False, f"Failed to write file: {e}")
 
-    lines_written = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
-
     return build_tool_response(
         True,
         f"Successfully wrote to file: {file_path}",
         {
             "file_path": file_path,
             "mode": mode,
-            "bytes_written": len(content.encode("utf-8")),
-            "lines_written": lines_written,
         },
     )

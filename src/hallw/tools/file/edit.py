@@ -49,8 +49,6 @@ async def edit_file(file_path: str, old_str: str, new_str: str) -> str:
             f"Successfully edited the file: {file_path}",
             {
                 "file_path": file_path,
-                "bytes_written": len(new_str.encode("utf-8")),
-                "lines_written": new_str.count("\n") + (1 if new_str and not new_str.endswith("\n") else 0),
             },
         )
 
