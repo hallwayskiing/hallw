@@ -1,10 +1,9 @@
-# USER.md - Who is the user?
+# HALLW User Profile
 
 Name:
 Age:
 Gender:
 Location:
 Email:
-Preferences:
 
-**Update this file when user provides important information.**
+*Update this file when user provides personal information.*

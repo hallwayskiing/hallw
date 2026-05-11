@@ -5,3 +5,5 @@
 ## 💡 Important Context & Facts - Any new information learned about the system, user preferences, or ongoing projects.
 
 ## 🚧 Pending Items - Tasks that are still ongoing or things to follow up on.
+
+*Update this file daily to keep track of important information and pending items.*

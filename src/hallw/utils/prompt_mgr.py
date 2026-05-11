@@ -71,6 +71,11 @@ def get_memory() -> str:
     memory_dir = Path("workspace/memories")
     today_memory_dir = memory_dir / date_str
     today_memory_file = today_memory_dir / "MEMORY.md"
+    permanent_memory_file = memory_dir / "PERMANENT.md"
+
+    if not permanent_memory_file.exists():
+        template_path = Path(__file__).parent / "templates" / "PERMANENT.example.md"
+        shutil.copy(template_path, permanent_memory_file)
 
     if not today_memory_file.exists():
         today_memory_dir.mkdir(parents=True, exist_ok=True)
@@ -85,7 +90,11 @@ def get_memory() -> str:
             with open(mem_file, "r", encoding="utf-8") as f:
                 recent_memories.append(f"<!-- workspace/memories/{subdir.name}/MEMORY.md -->\n{f.read()}")
 
-    return "\n\n".join(recent_memories)
+    with open(permanent_memory_file, "r", encoding="utf-8") as f:
+        permanent_memory = f.read()
+        recent_memories.append(f"<!-- workspace/memories/PERMANENT.md -->\n{permanent_memory}")
+
+    return "\n".join(recent_memories)
 
 
 def get_system_prompt() -> str:
@@ -98,7 +107,6 @@ def get_system_prompt() -> str:
     You are running in a {platform.system()} environment.
     Conversation start time is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
     Current working directory is {os.getcwd()}.
-    Through MEMORY.md, you can remember things across conversations. Treat them as your long-term memory.
     </identity>
 
     <codebase>
@@ -137,11 +145,16 @@ def get_system_prompt() -> str:
     {get_user_profile()}
     </user_profile>
 
-    <memory>
-    Summarize conversations, write down learnings, and list pending items **SILENTLY** and **ACTIVELY**.
-    At the start of each conversation, **ALWAYS** present the pending items to the user if there are any.
+    <memory_management>
+    - You are born with a permanent memory and 3 days of recent memory, they are your long-term and short-term memory.
+    - Summarize conversations, write down learnings, and list pending items to daily memory **ACTIVELY**.
+    - Remember important information, facts, decisions, user preferences in the permanent memory.
+    - At the start of each conversation, **ALWAYS** present the pending items to the user if there are any.
+    </memory_management>
+
+    <memories>
     {get_memory()}
-    </memory>
+    </memories>
 
     <formats>
     - Never return an empty response.
