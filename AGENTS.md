@@ -20,6 +20,9 @@ This document provides a comprehensive overview of the HALLW project structure a
 *   `start.bat` / `start.sh`: One-click startup scripts.
 *   `.env`: Configuration (API keys, settings).
 *   `workspace/`: **Agent Working Directory**. Files created/modified by the agent should go here.
+    *   `skills/`: **Skills Directory**. Contains agent skills.
+    *   `memories/`: **Memory Directory**. Contains memory files.
+    *   `USER.md`: **User Profile**. Contains user's profile.
 
 ### Backend (`src/hallw/`)
 The core logic resides here.

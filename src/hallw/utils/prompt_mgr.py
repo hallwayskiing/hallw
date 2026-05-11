@@ -22,11 +22,11 @@ def get_codebase_desc() -> str:
 def get_skills_desc() -> str:
     """
     Scans SKILL.md files from multiple directories and extracts path + YAML frontmatter.
-    Directories: .agents/skills
+    Directories: workspace/skills
     """
     # Define search directories
     search_dirs = [
-        Path(".agents/skills"),
+        Path("workspace/skills"),
     ]
 
     skills = []
