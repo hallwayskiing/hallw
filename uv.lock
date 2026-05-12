@@ -758,7 +758,7 @@ wheels = [
 
 [[package]]
 name = "hallw"
-version = "0.18.0"
+version = "0.19.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },

@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.19.0 (2026-05-12)
+
+### Feat
+
+- **ui**: add retry button on message bubble
+- **core**: implement steering mechanism
+- **core**: sessions store AgentState directly now
+- **core**: optimize memory management
+- **core**: optimize injection prompts
+- **core**: support `repetition_penalty` config
+- **core**: implement memory mechanism
+- **tools**: enhance `browser_click`
+- **tools**: enhance `browser_get_structure` to read shadow dom
+
+### Fix
+
+- **tools**: simplify tool return message
+- **ui**: prevent popup windows
+- **core**: optimize system prompt
+- **core**: execute browser tools serially
+- **ui**: fix katex font size
+- **ui**: small fixups
+- **tools**: optimize `browser_get_structure` robustness
+- **ui**: fix message editing layout
+- **server**: refine history loading logic
+
+### Refactor
+
+- **skills**: move skills to workspace/skills
+
 ## v0.18.0 (2026-04-05)
 
 ### Feat
