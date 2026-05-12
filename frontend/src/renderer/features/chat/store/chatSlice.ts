@@ -2,6 +2,7 @@ import type { AppState } from "@store/store";
 import type { StateCreator } from "zustand";
 
 import {
+  appendAttachmentPreview,
   buildSessionTitle,
   DEFAULT_SESSION_TITLE_PREFIX,
   deriveTitleFromMessages,
@@ -10,6 +11,7 @@ import {
   patchSession,
   removeSession,
   resolveRequestExpiresAt,
+  splitAttachmentPreviews,
 } from "../lib/utils";
 import type { ChatSessionState, ChatSlice, ConfirmationStatus, DecisionStatus } from "../types";
 
@@ -385,11 +387,13 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       );
       if (targetIndex < 0) return;
 
+      const { attachmentPreview } = splitAttachmentPreviews(session.messages[targetIndex].content);
+      const displayContent = appendAttachmentPreview(nextContent, attachmentPreview);
       const updatedMessages = session.messages
         .slice(0, targetIndex + 1)
         .map((msg, index) =>
           index === targetIndex && msg.type === "text" && msg.msgRole === "user"
-            ? { ...msg, content: nextContent }
+            ? { ...msg, content: displayContent }
             : msg
         );
       const titleFallback = `${DEFAULT_SESSION_TITLE_PREFIX} ${activeSessionId.slice(0, 8)}`;

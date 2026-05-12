@@ -196,6 +196,7 @@ function renderMessage(
             canEditMessages && msg.msgRole === "user" && !("isStreamingContent" in msg && msg.isStreamingContent)
           }
           onEdit={editUserMessage}
+          onRetry={editUserMessage}
         />
       );
   }

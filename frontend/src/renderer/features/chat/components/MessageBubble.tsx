@@ -17,6 +17,7 @@ import {
   Orbit,
   Rabbit,
   Rocket,
+  RotateCcw,
   Smile,
   Sparkles,
   SquarePen,
@@ -30,6 +31,7 @@ import { memo, useEffect, useRef, useState } from "react";
 
 import { useEditableTextarea } from "../hooks/useEditableTextarea";
 import { useSmoothTyping } from "../hooks/useSmoothTyping";
+import { splitAttachmentPreviews } from "../lib/utils";
 import type { AvatarProps, MessageBubbleProps } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
 import { ReasoningAccordion } from "./ReasoningAccordion";
@@ -91,42 +93,49 @@ export const MessageBubble = memo(
     isStreamingContent,
     canEdit,
     onEdit,
+    onRetry,
     actionLabel,
     className,
   }: MessageBubbleProps) => {
     const isUser = msgRole === "user";
     const smoothContent = useSmoothTyping(content, isStreamingContent || false);
+    const { messageContent } = splitAttachmentPreviews(content);
     const [isEditing, setIsEditing] = useState(false);
-    const [draft, setDraft] = useState(content);
+    const [draft, setDraft] = useState(messageContent);
     const bubbleRef = useRef<HTMLDivElement | null>(null);
     const { textareaRef, mirrorRef, handleTextareaChange } = useEditableTextarea(isEditing);
 
     useEffect(() => {
       if (isEditing) return;
-      setDraft(content);
-    }, [content, isEditing]);
+      setDraft(messageContent);
+    }, [messageContent, isEditing]);
 
     const handleStartEdit = () => {
       if (!canEdit) return;
-      setDraft(content);
+      setDraft(messageContent);
       setIsEditing(true);
     };
 
     const handleCancelEdit = () => {
-      setDraft(content);
+      setDraft(messageContent);
       setIsEditing(false);
     };
 
     const handleSaveEdit = () => {
       if (!canEdit || !onEdit) return;
       const nextContent = draft.trim();
-      if (!nextContent || nextContent === content) {
+      if (!nextContent || nextContent === messageContent) {
         setIsEditing(false);
-        setDraft(content);
+        setDraft(messageContent);
         return;
       }
       onEdit(messageId, nextContent);
       setIsEditing(false);
+    };
+
+    const handleRetry = () => {
+      if (!canEdit || !onRetry) return;
+      onRetry(messageId, messageContent);
     };
 
     return (
@@ -167,21 +176,38 @@ export const MessageBubble = memo(
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleStartEdit}
-                    disabled={!canEdit}
-                    className={cn(
-                      "inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors",
-                      canEdit
-                        ? "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"
-                        : "text-muted-foreground/35 cursor-not-allowed"
-                    )}
-                    aria-label="Edit message"
-                    title="Edit message"
-                  >
-                    <SquarePen className="w-3.5 h-3.5 translate-y-px" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      disabled={!canEdit}
+                      className={cn(
+                        "inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+                        canEdit
+                          ? "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"
+                          : "text-muted-foreground/35 cursor-not-allowed"
+                      )}
+                      aria-label="Retry"
+                      title="Retry"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 translate-y-px" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      disabled={!canEdit}
+                      className={cn(
+                        "inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+                        canEdit
+                          ? "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10"
+                          : "text-muted-foreground/35 cursor-not-allowed"
+                      )}
+                      aria-label="Edit"
+                      title="Edit"
+                    >
+                      <SquarePen className="w-3.5 h-3.5 translate-y-px" />
+                    </button>
+                  </>
                 )}
               </div>
             )}

@@ -70,6 +70,7 @@ export interface MessageBubbleProps {
   isStreamingContent?: boolean;
   canEdit?: boolean;
   onEdit?: (messageId: string, nextContent: string) => void;
+  onRetry?: (messageId: string, content: string) => void;
   actionLabel?: string;
   className?: string;
 }

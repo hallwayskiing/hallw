@@ -45,6 +45,27 @@ export function deriveTitleFromMessages(messages: Message[], fallback: string): 
   return fallback;
 }
 
+const ATTACHMENT_PREVIEW_LINE = /^\s*🔗\s+\*.+\*\s*$/u;
+
+export function splitAttachmentPreviews(content: string): { messageContent: string; attachmentPreview: string } {
+  const lines = content.split(/\r?\n/);
+  const attachmentLines: string[] = [];
+
+  while (lines.length > 0 && ATTACHMENT_PREVIEW_LINE.test(lines[lines.length - 1])) {
+    attachmentLines.unshift(lines.pop() || "");
+  }
+
+  return {
+    messageContent: lines.join("\n").trimEnd(),
+    attachmentPreview: attachmentLines.join("\n"),
+  };
+}
+
+export function appendAttachmentPreview(messageContent: string, attachmentPreview: string): string {
+  if (!attachmentPreview) return messageContent;
+  return `${messageContent.trimEnd()}\n${attachmentPreview}`.trim();
+}
+
 export function flushStreamingMessage(session: ChatSessionState): ChatSessionState {
   if (!session.streamingContent && !session.streamingReasoning) return session;
 
