@@ -283,6 +283,11 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
       if (!_socket) return;
 
       const activeSession = activeSessionId ? chatSessions[activeSessionId] : null;
+      if (activeSessionId && activeSession?.isRunning) {
+        get().steerTask(task, filePaths, fileDisplayNames);
+        return;
+      }
+
       const sessionId =
         !isChatting || !activeSessionId || activeSession?.isClosed ? crypto.randomUUID() : activeSessionId;
       const title = buildSessionTitle(task, sessionId);
@@ -307,10 +312,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
             title: s.messages.length === 0 ? title : s.title,
             isClosed: false,
             hasFatalError: false,
-            messages: [
-              ...s.messages,
-              { id: userMessageId, type: "text", msgRole: "user", content: displayContent },
-            ],
+            messages: [...s.messages, { id: userMessageId, type: "text", msgRole: "user", content: displayContent }],
             isRunning: true,
             isStreamingReasoning: false,
             streamingContent: "",
@@ -332,6 +334,43 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         payload.file_paths = filePaths;
       }
       _socket.emit("start_task", payload);
+    },
+
+    steerTask: (task, filePaths, fileDisplayNames) => {
+      const { _socket, activeSessionId, chatSessions } = get();
+      if (!_socket || !activeSessionId) return;
+
+      const session = chatSessions[activeSessionId];
+      if (!session?.isRunning) return;
+
+      const fileNames = fileDisplayNames ?? [];
+      let filePreviews = "";
+      if (fileNames.length > 0) {
+        filePreviews = `\n${fileNames.map((f) => `🔗 *${f}*`).join("\n")}`;
+      }
+      const displayContent = `${task}${filePreviews}`.trim();
+      const userMessageId = crypto.randomUUID();
+
+      set((state) => ({
+        ...patchSession(state, activeSessionId, (s) => {
+          return {
+            ...s,
+            isClosed: false,
+            hasFatalError: false,
+            queuedSteering: [
+              ...(s.queuedSteering ?? []),
+              { id: userMessageId, type: "text", msgRole: "user", content: displayContent },
+            ],
+            updatedAt: Date.now(),
+          };
+        }),
+      }));
+
+      const payload: Record<string, unknown> = { task, session_id: activeSessionId, message_id: userMessageId };
+      if (filePaths && filePaths.length > 0) {
+        payload.file_paths = filePaths;
+      }
+      _socket.emit("steer_task", payload);
     },
 
     editUserMessage: (messageId, nextContent) => {
@@ -467,6 +506,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           isRunning: false,
           pendingConfirmation: null,
           pendingDecision: null,
+          queuedSteering: [],
           updatedAt: Date.now(),
         };
       });
@@ -482,6 +522,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           isClosed: false,
           hasFatalError: true,
           isRunning: false,
+          queuedSteering: [],
           messages: [...flushed.messages, { id: crypto.randomUUID(), type: "error", msgRole: "system", content }],
           updatedAt: Date.now(),
         };
@@ -501,6 +542,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
           hasCdpView: false,
           pendingConfirmation: null,
           pendingDecision: null,
+          queuedSteering: [],
           updatedAt: Date.now(),
         };
       });
@@ -524,6 +566,7 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
             isClosed: false,
             hasFatalError: false,
             messages: data.messages,
+            queuedSteering: [],
             isRunning: false,
             isStreamingReasoning: false,
             streamingContent: "",
@@ -539,6 +582,24 @@ export const createChatSlice: StateCreator<AppState, [], [], ChatSlice> = (set, 
         activeSessionId: sessionId,
         isChatting: true,
       }));
+    },
+
+    _onChatSteeringApplied: (sessionId, data) => {
+      const ids = new Set((data.message_ids ?? []).filter(Boolean));
+      if (ids.size === 0) return;
+
+      updateSession(sessionId, (s) => {
+        const queuedSteering = s.queuedSteering ?? [];
+        const applied = queuedSteering.filter((msg) => ids.has(msg.id));
+        if (applied.length === 0) return s;
+        const flushed = flushStreamingMessage(s);
+        return {
+          ...flushed,
+          messages: [...flushed.messages, ...applied],
+          queuedSteering: queuedSteering.filter((msg) => !ids.has(msg.id)),
+          updatedAt: Date.now(),
+        };
+      });
     },
 
     _onChatRequestConfirmation: (sessionId, data) => {

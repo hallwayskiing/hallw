@@ -110,6 +110,9 @@ class SocketRenderer(AgentRenderer):
     def on_stages_edited(self, data: dict):
         self._fire("stages_edited", data)
 
+    def on_steering_applied(self, data: dict):
+        self._fire("steering_applied", data)
+
     # User Input / Confirmation
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
         loop = asyncio.get_running_loop()

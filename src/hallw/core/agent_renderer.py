@@ -59,6 +59,10 @@ class AgentRenderer(ABC):
         """Called when remaining stages are replaced with a new plan."""
 
     @abstractmethod
+    def on_steering_applied(self, data: dict) -> None:
+        """Called when queued steering messages are inserted into the graph state."""
+
+    @abstractmethod
     async def on_request_confirmation(self, request_id: str, timeout: int, message: str) -> str:
         """Called when agent needs user confirmation."""
 

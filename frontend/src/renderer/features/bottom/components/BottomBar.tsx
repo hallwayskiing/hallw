@@ -68,7 +68,7 @@ export function BottomBar() {
 
   const onSubmit = (e?: SubmitEvent) => {
     e?.preventDefault();
-    if ((!input.trim() && attachedFiles.length === 0) || isRunning) return;
+    if (!input.trim() && attachedFiles.length === 0) return;
     pushHistory(input);
     submitInput();
   };
@@ -219,11 +219,13 @@ export function BottomBar() {
                 }
               }}
               onPaste={handlePaste}
-              disabled={isRunning}
+              disabled={false}
               isFocused={isFocused}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder={isDragOver ? "Drop files here..." : isRunning ? "Running..." : "Tell me what to do..."}
+              placeholder={
+                isDragOver ? "Drop files here..." : isRunning ? "Steer current task..." : "Tell me what to do..."
+              }
             />
           </div>
         </div>

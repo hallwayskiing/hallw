@@ -146,9 +146,6 @@ export const createBottomSlice: StateCreator<AppState, [], [], BottomSlice> = (s
     const hasSavingFiles = attachedFiles.some((f) => f.isSaving);
     if (hasSavingFiles) return; // Wait for files to finish saving
     if (!input.trim() && attachedFiles.length === 0) return;
-    const activeId = get().activeSessionId;
-    const activeSession = activeId ? get().chatSessions[activeId] : null;
-    if (activeSession?.isRunning) return;
 
     const readyFiles = attachedFiles.filter((f) => f.path !== null);
     const displayNames = getDisplayNames(readyFiles);

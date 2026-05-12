@@ -26,6 +26,7 @@ export function ChatArea() {
   const getProcessedMessages = useAppStore((s) => s.getProcessedMessages);
 
   const messages = session?.messages ?? [];
+  const queuedSteering = session?.queuedSteering ?? [];
   const streamingContent = session?.streamingContent ?? "";
   const streamingReasoning = session?.streamingReasoning ?? "";
   const isStreamingReasoning = session?.isStreamingReasoning ?? false;
@@ -68,6 +69,7 @@ export function ChatArea() {
     streamingReasoning,
     pendingConfirmation,
     pendingDecision,
+    queuedSteering.length,
   ]);
 
   // 3. Jump to bottom when the task starts
@@ -125,6 +127,21 @@ export function ChatArea() {
           {isRunning && !streamingContent && !streamingReasoning && !pendingConfirmation && !pendingDecision && (
             <ThinkingIndicator key="thinking-indicator" />
           )}
+
+          {queuedSteering.length > 0 && (
+            <div className="space-y-4">
+              {queuedSteering.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  messageId={msg.id}
+                  msgRole="user"
+                  content={msg.content}
+                  actionLabel="Steering"
+                  className="border border-dashed border-sky-300/50 bg-sky-500/8"
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -175,7 +192,9 @@ function renderMessage(
           reasoning={msg.reasoning}
           isStreamingReasoning={"isStreamingReasoning" in msg ? msg.isStreamingReasoning : false}
           isStreamingContent={"isStreamingContent" in msg ? msg.isStreamingContent : false}
-          canEdit={canEditMessages && msg.msgRole === "user" && !("isStreamingContent" in msg && msg.isStreamingContent)}
+          canEdit={
+            canEditMessages && msg.msgRole === "user" && !("isStreamingContent" in msg && msg.isStreamingContent)
+          }
           onEdit={editUserMessage}
         />
       );

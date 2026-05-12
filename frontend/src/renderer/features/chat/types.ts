@@ -70,6 +70,8 @@ export interface MessageBubbleProps {
   isStreamingContent?: boolean;
   canEdit?: boolean;
   onEdit?: (messageId: string, nextContent: string) => void;
+  actionLabel?: string;
+  className?: string;
 }
 
 export interface ConfirmationProps {
@@ -94,6 +96,7 @@ export interface ChatSessionState {
   hasFatalError: boolean;
   hasCdpView: boolean;
   messages: Message[];
+  queuedSteering: TextMessage[];
   isRunning: boolean;
   isStreamingReasoning: boolean;
   streamingContent: string;
@@ -127,6 +130,7 @@ export interface ChatSlice {
   endSession: (sessionId: string) => void;
 
   startTask: (task: string, filePaths?: string[], fileDisplayNames?: string[]) => void;
+  steerTask: (task: string, filePaths?: string[], fileDisplayNames?: string[]) => void;
   editUserMessage: (messageId: string, nextContent: string) => void;
   stopTask: () => void;
   resetSession: () => void;
@@ -141,6 +145,7 @@ export interface ChatSlice {
   _onChatFatalError: (sessionId: string, data: unknown) => void;
   _onChatReset: (sessionId: string) => void;
   _onChatHistoryLoaded: (sessionId: string, data: { messages: Message[]; thread_id?: string }) => void;
+  _onChatSteeringApplied: (sessionId: string, data: { message_ids?: string[] }) => void;
   _onChatRequestConfirmation: (sessionId: string, data: ConfirmationRequest) => void;
   _onChatRequestUserDecision: (sessionId: string, data: DecisionRequest) => void;
 }

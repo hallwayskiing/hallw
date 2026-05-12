@@ -8,6 +8,7 @@ const DEFAULT_SESSION_STATE: ChatSessionState = {
   threadId: undefined,
   title: "",
   messages: [],
+  queuedSteering: [],
   isRunning: false,
   isClosed: false,
   hasFatalError: false,

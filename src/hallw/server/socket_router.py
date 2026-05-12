@@ -4,7 +4,7 @@ import socketio
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import SecretStr
 
-from hallw.core import AgentRunner, create_agent_state
+from hallw.core import AgentRunner, AgentState
 from hallw.tools.playwright.playwright_mgr import reset_session_browser, set_session_browser
 from hallw.utils import (
     config,
@@ -44,7 +44,7 @@ async def start_task(sid, data):
     )
 
     if session.active_runner and session.active_runner.is_running:
-        await sio.emit("fatal_error", {"session_id": session_id, "message": "A task is already running."}, room=sid)
+        await _enqueue_steering(session, session_id, sid, task_text, file_paths, data.get("message_id"))
         return
 
     if not session.messages:
@@ -59,6 +59,27 @@ async def start_task(sid, data):
     await sio.emit("user_message", echo, room=sid)
 
     session.task = asyncio.create_task(_run_agent(session, session_id, sid))
+
+
+@sio.event
+async def steer_task(sid, data):
+    if not isinstance(data, dict):
+        return
+    task_text = data.get("task", "")
+    file_paths: list[str] = data.get("file_paths", [])
+    if not task_text.strip() and not file_paths:
+        return
+
+    session_id = session_mgr.resolve_session_id(data)
+    session = session_mgr.pick_session(sid, session_id)
+    if not session:
+        await sio.emit("fatal_error", {"session_id": session_id, "message": "No active session to steer."}, room=sid)
+        return
+    if not session.active_runner or not session.active_runner.is_running:
+        await sio.emit("fatal_error", {"session_id": session_id, "message": "No running task to steer."}, room=sid)
+        return
+
+    await _enqueue_steering(session, session.session_id, sid, task_text, file_paths, data.get("message_id"))
 
 
 @sio.event
@@ -221,7 +242,21 @@ async def edit_user_message(sid, data):
 
     original_msg = session.messages[target_index]
     _replace_human_message(original_msg, new_content)
-    session.state = create_agent_state(session.messages[:target_index] + [original_msg])
+    session.state = {
+        "messages": session.messages[:target_index] + [original_msg],
+        "stats": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "tool_call_counts": 0,
+            "failures": 0,
+            "failures_since_last_reflection": 0,
+        },
+        "current_stage": 0,
+        "total_stages": 0,
+        "stage_names": [],
+        "task_completed": False,
+        "steering_queue": [],
+    }
 
     await history_mgr.delete_thread(thread_id)
 
@@ -269,6 +304,24 @@ def _replace_human_message(message: HumanMessage, new_content: str) -> None:
         message.content = new_content
 
 
+async def _enqueue_steering(
+    session: Session,
+    session_id: str,
+    sid: str,
+    task_text: str,
+    file_paths: list[str],
+    message_id: str | None = None,
+) -> None:
+    message = _build_human_message(task_text, file_paths, message_id)
+    session.messages.append(message)
+    session.enqueue_steering(message)
+
+    echo = {"session_id": session_id, "task": task_text, "queued": True}
+    if file_paths:
+        echo["files"] = file_paths
+    await sio.emit("steering_queued", echo, room=sid)
+
+
 async def _run_agent(s: Session, s_id: str, sid: str):
     """Core agent execution — runs as an asyncio.Task on the main loop."""
     ctx_token = set_session_browser(s.browser)
@@ -307,18 +360,28 @@ async def _run_agent(s: Session, s_id: str, sid: str):
                 pass
 
 
-async def _build_runner_state(s: Session, checkpointer):
+async def _build_runner_state(s: Session, checkpointer) -> AgentState:
     checkpoint_tuple = await checkpointer.aget_tuple({"configurable": {"thread_id": s.thread_id}})
-    if not checkpoint_tuple:
-        return create_agent_state(list(s.messages))
-
-    checkpoint_state = checkpoint_tuple.checkpoint.get("channel_values", {})
-    checkpoint_messages = checkpoint_state.get("messages", [])
-    if len(checkpoint_messages) > len(s.messages):
-        return create_agent_state(list(s.messages))
-
-    pending_messages = s.messages[len(checkpoint_messages) :]
-    return create_agent_state(list(pending_messages))
+    checkpoint_messages = (
+        checkpoint_tuple.checkpoint.get("channel_values", {}).get("messages", []) if checkpoint_tuple else []
+    )
+    start = len(checkpoint_messages) if len(checkpoint_messages) <= len(s.messages) else 0
+    pending_messages = s.messages[start:]
+    return {
+        "messages": list(pending_messages),
+        "stats": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "tool_call_counts": 0,
+            "failures": 0,
+            "failures_since_last_reflection": 0,
+        },
+        "current_stage": 0,
+        "total_stages": 0,
+        "stage_names": [],
+        "task_completed": False,
+        "steering_queue": s.steering_queue,
+    }
 
 
 def _emit_bg(sid: str, event: str, data: dict):

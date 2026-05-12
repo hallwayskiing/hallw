@@ -91,6 +91,8 @@ export const MessageBubble = memo(
     isStreamingContent,
     canEdit,
     onEdit,
+    actionLabel,
+    className,
   }: MessageBubbleProps) => {
     const isUser = msgRole === "user";
     const smoothContent = useSmoothTyping(content, isStreamingContent || false);
@@ -139,7 +141,11 @@ export const MessageBubble = memo(
           <div className={cn("flex items-center gap-2 leading-none", isUser ? "justify-end" : "justify-start")}>
             {isUser && (
               <div className="flex items-center gap-1">
-                {isEditing ? (
+                {actionLabel ? (
+                  <span className="font-semibold text-xs uppercase tracking-wider leading-none text-sky-400/80">
+                    {actionLabel}
+                  </span>
+                ) : isEditing ? (
                   <>
                     <button
                       type="button"
@@ -196,7 +202,8 @@ export const MessageBubble = memo(
                 isUser &&
                   isEditing &&
                   "w-[90%] max-w-[90%] bg-muted/60 from-transparent to-transparent border-border/70 shadow-none",
-                isStreamingContent && "min-h-10"
+                isStreamingContent && "min-h-10",
+                className
               )}
             >
               {isEditing ? (

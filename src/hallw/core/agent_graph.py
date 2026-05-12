@@ -1,7 +1,7 @@
 import asyncio
 
 from langchain_core.callbacks.manager import dispatch_custom_event
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -31,6 +31,7 @@ class AgentGraphBuilder:
     # --- Nodes ---
 
     async def build_node(self, state: AgentState, config: RunnableConfig):
+        steering_messages = self._drain_steering(state, config)
         append_prompt = """
             A new user request has been received. Now build the stages for the LATEST user input.
             <build_rules>
@@ -45,11 +46,11 @@ class AgentGraphBuilder:
         append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools([build_stages], tool_choice="required").ainvoke(
-            state["messages"] + [append_msg], config=config
+            state["messages"] + steering_messages + [append_msg], config=config
         )
 
         return {
-            "messages": [response],
+            "messages": steering_messages + [response],
             "stats": _extract_usage(response),
             "current_stage": 0,
             "total_stages": 0,
@@ -58,6 +59,7 @@ class AgentGraphBuilder:
         }
 
     async def model_node(self, state: AgentState, config: RunnableConfig):
+        steering_messages = self._drain_steering(state, config)
         curr_stage = state["current_stage"]
         total_stages = state["total_stages"]
         stage_names = state["stage_names"]
@@ -67,15 +69,16 @@ class AgentGraphBuilder:
         append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools(list(self.tools_dict.values()), tool_choice="auto").ainvoke(
-            state["messages"] + [append_msg], config=config
+            state["messages"] + steering_messages + [append_msg], config=config
         )
 
         return {
-            "messages": [response],
+            "messages": steering_messages + [response],
             "stats": _extract_usage(response),
         }
 
     async def proceed_node(self, state: AgentState, config: RunnableConfig):
+        steering_messages = self._drain_steering(state, config)
         """
         Called when model responded without tool calls.
         Forces the agent to either advance stages or edit them.
@@ -97,13 +100,36 @@ class AgentGraphBuilder:
         append_msg = SystemMessage(content=append_prompt)
 
         response = await self.model.bind_tools(proceed_tools, tool_choice="required").ainvoke(
-            state["messages"] + [append_msg], config=config
+            state["messages"] + steering_messages + [append_msg], config=config
         )
 
         return {
-            "messages": [response],
+            "messages": steering_messages + [response],
             "stats": _extract_usage(response),
         }
+
+    def _drain_steering(self, state: AgentState, config: RunnableConfig) -> list[SystemMessage | HumanMessage]:
+        queue = state.get("steering_queue", [])
+        steering_messages = list(queue)
+        if not steering_messages:
+            return []
+        queue.clear()
+
+        messages = [
+            SystemMessage(
+                content=(
+                    "The user sent the following steering message(s) while you were already working. "
+                    "Treat them as the latest user instructions. Adjust the current plan if needed before continuing."
+                )
+            )
+        ]
+        messages.extend(msg for msg in steering_messages if isinstance(msg, HumanMessage))
+        dispatch_custom_event(
+            "steering_applied",
+            {"message_ids": [str(getattr(msg, "id", "") or "") for msg in steering_messages]},
+            config=config,
+        )
+        return messages
 
     async def tools_node(self, state: AgentState, config: RunnableConfig):
         ai_msg = state["messages"][-1]
@@ -178,6 +204,7 @@ class AgentGraphBuilder:
         }
 
     async def reflection_node(self, state: AgentState, config: RunnableConfig):
+        steering_messages = self._drain_steering(state, config)
         fail_count = state["stats"]["failures_since_last_reflection"]
         append_prompt = f"""
             You have accumulated {fail_count} failures in the previous steps.
@@ -187,10 +214,10 @@ class AgentGraphBuilder:
         """
         append_msg = SystemMessage(content=append_prompt)
 
-        response = await self.model.ainvoke(state["messages"] + [append_msg], config=config)
+        response = await self.model.ainvoke(state["messages"] + steering_messages + [append_msg], config=config)
 
         return {
-            "messages": [response],
+            "messages": steering_messages + [response],
             "stats": {**_extract_usage(response), "failures_since_last_reflection": -fail_count},
         }
 
@@ -217,9 +244,11 @@ class AgentGraphBuilder:
         # Retry
         return "proceed"
 
-    def route_tools(self, state: AgentState):
+    def route_tools(self, state: AgentState, config: RunnableConfig):
         # If task is completed, return END
         if state.get("task_completed"):
+            if state.get("steering_queue"):
+                return "build"
             return END
         # If build output is empty, retry
         if state.get("total_stages") == 0:

@@ -232,6 +232,11 @@ export const createSocketSlice: StateCreator<AppState, [], [], SocketSlice> = (s
       const { stages, current_index } = data;
       actions._onStagesEdited(sessionId, { stages, current_index });
     });
+    socket.on("steering_applied", (data: SessionPayload & { message_ids?: string[] }) => {
+      const sessionId = getSessionId(data);
+      if (!sessionId) return;
+      actions._onChatSteeringApplied(sessionId, data);
+    });
 
     // Welcome events
     socket.on("history_list", actions._onHistoryList);
