@@ -2,8 +2,8 @@ import asyncio
 import uuid
 
 import socketio
-from langchain_core.messages import BaseMessage
 
+from hallw.core import AgentState
 from hallw.utils import logger
 
 from .session import Session
@@ -105,8 +105,7 @@ class SessionManager:
         main_loop: asyncio.AbstractEventLoop,
         session_id: str,
         thread_id: str,
-        messages: list[BaseMessage],
-        stats: dict,
+        state: AgentState,
     ) -> Session:
         client_sessions = self.get_client_sessions(sid)
         existing_session = client_sessions.get(session_id)
@@ -116,9 +115,7 @@ class SessionManager:
 
         session = Session(sid=sid, sio=sio, main_loop=main_loop, session_id=session_id, thread_id=thread_id)
         client_sessions[session_id] = session
-        session.history = messages
-        session.input_tokens = stats.get("input_tokens", 0)
-        session.output_tokens = stats.get("output_tokens", 0)
+        session.state = state
         return session
 
 

@@ -3,7 +3,7 @@ import asyncio
 import socketio
 from langchain_core.messages import BaseMessage
 
-from hallw.core import AgentRunner
+from hallw.core import AgentRunner, AgentState, create_agent_state
 from hallw.server.socket_renderer import SocketRenderer
 from hallw.tools.playwright.playwright_mgr import BrowserWorker
 
@@ -24,9 +24,7 @@ class Session:
         self.session_id = session_id
         self.thread_id = thread_id if thread_id else session_id
         self.renderer = SocketRenderer(sio, sid, main_loop, session_id=session_id)
-        self.history: list[BaseMessage] = []
-        self.input_tokens = 0
-        self.output_tokens = 0
+        self.state: AgentState = create_agent_state([])
         self.active_runner: AgentRunner | None = None
 
         # asyncio.Task running run_wrapper on the main loop
@@ -34,6 +32,18 @@ class Session:
 
         # Dedicated Playwright thread
         self.browser = BrowserWorker(session_id)
+
+    @property
+    def messages(self) -> list[BaseMessage]:
+        return self.state["messages"]
+
+    @property
+    def input_tokens(self) -> int:
+        return self.state["stats"].get("input_tokens", 0)
+
+    @property
+    def output_tokens(self) -> int:
+        return self.state["stats"].get("output_tokens", 0)
 
     def close(self) -> None:
         """

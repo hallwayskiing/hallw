@@ -80,13 +80,11 @@ async def load_thread(thread_id: str) -> dict[str, Any] | None:
 
         state = checkpoint_tuple.checkpoint["channel_values"]
         messages = state.get("messages", [])
-        stats = state.get("stats", {})
 
         serialized_msgs, tool_states = serialize_messages(messages)
 
         return {
-            "messages": messages,  # Raw messages for backend session
-            "stats": stats,
+            "state": state,
             "serialized_msgs": serialized_msgs,  # For frontend
             "tool_states": tool_states,  # For frontend
         }

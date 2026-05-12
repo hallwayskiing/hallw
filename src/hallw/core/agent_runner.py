@@ -2,7 +2,6 @@ import asyncio
 from typing import Self
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
@@ -93,7 +92,7 @@ class AgentRunner:
     @classmethod
     def create(
         cls,
-        messages: list[BaseMessage],
+        state: AgentState,
         thread_id: str,
         renderer: AgentRenderer,
         checkpointer: BaseCheckpointSaver,
@@ -115,22 +114,6 @@ class AgentRunner:
             },
         )
 
-        # Build initial state
-        initial_state: AgentState = {
-            "messages": messages,
-            "stats": {
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "tool_call_counts": 0,
-                "failures": 0,
-                "failures_since_last_reflection": 0,
-            },
-            "current_stage": 0,
-            "total_stages": 0,
-            "stage_names": [],
-            "task_completed": False,
-        }
-
         invocation_config: RunnableConfig = {
             "recursion_limit": config.model_max_recursion,
             "configurable": {
@@ -143,7 +126,7 @@ class AgentRunner:
             task_id=thread_id,
             llm=llm,
             dispatcher=AgentEventDispatcher(renderer),
-            initial_state=initial_state,
+            initial_state=state,
             checkpointer=checkpointer,
             invocation_config=invocation_config,
         )

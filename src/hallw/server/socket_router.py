@@ -4,7 +4,7 @@ import socketio
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import SecretStr
 
-from hallw.core import AgentRunner
+from hallw.core import AgentRunner, create_agent_state
 from hallw.tools.playwright.playwright_mgr import reset_session_browser, set_session_browser
 from hallw.utils import (
     config,
@@ -47,9 +47,9 @@ async def start_task(sid, data):
         await sio.emit("fatal_error", {"session_id": session_id, "message": "A task is already running."}, room=sid)
         return
 
-    if not session.history:
-        session.history.append(SystemMessage(content=get_system_prompt()))
-    session.history.append(_build_human_message(task_text, file_paths, data.get("message_id")))
+    if not session.messages:
+        session.messages.append(SystemMessage(content=get_system_prompt()))
+    session.messages.append(_build_human_message(task_text, file_paths, data.get("message_id")))
 
     init_logger(session.thread_id)
 
@@ -124,8 +124,7 @@ async def load_history(sid, data):
             main_loop=asyncio.get_running_loop(),
             session_id=session_id,
             thread_id=thread_id,
-            messages=thread_data["messages"],
-            stats=thread_data["stats"],
+            state=thread_data["state"],
         )
         await sio.emit(
             "history_loaded",
@@ -211,7 +210,7 @@ async def edit_user_message(sid, data):
     target_index = next(
         (
             idx
-            for idx, msg in enumerate(session.history)
+            for idx, msg in enumerate(session.messages)
             if isinstance(msg, HumanMessage) and str(getattr(msg, "id", "") or "") == message_id
         ),
         -1,
@@ -220,15 +219,13 @@ async def edit_user_message(sid, data):
         await sio.emit("error", {"session_id": session_id, "message": "User message not found"}, room=sid)
         return
 
-    original_msg = session.history[target_index]
+    original_msg = session.messages[target_index]
     _replace_human_message(original_msg, new_content)
-    session.history = session.history[:target_index] + [original_msg]
-    session.input_tokens = 0
-    session.output_tokens = 0
+    session.state = create_agent_state(session.messages[:target_index] + [original_msg])
 
     await history_mgr.delete_thread(thread_id)
 
-    serialized_msgs, tool_states = history_mgr.serialize_messages(session.history)
+    serialized_msgs, tool_states = history_mgr.serialize_messages(session.messages)
     await sio.emit(
         "history_loaded",
         {
@@ -278,8 +275,9 @@ async def _run_agent(s: Session, s_id: str, sid: str):
     local_conn = None
     try:
         local_conn, cp = await history_mgr.create_local_checkpointer()
+        runner_state = await _build_runner_state(s, cp)
         runner = AgentRunner.create(
-            messages=s.history.copy(),
+            state=runner_state,
             thread_id=s.thread_id,
             renderer=s.renderer,
             checkpointer=cp,
@@ -289,9 +287,7 @@ async def _run_agent(s: Session, s_id: str, sid: str):
 
         state = await runner.run()
         if state:
-            s.history.extend(state["messages"][len(s.history) :])
-            s.input_tokens += state["stats"].get("input_tokens", 0)
-            s.output_tokens += state["stats"].get("output_tokens", 0)
+            s.state = state
         else:
             logger.error(f"Task returned no state. [session={s_id}]")
 
@@ -309,6 +305,20 @@ async def _run_agent(s: Session, s_id: str, sid: str):
                 await local_conn.close()
             except Exception:
                 pass
+
+
+async def _build_runner_state(s: Session, checkpointer):
+    checkpoint_tuple = await checkpointer.aget_tuple({"configurable": {"thread_id": s.thread_id}})
+    if not checkpoint_tuple:
+        return create_agent_state(list(s.messages))
+
+    checkpoint_state = checkpoint_tuple.checkpoint.get("channel_values", {})
+    checkpoint_messages = checkpoint_state.get("messages", [])
+    if len(checkpoint_messages) > len(s.messages):
+        return create_agent_state(list(s.messages))
+
+    pending_messages = s.messages[len(checkpoint_messages) :]
+    return create_agent_state(list(pending_messages))
 
 
 def _emit_bg(sid: str, event: str, data: dict):
